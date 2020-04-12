@@ -1,3 +1,86 @@
+//! ## A sort of calculator in Rust using Pest.
+//! 
+//! Take a look at the calculator example:
+//! ```sh
+//! cargo run --example calculator 1 + 12
+//! ```
+//! 
+//! ### library usage
+//! 
+//! Simple example 
+//! ```
+//! # use pest::error::Error;
+//! use expression_parser::{Expr, Variables};
+//! # use expression_parser::Rule;
+//! 
+//! # fn main() -> Result<(), Error<Rule>> {
+//! let parsed = Expr::parse("1 + 5 - 2")?;
+//! let result = Expr::eval(parsed, &Variables::default());
+//! 
+//! assert_eq!(Some(4.0), result);
+//! # Ok(())
+//! # }
+//! ```
+//! 
+//! Another example 
+//! ```
+//! # use pest::error::Error;
+//! use expression_parser::{Expr, Variables};
+//! # use expression_parser::Rule;
+//! 
+//! # fn main() -> Result<(), Error<Rule>> {
+//! let parsed = Expr::parse("e ^ (1 + 5 - 2)")?;
+//! let result = Expr::eval(parsed, &Variables::default());
+//! 
+//! assert_eq!(Some(std::f64::consts::E.powf(4.0)), result);
+//! # Ok(())
+//! # }
+//! ```
+//! 
+//! Use build-in variables and functions
+//! ```
+//! # use pest::error::Error;
+//! use expression_parser::{Expr, Variables};
+//! # use expression_parser::Rule;
+//! 
+//! # fn main() -> Result<(), Error<Rule>> {
+//! let parsed = Expr::parse("sin(e) + 1")?;
+//! let result = Expr::eval(parsed, &Variables::default());
+//! 
+//! assert_eq!(Some(std::f64::consts::E.sin() + 1.0), result);
+//! # Ok(())
+//! # }
+//! ```
+//! 
+//! Use your own variables
+//! ```
+//! # use pest::error::Error;
+//! use expression_parser::{Expr, Variables};
+//! # use expression_parser::Rule;
+//! 
+//! # fn main() -> Result<(), Error<Rule>> {
+//! let parsed = Expr::parse("x + y + z")?;
+//! 
+//! let mut vars = std::collections::HashMap::new();
+//! vars.insert(String::from("x"), 3.0);
+//! vars.insert(String::from("y"), 3.0);
+//! vars.insert(String::from("z"), 10.0);
+//! 
+//! let result = Expr::eval(parsed.clone(), &vars.into());
+//! 
+//! assert_eq!(Some(16.0), result); 
+//! 
+//! let mut vars = Variables::default();
+//! vars.insert(String::from("x"), 3.0);
+//! vars.insert(String::from("y"), 3.0);
+//! vars.insert(String::from("z"), 10.0);
+//! 
+//! let result = Expr::eval(parsed, &vars);
+//! assert_eq!(Some(16.0), result);
+//! # Ok(())
+//! # }
+//! ```
+
 #![recursion_limit = "1024"]
 
 #[macro_use]
@@ -7,9 +90,9 @@ extern crate lazy_static;
 
 use std::collections::{BTreeMap, HashMap};
 
-use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::error::Error;
 use pest::iterators::{Pair, Pairs};
+use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 
 #[derive(Parser)]
@@ -44,7 +127,7 @@ fn parse_expression(expression: Pairs<Rule>) -> Expr {
             Rule::num => Expr::Value(pair.as_str().parse::<f64>().unwrap()),
             Rule::expr => parse_expression(pair.into_inner()),
             Rule::var => Expr::Var(pair.as_str().trim().to_string()),
-            _ => unreachable!(),
+            rule => make_function(rule, pair),
         },
         |lhs: Expr, op: Pair<Rule>, rhs: Expr| match op.as_rule() {
             Rule::add => Expr::Expr(Box::new(Ops::Add(lhs, rhs))),
@@ -55,6 +138,16 @@ fn parse_expression(expression: Pairs<Rule>) -> Expr {
             _ => unreachable!(),
         },
     )
+}
+
+fn make_function(rule: Rule, pair: Pair<Rule>) -> Expr {
+    let sub_expression = parse_expression(pair.into_inner());
+    match rule {
+        Rule::sin => Expr::Expr(Box::new(Ops::Sin(sub_expression))),
+        Rule::cos => Expr::Expr(Box::new(Ops::Cos(sub_expression))),
+        Rule::tan => Expr::Expr(Box::new(Ops::Tan(sub_expression))),
+        _ => unreachable!(),
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -99,7 +192,7 @@ impl From<BTreeMap<String, f64>> for Variables {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Value(f64),
     Expr(Box<Ops>),
@@ -123,13 +216,16 @@ impl Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Ops {
     Add(Expr, Expr),
     Sub(Expr, Expr),
     Mul(Expr, Expr),
     Div(Expr, Expr),
     Pow(Expr, Expr),
+    Sin(Expr),
+    Cos(Expr),
+    Tan(Expr),
 }
 
 impl Ops {
@@ -140,6 +236,10 @@ impl Ops {
             Ops::Mul(lhs, rhs) => Expr::eval(lhs, vars)? * Expr::eval(rhs, vars)?,
             Ops::Div(lhs, rhs) => Expr::eval(lhs, vars)? / Expr::eval(rhs, vars)?,
             Ops::Pow(lhs, rhs) => Expr::eval(lhs, vars)?.powf(Expr::eval(rhs, vars)?),
+
+            Ops::Sin(lhs) => Expr::eval(lhs, vars)?.sin(),
+            Ops::Cos(lhs) => Expr::eval(lhs, vars)?.cos(),
+            Ops::Tan(lhs) => Expr::eval(lhs, vars)?.tan(),
         })
     }
 }
@@ -217,5 +317,15 @@ mod tests {
         let parsed = Expr::parse("(2*e - pi) * g").unwrap();
 
         assert_eq!(Some(30.0), Expr::eval(parsed, &vars.into()));
+    }
+
+    #[test]
+    fn trigonometric_functions() {
+        let parsed = Expr::parse("sin(2) + tan(1) - cos(3)").unwrap();
+
+        assert_eq!(
+            Some(2.0f64.sin() + 1.0f64.tan() - 3.0f64.cos()),
+            Expr::eval(parsed, &Variables::default())
+        );
     }
 }

@@ -1,0 +1,19 @@
+calculation = _{ SOI ~ expr ~ EOI }
+
+num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
+    int = { ("+" | "-")? ~ ASCII_DIGIT+ }
+
+var = { (ASCII_ALPHANUMERIC | ":" | "_" )+ }
+
+operation = _{ add | subtract | multiply | divide | power }
+    add      = { "+" }
+    subtract = { "-" }
+    multiply = { "*" }
+    divide   = { "/" }
+    power    = { "^" }
+
+expr = { term ~ (operation ~ term)* }
+term = _{ num | var | "(" ~ expr ~ ")" }
+
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }

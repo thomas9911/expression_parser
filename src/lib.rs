@@ -1,80 +1,80 @@
 //! ## A sort of calculator in Rust using Pest.
-//! 
+//!
 //! Take a look at the calculator example:
 //! ```sh
 //! cargo run --example calculator 1 + 12
 //! ```
-//! 
+//!
 //! ### library usage
-//! 
-//! Simple example 
+//!
+//! Simple example
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expr, Variables};
 //! # use expression_parser::Rule;
-//! 
+//!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expr::parse("1 + 5 - 2")?;
 //! let result = Expr::eval(parsed, &Variables::default());
-//! 
+//!
 //! assert_eq!(Some(4.0), result);
 //! # Ok(())
 //! # }
 //! ```
-//! 
-//! Another example 
+//!
+//! Another example
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expr, Variables};
 //! # use expression_parser::Rule;
-//! 
+//!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expr::parse("e ^ (1 + 5 - 2)")?;
 //! let result = Expr::eval(parsed, &Variables::default());
-//! 
+//!
 //! assert_eq!(Some(std::f64::consts::E.powf(4.0)), result);
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 //! Use build-in variables and functions
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expr, Variables};
 //! # use expression_parser::Rule;
-//! 
+//!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expr::parse("sin(e) + 1")?;
 //! let result = Expr::eval(parsed, &Variables::default());
-//! 
+//!
 //! assert_eq!(Some(std::f64::consts::E.sin() + 1.0), result);
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 //! Use your own variables
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expr, Variables};
 //! # use expression_parser::Rule;
-//! 
+//!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expr::parse("x + y + z")?;
-//! 
+//!
 //! let mut vars = std::collections::HashMap::new();
 //! vars.insert(String::from("x"), 3.0);
 //! vars.insert(String::from("y"), 3.0);
 //! vars.insert(String::from("z"), 10.0);
-//! 
+//!
 //! let result = Expr::eval(parsed.clone(), &vars.into());
-//! 
-//! assert_eq!(Some(16.0), result); 
-//! 
+//!
+//! assert_eq!(Some(16.0), result);
+//!
 //! let mut vars = Variables::default();
 //! vars.insert("x", 3.0);
 //! vars.insert("y", 3.0);
 //! vars.insert("z", 10.0);
-//! 
+//!
 //! let result = Expr::eval(parsed, &vars);
 //! assert_eq!(Some(16.0), result);
 //! # Ok(())
@@ -94,6 +94,9 @@ use pest::error::Error;
 use pest::iterators::{Pair, Pairs};
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[grammar = "expression.pest"]
@@ -193,6 +196,7 @@ impl From<BTreeMap<String, f64>> for Variables {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Expr {
     Value(f64),
     Expr(Box<Ops>),
@@ -217,6 +221,7 @@ impl Expr {
 }
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Ops {
     Add(Expr, Expr),
     Sub(Expr, Expr),

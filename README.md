@@ -55,9 +55,9 @@ let result = Expr::eval(parsed.clone(), &vars.into());
 assert_eq!(Some(16.0), result);
 
 let mut vars = Variables::default();
-vars.insert(String::from("x"), 3.0);
-vars.insert(String::from("y"), 3.0);
-vars.insert(String::from("z"), 10.0);
+vars.insert("x", 3.0);
+vars.insert("y", 3.0);
+vars.insert("z", 10.0);
 
 let result = Expr::eval(parsed, &vars);
 assert_eq!(Some(16.0), result);

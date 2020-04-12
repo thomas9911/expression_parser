@@ -71,9 +71,9 @@
 //! assert_eq!(Some(16.0), result); 
 //! 
 //! let mut vars = Variables::default();
-//! vars.insert(String::from("x"), 3.0);
-//! vars.insert(String::from("y"), 3.0);
-//! vars.insert(String::from("z"), 10.0);
+//! vars.insert("x", 3.0);
+//! vars.insert("y", 3.0);
+//! vars.insert("z", 10.0);
 //! 
 //! let result = Expr::eval(parsed, &vars);
 //! assert_eq!(Some(16.0), result);
@@ -160,8 +160,8 @@ impl Variables {
         self.state.get(key)
     }
 
-    pub fn insert(&mut self, key: String, value: f64) -> Option<f64> {
-        self.state.insert(key, value)
+    pub fn insert(&mut self, key: &str, value: f64) -> Option<f64> {
+        self.state.insert(String::from(key), value)
     }
 
     pub fn from_iter<T: IntoIterator<Item = (String, f64)>>(iter: T) -> Variables {

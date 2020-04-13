@@ -14,30 +14,43 @@ struct StringExpressionParser;
 
 lazy_static! {
     static ref DEFAULT_VARIABLES: HashMap<String, String> = {
-        let m = HashMap::new();
+        let mut m = HashMap::new();
+        m.insert(String::from("true"), String::from("true"));
+        m.insert(String::from("false"), String::from("false"));
         m
     };
     static ref PREC_CLIMBER: PrecClimber<Rule> = {
         use Assoc::*;
         use Rule::*;
 
-        PrecClimber::new(vec![Operator::new(add, Left)])
+        PrecClimber::new(vec![
+            Operator::new(add, Left),
+            Operator::new(equal, Right),
+            Operator::new(not_equal, Right),
+            Operator::new(and, Left),
+            Operator::new(or, Left),
+        ])
     };
 }
 
 // mostly copied from pest calculator example
 fn parse_expression(expression: Pairs<Rule>) -> StringExpr {
+    use StringExpr::*;
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
-            Rule::num => StringExpr::Value(pair.as_str().trim().to_string()),
-            Rule::string => StringExpr::Value(pair.as_str().trim_matches('"').to_string()),
+            Rule::num => Value(pair.as_str().trim().to_string()),
+            Rule::string => Value(pair.as_str().trim_matches('"').to_string()),
             Rule::expr => parse_expression(pair.into_inner()),
-            Rule::var => StringExpr::Var(pair.as_str().trim().to_string()),
+            Rule::var => Var(pair.as_str().trim().to_string()),
             rule => make_function(rule, pair),
         },
         |lhs: StringExpr, op: Pair<Rule>, rhs: StringExpr| match op.as_rule() {
-            Rule::add => StringExpr::Expr(Box::new(StringOps::Concat(vec![lhs, rhs]))),
+            Rule::add => Expr(Box::new(StringOps::Concat(vec![lhs, rhs]))),
+            Rule::equal => Expr(Box::new(StringOps::Equal(lhs, rhs))),
+            Rule::not_equal => Expr(Box::new(StringOps::NotEqual(lhs, rhs))),
+            Rule::and => Expr(Box::new(StringOps::And(lhs, rhs))),
+            Rule::or => Expr(Box::new(StringOps::Or(lhs, rhs))),
             // _ => unreachable!(),
             rule => {
                 println!("{:?}", rule);
@@ -48,17 +61,22 @@ fn parse_expression(expression: Pairs<Rule>) -> StringExpr {
 }
 
 fn make_function(rule: Rule, pair: Pair<Rule>) -> StringExpr {
+    use StringExpr::Expr;
     let arguments: Vec<StringExpr> = pair
         .into_inner()
         .map(|x| parse_expression(x.into_inner()))
         .collect();
     match rule {
-        Rule::upper => StringExpr::Expr(Box::new(StringOps::Upper(arguments[0].clone()))),
-        Rule::trim => StringExpr::Expr(Box::new(StringOps::Trim(
+        Rule::upper => Expr(Box::new(StringOps::Upper(arguments[0].clone()))),
+        Rule::trim => Expr(Box::new(StringOps::Trim(
             arguments[0].clone(),
             arguments[1].clone(),
         ))),
-        Rule::concat => StringExpr::Expr(Box::new(StringOps::Concat(arguments))),
+        Rule::contains => Expr(Box::new(StringOps::Contains(
+            arguments[0].clone(),
+            arguments[1].clone(),
+        ))),
+        Rule::concat => Expr(Box::new(StringOps::Concat(arguments))),
         _ => unreachable!(),
     }
 }
@@ -140,25 +158,25 @@ impl StringExpr {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StringOps {
     Concat(Vec<StringExpr>),
+    Equal(StringExpr, StringExpr),
+    NotEqual(StringExpr, StringExpr),
+    And(StringExpr, StringExpr),
+    Or(StringExpr, StringExpr),
     Trim(StringExpr, StringExpr),
+    Contains(StringExpr, StringExpr),
     Upper(StringExpr),
 }
 
 impl StringOps {
     pub fn eval(operator: StringOps, vars: &StringVariables) -> Option<String> {
-        Some(match operator {
-            StringOps::Concat(list) => {
-                // let mut string = String::new();
+        use StringOps::*;
 
-                // let mut string = StringExpr::eval(lhs, vars)?;
-                // string.push_str(&StringExpr::eval(rhs, vars)?);
-                // string
-                list.iter().try_fold(String::new(), |mut acc, x| {
-                    acc.push_str(&StringExpr::eval(x.clone(), vars)?);
-                    Some(acc)
-                })?
-            }
-            StringOps::Trim(lhs, rhs) => {
+        Some(match operator {
+            Concat(list) => list.iter().try_fold(String::new(), |mut acc, x| {
+                acc.push_str(&StringExpr::eval(x.clone(), vars)?);
+                Some(acc)
+            })?,
+            Trim(lhs, rhs) => {
                 let string = StringExpr::eval(lhs, vars)?;
                 let trim_with = &StringExpr::eval(rhs, vars)?;
                 string
@@ -166,18 +184,215 @@ impl StringOps {
                     .trim_start_matches(trim_with)
                     .to_string()
             }
-            StringOps::Upper(lhs) => StringExpr::eval(lhs, vars)?.to_uppercase(),
+            Equal(lhs, rhs) => {
+                let string = StringExpr::eval(lhs, vars)?;
+                let other = &StringExpr::eval(rhs, vars)?;
+                string.eq(other).to_string()
+            }
+            NotEqual(lhs, rhs) => {
+                use std::ops::Not;
+
+                let string = StringExpr::eval(lhs, vars)?;
+                let other = &StringExpr::eval(rhs, vars)?;
+                string.eq(other).not().to_string()
+            }
+            And(lhs, rhs) => {
+                let string: StringBoolean = StringExpr::eval(lhs, vars)?.into();
+                let other: StringBoolean = StringExpr::eval(rhs, vars)?.into();
+                string.and(&other).to_string()
+            }
+            Or(lhs, rhs) => {
+                let string: StringBoolean = StringExpr::eval(lhs, vars)?.into();
+                let other: StringBoolean = StringExpr::eval(rhs, vars)?.into();
+                string.or(&other).to_string()
+            }
+            Contains(lhs, rhs) => {
+                let string = StringExpr::eval(lhs, vars)?;
+                let contains = &StringExpr::eval(rhs, vars)?;
+                string.contains(contains).to_string()
+            }
+            Upper(lhs) => StringExpr::eval(lhs, vars)?.to_uppercase(),
         })
+    }
+}
+
+#[derive(Debug, Clone)]
+enum StringBoolean {
+    String(String),
+    Bool(bool),
+}
+
+impl std::fmt::Display for StringBoolean {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StringBoolean::String(x) => write!(f, "{}", x),
+            StringBoolean::Bool(x) => write!(f, "{}", x),
+        }
+    }
+}
+
+impl From<String> for StringBoolean {
+    fn from(input: String) -> StringBoolean {
+        if let Ok(x) = input.parse::<bool>() {
+            StringBoolean::Bool(x)
+        } else {
+            StringBoolean::String(input)
+        }
+    }
+}
+
+impl From<bool> for StringBoolean {
+    fn from(input: bool) -> StringBoolean {
+        StringBoolean::Bool(input)
+    }
+}
+
+impl StringBoolean {
+    pub fn and(&self, other: &StringBoolean) -> StringBoolean {
+        match self {
+            StringBoolean::String(_) => match other {
+                StringBoolean::String(_) | StringBoolean::Bool(false) => other.to_owned(),
+                StringBoolean::Bool(true) => self.to_owned(),
+            },
+            StringBoolean::Bool(true) => other.to_owned(),
+            StringBoolean::Bool(false) => self.to_owned(),
+        }
+    }
+
+    pub fn or(&self, other: &StringBoolean) -> StringBoolean {
+        match self {
+            StringBoolean::String(_) | StringBoolean::Bool(true) => self.to_owned(),
+            StringBoolean::Bool(false) => other.to_owned(),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    mod or {
+        use crate::{StringExpr, StringVariables};
+
+        #[test]
+        fn operator_true() {
+            let parsed = StringExpr::parse("\"true\" | \"false\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("true".to_string()), result);
+        }
+
+        #[test]
+        fn operator_false() {
+            let parsed = StringExpr::parse("\"false\" | \"false\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("false".to_string()), result);
+        }
+
+        #[test]
+        fn operator_false_string() {
+            let parsed = StringExpr::parse("\"false\" | \"test\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("test".to_string()), result);
+        }
+
+        #[test]
+        fn operator_true_string() {
+            let parsed = StringExpr::parse("\"true\" | \"test\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("true".to_string()), result);
+        }
+
+        #[test]
+        fn operator_string_string() {
+            let parsed = StringExpr::parse("\"test\" | \"other\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("test".to_string()), result);
+        }
+    }
+
+    mod and {
+        use crate::{StringExpr, StringVariables};
+
+        #[test]
+        fn operator_false() {
+            let parsed = StringExpr::parse("\"true\" & \"false\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("false".to_string()), result);
+        }
+
+        #[test]
+        fn operator_false_2() {
+            let parsed = StringExpr::parse("\"false\" & \"false\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("false".to_string()), result);
+        }
+
+        #[test]
+        fn operator_true() {
+            let parsed = StringExpr::parse("\"true\" & \"true\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("true".to_string()), result);
+        }
+
+        #[test]
+        fn operator_false_string() {
+            let parsed = StringExpr::parse("\"false\" & \"test\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("false".to_string()), result);
+        }
+
+        #[test]
+        fn operator_true_string() {
+            let parsed = StringExpr::parse("\"true\" & \"test\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("test".to_string()), result);
+        }
+
+        #[test]
+        fn operator_string_string() {
+            let parsed = StringExpr::parse("\"test\" & \"other\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("other".to_string()), result);
+        }
+
+        #[test]
+        fn operator_string_string_2() {
+            let parsed = StringExpr::parse("\"false\" & \"other\"").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Some("false".to_string()), result);
+        }
+    }
     use crate::{StringExpr, StringVariables};
 
     #[test]
+    fn equal_operator_true() {
+        let parsed = StringExpr::parse("\"test\" == \"test\"").unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Some("true".to_string()), result);
+    }
+
+    #[test]
+    fn equal_operator_false() {
+        let parsed = StringExpr::parse("\"test\" == \"other\"").unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Some("false".to_string()), result);
+    }
+
+    #[test]
+    fn not_equal_operator_true() {
+        let parsed = StringExpr::parse("\"test\" != \"test\"").unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Some("false".to_string()), result);
+    }
+
+    #[test]
+    fn not_equal_operator_false() {
+        let parsed = StringExpr::parse("\"test\" != \"other\"").unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Some("true".to_string()), result);
+    }
+
+    #[test]
     fn concat_operator() {
-        let parsed = StringExpr::parse("\"test\" + \"test\"").unwrap();
+        let parsed = StringExpr::parse("\"test\" ++ \"test\"").unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("testtest".to_string()), result);
     }
@@ -228,5 +443,42 @@ mod tests {
         let parsed = StringExpr::parse("trim(\"..test...............\", \".\")").unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("test".to_string()), result);
+    }
+
+    #[test]
+    fn contains_true() {
+        let parsed = StringExpr::parse("contains(\"test\", \"test\")").unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Some("true".to_string()), result);
+    }
+
+    #[test]
+    fn contains_false() {
+        let parsed = StringExpr::parse("contains(\"test\", \"something\")").unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Some("false".to_string()), result);
+    }
+
+    #[test]
+    fn combine_functions() {
+        let parsed = StringExpr::parse(
+            "
+            upper(
+                concat(
+                    \"1234\", 
+                    \"_\", 
+                    contains(
+                        \"test\", 
+                        \"something\"
+                    ) or trim(\"__testing\", \"_\"),
+                    \"_\", 
+                    true
+                )
+            )
+        ",
+        )
+        .unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Some("1234_TESTING_TRUE".to_string()), result);
     }
 }

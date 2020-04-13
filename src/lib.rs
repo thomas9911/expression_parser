@@ -80,7 +80,7 @@
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 //! Simple String example
 //! ```
 //! # use pest::error::Error;
@@ -95,7 +95,7 @@
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 #![recursion_limit = "1024"]
 
 #[macro_use]

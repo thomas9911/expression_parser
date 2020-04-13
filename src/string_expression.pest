@@ -1,0 +1,35 @@
+calculation = _{ SOI ~ expr ~ EOI }
+
+num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
+    int = { ("+" | "-")? ~ ASCII_DIGIT+ }
+
+var = { (ASCII_ALPHANUMERIC | ":" | "_" )+ }
+
+// string  = @{ "\"" ~ inner ~ "\"" }
+//     inner   = { (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner)? }
+//     escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
+//     unicode = { "u" ~ ASCII_HEX_DIGIT{4} }
+
+string  = @{ "\"" ~ letters ~ "\"" }
+    letters = @{ (!("\"" | "\\") ~ char)* }
+    char = _{ PUNCTUATION | LETTER | NUMBER }
+
+operation = _{ add }
+    add      = { "+" }
+
+expr = { term ~ (operation ~ term)* }
+
+func = _{ upper | concat | trim}
+    concat = { "concat(" ~ one_or_more_arguments ~ ")" }
+    trim =   { "trim(" ~ two_arguments ~ ")" }
+    upper =  { "upper(" ~ one_argument ~ ")" }
+
+    one_argument = _{ expr }
+    two_arguments = _{expr ~ COMMA ~ expr}
+    any_arguments = _{ one_or_more_arguments? }
+    one_or_more_arguments = _{ expr ~ (COMMA ~ expr)* }
+
+term = _{ num | "(" ~ expr ~ ")" | string | func | var}
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+COMMA = _{","}

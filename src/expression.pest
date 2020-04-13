@@ -14,13 +14,11 @@ operation = _{ add | subtract | multiply | divide | power }
 
 expr = { term ~ (operation ~ term)* }
 
-sin = { "sin(" ~ expr ~ ")" }
-cos = { "cos(" ~ expr ~ ")" }
-tan = { "tan(" ~ expr ~ ")" }
-
 func = _{ sin | cos | tan }
+    sin = { "sin(" ~ expr ~ ")" }
+    cos = { "cos(" ~ expr ~ ")" }
+    tan = { "tan(" ~ expr ~ ")" }
 
 term = _{ num | "(" ~ expr ~ ")" | func | var}
-
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }

@@ -62,3 +62,14 @@ vars.insert("z", 10.0);
 let result = Expr::eval(parsed, &vars);
 assert_eq!(Some(16.0), result);
 ```
+
+Simple String example
+```rust
+use expression_parser::{StringExpr, StringVariables};
+
+let parsed = StringExpr::parse("concat(\"1\", \"2\", \"3\", \"4\")")?;
+let result = StringExpr::eval(parsed, &StringVariables::default());
+
+assert_eq!(Some(String::from("1234")), result);
+```
+

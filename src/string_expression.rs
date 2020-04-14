@@ -274,35 +274,35 @@ mod tests {
 
         #[test]
         fn operator_true() {
-            let parsed = StringExpr::parse("\"true\" | \"false\"").unwrap();
+            let parsed = StringExpr::parse(r#""true" | "false""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("true".to_string()), result);
         }
 
         #[test]
         fn operator_false() {
-            let parsed = StringExpr::parse("\"false\" | \"false\"").unwrap();
+            let parsed = StringExpr::parse(r#""false" | "false""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("false".to_string()), result);
         }
 
         #[test]
         fn operator_false_string() {
-            let parsed = StringExpr::parse("\"false\" | \"test\"").unwrap();
+            let parsed = StringExpr::parse(r#""false" | "test""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("test".to_string()), result);
         }
 
         #[test]
         fn operator_true_string() {
-            let parsed = StringExpr::parse("\"true\" | \"test\"").unwrap();
+            let parsed = StringExpr::parse(r#""true" | "test""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("true".to_string()), result);
         }
 
         #[test]
         fn operator_string_string() {
-            let parsed = StringExpr::parse("\"test\" | \"other\"").unwrap();
+            let parsed = StringExpr::parse(r#""test" | "other""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("test".to_string()), result);
         }
@@ -313,49 +313,49 @@ mod tests {
 
         #[test]
         fn operator_false() {
-            let parsed = StringExpr::parse("\"true\" & \"false\"").unwrap();
+            let parsed = StringExpr::parse(r#""true" & "false""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("false".to_string()), result);
         }
 
         #[test]
         fn operator_false_2() {
-            let parsed = StringExpr::parse("\"false\" & \"false\"").unwrap();
+            let parsed = StringExpr::parse(r#""false" & "false""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("false".to_string()), result);
         }
 
         #[test]
         fn operator_true() {
-            let parsed = StringExpr::parse("\"true\" & \"true\"").unwrap();
+            let parsed = StringExpr::parse(r#""true" & "true""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("true".to_string()), result);
         }
 
         #[test]
         fn operator_false_string() {
-            let parsed = StringExpr::parse("\"false\" & \"test\"").unwrap();
+            let parsed = StringExpr::parse(r#""false" & "test""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("false".to_string()), result);
         }
 
         #[test]
         fn operator_true_string() {
-            let parsed = StringExpr::parse("\"true\" & \"test\"").unwrap();
+            let parsed = StringExpr::parse(r#""true" & "test""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("test".to_string()), result);
         }
 
         #[test]
         fn operator_string_string() {
-            let parsed = StringExpr::parse("\"test\" & \"other\"").unwrap();
+            let parsed = StringExpr::parse(r#""test" & "other""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("other".to_string()), result);
         }
 
         #[test]
         fn operator_string_string_2() {
-            let parsed = StringExpr::parse("\"false\" & \"other\"").unwrap();
+            let parsed = StringExpr::parse(r#""false" & "other""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Some("false".to_string()), result);
         }
@@ -364,56 +364,56 @@ mod tests {
 
     #[test]
     fn equal_operator_true() {
-        let parsed = StringExpr::parse("\"test\" == \"test\"").unwrap();
+        let parsed = StringExpr::parse(r#""test" == "test""#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("true".to_string()), result);
     }
 
     #[test]
     fn equal_operator_false() {
-        let parsed = StringExpr::parse("\"test\" == \"other\"").unwrap();
+        let parsed = StringExpr::parse(r#""test" == "other""#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("false".to_string()), result);
     }
 
     #[test]
     fn not_equal_operator_true() {
-        let parsed = StringExpr::parse("\"test\" != \"test\"").unwrap();
+        let parsed = StringExpr::parse(r#""test" != "test""#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("false".to_string()), result);
     }
 
     #[test]
     fn not_equal_operator_false() {
-        let parsed = StringExpr::parse("\"test\" != \"other\"").unwrap();
+        let parsed = StringExpr::parse(r#""test" != "other""#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("true".to_string()), result);
     }
 
     #[test]
     fn concat_operator() {
-        let parsed = StringExpr::parse("\"test\" ++ \"test\"").unwrap();
+        let parsed = StringExpr::parse(r#""test" ++ "test""#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("testtest".to_string()), result);
     }
 
     #[test]
     fn concat_function() {
-        let parsed = StringExpr::parse("concat(\"other\", \"test\")").unwrap();
+        let parsed = StringExpr::parse(r#"concat("other", "test")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("othertest".to_string()), result);
     }
 
     #[test]
     fn concat_function_multi() {
-        let parsed = StringExpr::parse("concat(\"1\", \"2\", \"3\", \"4\")").unwrap();
+        let parsed = StringExpr::parse(r#"concat("1", "2", "3", "4")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("1234".to_string()), result);
     }
 
     #[test]
     fn concat_function_variables() {
-        let parsed = StringExpr::parse("concat(test, \"-\", other, third, \"!!\")").unwrap();
+        let parsed = StringExpr::parse(r#"concat(test, "-", other, third, "!!")"#).unwrap();
 
         let mut vars = StringVariables::default();
         vars.insert("test", String::from("1"));
@@ -426,35 +426,35 @@ mod tests {
 
     #[test]
     fn concat_function_one() {
-        let parsed = StringExpr::parse("concat(\"test\")").unwrap();
+        let parsed = StringExpr::parse(r#"concat("test")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("test".to_string()), result);
     }
 
     #[test]
     fn upper() {
-        let parsed = StringExpr::parse("upper(\"test\")").unwrap();
+        let parsed = StringExpr::parse(r#"upper("test")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("TEST".to_string()), result);
     }
 
     #[test]
     fn trim() {
-        let parsed = StringExpr::parse("trim(\"..test...............\", \".\")").unwrap();
+        let parsed = StringExpr::parse(r#"trim("..test...............", ".")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("test".to_string()), result);
     }
 
     #[test]
     fn contains_true() {
-        let parsed = StringExpr::parse("contains(\"test\", \"test\")").unwrap();
+        let parsed = StringExpr::parse(r#"contains("test", "test")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("true".to_string()), result);
     }
 
     #[test]
     fn contains_false() {
-        let parsed = StringExpr::parse("contains(\"test\", \"something\")").unwrap();
+        let parsed = StringExpr::parse(r#"contains("test", "something")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Some("false".to_string()), result);
     }
@@ -462,20 +462,20 @@ mod tests {
     #[test]
     fn combine_functions() {
         let parsed = StringExpr::parse(
-            "
+            r#"
             upper(
                 concat(
-                    \"1234\", 
-                    \"_\", 
+                    "1234", 
+                    "_", 
                     contains(
-                        \"test\", 
-                        \"something\"
-                    ) or trim(\"__testing\", \"_\"),
-                    \"_\", 
+                        "test", 
+                        "something"
+                    ) or trim("__testing", "_"),
+                    "_", 
                     true
                 )
             )
-        ",
+        "#,
         )
         .unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());

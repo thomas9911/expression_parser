@@ -88,7 +88,7 @@
 //! # use expression_parser::string_expression::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
-//! let parsed = StringExpr::parse("concat(\"1\", \"2\", \"3\", \"4\")")?;
+//! let parsed = StringExpr::parse(r#"concat("1", "2", "3", "4")"#)?;
 //! let result = StringExpr::eval(parsed, &StringVariables::default());
 //!
 //! assert_eq!(Some(String::from("1234")), result);

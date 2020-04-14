@@ -7,20 +7,20 @@ fn main() {
     println!("{}", to_string_pretty(&parsed).unwrap()); // 'ast'
 
     let parsed = StringExpr::parse(
-        "
+        r#"
         upper(
             concat(
-                \"1234\", 
-                \"_\", 
+                "1234", 
+                "_", 
                 contains(
-                    \"test\", 
-                    \"something\"
-                ) or trim(\"__testing\", \"_\"),
-                \"_\", 
+                    "test", 
+                    "something"
+                ) or trim("__testing", "_"),
+                "_", 
                 true
             )
         )
-    ",
+    "#,
     )
     .unwrap();
 

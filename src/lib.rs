@@ -84,14 +84,15 @@
 //! Simple String example
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{StringExpr, StringVariables};
+//! use expression_parser::{StringExpr, StringVariables, ExpressionValue};
 //! # use expression_parser::string_expression::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = StringExpr::parse(r#"concat("1", "2", "3", "4")"#)?;
 //! let result = StringExpr::eval(parsed, &StringVariables::default());
 //!
-//! assert_eq!(Some(String::from("1234")), result);
+//! assert_eq!(Some(ExpressionValue::from("1234")), result);
+//! assert_eq!("1234", result.unwrap().to_string());
 //! # Ok(())
 //! # }
 //! ```
@@ -106,4 +107,4 @@ extern crate lazy_static;
 pub mod expression;
 pub mod string_expression;
 pub use expression::{Expr, Ops, Variables};
-pub use string_expression::{StringExpr, StringOps, StringVariables};
+pub use string_expression::{ExpressionValue, Functions, StringExpr, StringVariables};

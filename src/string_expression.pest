@@ -14,13 +14,23 @@ string  = @{ "\"" ~ letters ~ "\"" }
     letters = @{ (!("\"" | "\\") ~ char)* }
     char = _{ PUNCTUATION | LETTER | NUMBER }
 
-operation = _{ add | equal | not_equal | and | or }
-    add       = { "++" }
+operation = _{ string_operation | binary_operation | number_operation}
+
+string_operation = _{ concat_op }
+    concat_op = { "++" }
+
+binary_operation = _{ equal | not_equal | and | or }
     equal     = { "==" }
     not_equal = { "!=" }
     and       = { "&" | "&&" |"and" }
     or        = { "|" | "||" | "or" }
 
+number_operation = _{ power | add | subtract | multiply | divide }
+    add      = { "+" }
+    subtract = { "-" }
+    multiply = { "*" }
+    divide   = { "/" }
+    power    = { "^" | "**" }
 
 expr = { term ~ (operation ~ term)* }
 

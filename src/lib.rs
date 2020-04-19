@@ -91,7 +91,7 @@
 //! let parsed = StringExpr::parse(r#"concat("1", "2", "3", "4")"#)?;
 //! let result = StringExpr::eval(parsed, &StringVariables::default());
 //!
-//! assert_eq!(Some(ExpressionValue::from("1234")), result);
+//! assert_eq!(Ok(ExpressionValue::from("1234")), result);
 //! assert_eq!("1234", result.unwrap().to_string());
 //! # Ok(())
 //! # }
@@ -104,7 +104,10 @@ extern crate pest_derive;
 #[macro_use]
 extern crate lazy_static;
 
+pub mod error;
 pub mod expression;
 pub mod string_expression;
+
+pub use error::Error;
 pub use expression::{Expr, Ops, Variables};
 pub use string_expression::{ExpressionValue, Functions, StringExpr, StringVariables};

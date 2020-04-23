@@ -23,6 +23,18 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert(String::from("true"), ExpressionValue::Bool(true));
         m.insert(String::from("false"), ExpressionValue::Bool(false));
+        m.insert(
+            String::from("e"),
+            ExpressionValue::Number(std::f64::consts::E),
+        );
+        m.insert(
+            String::from("pi"),
+            ExpressionValue::Number(std::f64::consts::PI),
+        );
+        m.insert(
+            String::from("tau"),
+            ExpressionValue::Number(2.0 * std::f64::consts::PI),
+        );
         m
     };
     static ref PREC_CLIMBER: PrecClimber<Rule> = {
@@ -87,6 +99,9 @@ fn make_function(rule: Rule, pair: Pair<Rule>) -> StringExpr {
         .collect();
     match rule {
         upper => Expr(Box::new(Functions::Upper(arguments[0].clone()))),
+        cos => Expr(Box::new(Functions::Cos(arguments[0].clone()))),
+        sin => Expr(Box::new(Functions::Sin(arguments[0].clone()))),
+        tan => Expr(Box::new(Functions::Tan(arguments[0].clone()))),
         trim => Expr(Box::new(Functions::Trim(
             arguments[0].clone(),
             arguments[1].clone(),
@@ -168,12 +183,10 @@ impl StringExpr {
             StringExpr::Expr(op) => Functions::eval(*op, vars)?,
             StringExpr::Value(x) => x,
             // StringExpr::Var(s) => vars.get(&s).clone(),
-            StringExpr::Var(s) => {
-                match vars.get(&s) {
-                    Some(x) => x.clone(),
-                    None => return Err(Error::new(format!("Variable {} not found", &s)))
-                }
-            }
+            StringExpr::Var(s) => match vars.get(&s) {
+                Some(x) => x.clone(),
+                None => return Err(Error::new(format!("Variable {} not found", &s))),
+            },
         })
     }
 
@@ -219,6 +232,9 @@ pub enum Functions {
     Mul(StringExpr, StringExpr),
     Div(StringExpr, StringExpr),
     Pow(StringExpr, StringExpr),
+    Cos(StringExpr),
+    Sin(StringExpr),
+    Tan(StringExpr),
 }
 
 impl Functions {
@@ -239,6 +255,9 @@ impl Functions {
             Mul(lhs, rhs) => functions::mul(lhs, rhs, vars),
             Div(lhs, rhs) => functions::div(lhs, rhs, vars),
             Pow(lhs, rhs) => functions::pow(lhs, rhs, vars),
+            Cos(lhs) => functions::cos(lhs, vars),
+            Sin(lhs) => functions::sin(lhs, vars),
+            Tan(lhs) => functions::tan(lhs, vars),
         }
     }
 
@@ -257,7 +276,7 @@ impl Functions {
             | Mul(lhs, rhs)
             | Div(lhs, rhs)
             | Pow(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
-            Upper(lhs) => Box::new(lhs.iter_variables()),
+            Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) => Box::new(lhs.iter_variables()),
             Concat(list) => Box::new(list.iter().flat_map(|x| x.iter_variables())),
         }
     }
@@ -605,6 +624,27 @@ mod tests {
             let parsed = StringExpr::parse("2^2").unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Ok(4.into()), result);
+        }
+
+        #[test]
+        fn cosine() {
+            let parsed = StringExpr::parse("cos(0)").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Ok(1.into()), result);
+        }
+
+        #[test]
+        fn sine() {
+            let parsed = StringExpr::parse("sin(0)").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Ok(0.into()), result);
+        }
+
+        #[test]
+        fn tangent() {
+            let parsed = StringExpr::parse("tan(0)").unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Ok(0.into()), result);
         }
 
         #[test]

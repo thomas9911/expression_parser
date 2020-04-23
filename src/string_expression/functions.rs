@@ -88,6 +88,18 @@ pub fn pow(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     ok_number(into_number(lhs, vars)?.powf(into_number(rhs, vars)?))
 }
 
+pub fn cos(lhs: Input, vars: &Vars) -> Output {
+    ok_number(into_number(lhs, vars)?.cos())
+}
+
+pub fn sin(lhs: Input, vars: &Vars) -> Output {
+    ok_number(into_number(lhs, vars)?.sin())
+}
+
+pub fn tan(lhs: Input, vars: &Vars) -> Output {
+    ok_number(into_number(lhs, vars)?.tan())
+}
+
 fn into_value(result: Result<String, Error>) -> Output {
     ok_string(result?)
 }
@@ -101,5 +113,7 @@ fn ok_number(number: f64) -> Output {
 }
 
 fn into_number(input: Input, vars: &Vars) -> Result<f64, Error> {
-    StringExpr::eval(input, vars)?.as_number().ok_or(Error::empty())
+    StringExpr::eval(input, vars)?
+        .as_number()
+        .ok_or(Error::empty())
 }

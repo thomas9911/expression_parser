@@ -51,7 +51,9 @@ number_functions = _{ sin | cos | tan }
     cos = { "cos(" ~ one_argument ~ ")" }
     tan = { "tan(" ~ one_argument ~ ")" }
 
-term = _{ num | "(" ~ expr ~ ")" | string | func | var}
+list = { "[" ~ any_arguments ~ "]"}
+
+term = _{ num | "(" ~ expr ~ ")" | string | func | var | list}
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 COMMA = _{","}

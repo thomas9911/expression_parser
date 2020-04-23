@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::fmt::Write;
 
 use pest::error::Error as PestError;
 use pest::iterators::{Pair, Pairs};
@@ -65,6 +66,13 @@ fn parse_expression(expression: Pairs<Rule>) -> StringExpr {
             Rule::string => Value(ExpressionValue::String(
                 pair.as_str().trim_matches('"').to_string(),
             )),
+            Rule::list => {
+                let arguments: Vec<StringExpr> = pair
+                    .into_inner()
+                    .map(|x| parse_expression(x.into_inner()))
+                    .collect();
+                Value(ExpressionValue::List(arguments))
+            }
             Rule::expr => parse_expression(pair.into_inner()),
             Rule::var => Var(pair.as_str().trim().to_string()),
             rule => make_function(rule, pair),
@@ -168,7 +176,7 @@ impl From<BTreeMap<String, ExpressionValue>> for StringVariables {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StringExpr {
     Value(ExpressionValue),
@@ -179,15 +187,24 @@ pub enum StringExpr {
 impl StringExpr {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
     pub fn eval(expression: StringExpr, vars: &StringVariables) -> EvalResult {
-        Ok(match expression {
-            StringExpr::Expr(op) => Functions::eval(*op, vars)?,
-            StringExpr::Value(x) => x,
+        match expression {
+            StringExpr::Expr(op) => Functions::eval(*op, vars),
+            StringExpr::Value(value) => match value {
+                ExpressionValue::List(list) => Ok(ExpressionValue::List(list.iter().try_fold(
+                    Vec::new(),
+                    |mut acc, x| {
+                        acc.push(StringExpr::Value(StringExpr::eval(x.clone(), vars)?));
+                        Ok(acc)
+                    },
+                )?)),
+                x => Ok(x),
+            },
             // StringExpr::Var(s) => vars.get(&s).clone(),
             StringExpr::Var(s) => match vars.get(&s) {
-                Some(x) => x.clone(),
-                None => return Err(Error::new(format!("Variable {} not found", &s))),
+                Some(x) => Ok(x.clone()),
+                None => Err(Error::new(format!("Variable {} not found", &s))),
             },
-        })
+        }
     }
 
     /// Takes input and returns a syntax tree
@@ -216,7 +233,7 @@ impl StringExpr {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Functions {
     Concat(Vec<StringExpr>),
@@ -288,18 +305,35 @@ pub enum ExpressionValue {
     String(String),
     Bool(bool),
     Number(f64),
+    List(Vec<StringExpr>),
 }
 
 impl std::fmt::Display for ExpressionValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use ExpressionValue::*;
+        use ExpressionValue::{Bool, List, Number};
 
         match self {
-            String(x) => write!(f, "{}", x),
+            ExpressionValue::String(x) => write!(f, "{}", x),
             Bool(x) => write!(f, "{}", x),
             Number(x) => write!(f, "{}", x),
+            List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")), 
         }
     }
+}
+
+fn list_to_string(input: &Vec<StringExpr>) -> Vec<String> {
+    use StringExpr::*;
+    input.iter()
+    .map(|x| match x {
+        Value(y) => y.to_string(),
+        Expr(y) => {
+            let mut s = String::new();
+            write!(&mut s, "{:?}", y).unwrap();
+            s
+        }
+        Var(y) => y.to_string(),
+    })
+    .collect()
 }
 
 macro_rules! impl_from_integers {
@@ -384,11 +418,13 @@ impl ExpressionValue {
                 String(_) | Bool(false) => other.to_owned(),
                 Number(float) if nearly_zero(float) => other.to_owned(),
                 Bool(true) | Number(_) => self.to_owned(),
+                _ => self.to_owned(),
             },
             Bool(true) => other.to_owned(),
             Bool(false) => self.to_owned(),
             Number(float) if nearly_zero(float) => self.to_owned(),
             Number(_) => other.to_owned(),
+            _ => self.to_owned(),
         }
     }
 
@@ -400,6 +436,7 @@ impl ExpressionValue {
             Bool(false) => other.to_owned(),
             Number(float) if nearly_zero(float) => other.to_owned(),
             Number(_) => self.to_owned(),
+            _ => self.to_owned(),
         }
     }
 }

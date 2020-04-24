@@ -1,5 +1,4 @@
 use std::collections::{BTreeMap, HashMap};
-use std::fmt::Write;
 
 use pest::error::Error as PestError;
 use pest::iterators::{Pair, Pairs};
@@ -316,24 +315,24 @@ impl std::fmt::Display for ExpressionValue {
             ExpressionValue::String(x) => write!(f, "{}", x),
             Bool(x) => write!(f, "{}", x),
             Number(x) => write!(f, "{}", x),
-            List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")), 
+            List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")),
         }
     }
 }
 
 fn list_to_string(input: &Vec<StringExpr>) -> Vec<String> {
     use StringExpr::*;
-    input.iter()
-    .map(|x| match x {
-        Value(y) => y.to_string(),
-        Expr(y) => {
-            let mut s = String::new();
-            write!(&mut s, "{:?}", y).unwrap();
-            s
-        }
-        Var(y) => y.to_string(),
-    })
-    .collect()
+    input
+        .iter()
+        .map(|x| match x {
+            Value(y) => y.to_string(),
+            Expr(y) => {
+                // temp while StringExpr doesn't implement display
+                format!("{:?}", y)
+            }
+            Var(y) => y.to_string(),
+        })
+        .collect()
 }
 
 macro_rules! impl_from_integers {
@@ -410,33 +409,42 @@ impl ExpressionValue {
         }
     }
 
-    pub fn and(&self, other: &ExpressionValue) -> ExpressionValue {
+    pub fn as_list(&self) -> Option<Vec<StringExpr>> {
         use ExpressionValue::*;
 
         match self {
-            String(_) => match other {
-                String(_) | Bool(false) => other.to_owned(),
-                Number(float) if nearly_zero(float) => other.to_owned(),
-                Bool(true) | Number(_) => self.to_owned(),
-                _ => self.to_owned(),
-            },
-            Bool(true) => other.to_owned(),
-            Bool(false) => self.to_owned(),
-            Number(float) if nearly_zero(float) => self.to_owned(),
-            Number(_) => other.to_owned(),
-            _ => self.to_owned(),
+            List(x) => Some(x.to_owned()),
+            _ => None,
+        }
+    }
+
+    pub fn is_falsy(&self) -> bool {
+        use ExpressionValue::*;
+        match self {
+            String(string) => string == "",
+            Bool(b) => !b,
+            Number(float) => nearly_zero(float),
+            List(list) => list.is_empty(),
+        }
+    }
+
+    pub fn is_truthy(&self) -> bool {
+        !self.is_falsy()
+    }
+
+    pub fn and(&self, other: &ExpressionValue) -> ExpressionValue {
+        if self.is_truthy() {
+            other.to_owned()
+        } else {
+            self.to_owned()
         }
     }
 
     pub fn or(&self, other: &ExpressionValue) -> ExpressionValue {
-        use ExpressionValue::*;
-
-        match self {
-            String(_) | Bool(true) => self.to_owned(),
-            Bool(false) => other.to_owned(),
-            Number(float) if nearly_zero(float) => other.to_owned(),
-            Number(_) => self.to_owned(),
-            _ => self.to_owned(),
+        if self.is_truthy() {
+            self.to_owned()
+        } else {
+            other.to_owned()
         }
     }
 }
@@ -506,7 +514,7 @@ mod tests {
     }
 
     mod or {
-        use crate::{StringExpr, StringVariables};
+        use crate::{ExpressionValue, StringExpr, StringVariables};
 
         #[test]
         fn operator_true() {
@@ -556,10 +564,27 @@ mod tests {
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Ok("test".into()), result);
         }
+
+        #[test]
+        fn operator_vec_string() {
+            use ExpressionValue::{List, Number};
+            use StringExpr::Value;
+
+            let parsed = StringExpr::parse(r#"[1] | "other""#).unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Ok(List(vec![Value(Number(1.0))])), result);
+        }
+
+        #[test]
+        fn operator_empty_vec_string() {
+            let parsed = StringExpr::parse(r#"[] | "other""#).unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Ok("other".into()), result);
+        }
     }
 
     mod and {
-        use crate::{StringExpr, StringVariables};
+        use crate::{ExpressionValue, StringExpr, StringVariables};
 
         #[test]
         fn operator_false() {
@@ -622,6 +647,21 @@ mod tests {
             let parsed = StringExpr::parse(r#"false & "other""#).unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Ok(false.into()), result);
+        }
+
+        #[test]
+        fn operator_vec_string() {
+            let parsed = StringExpr::parse(r#"[1] & "other""#).unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Ok("other".into()), result);
+        }
+
+        #[test]
+        fn operator_empty_vec_string() {
+            use ExpressionValue::List;
+            let parsed = StringExpr::parse(r#"[] & "other""#).unwrap();
+            let result = StringExpr::eval(parsed, &StringVariables::default());
+            assert_eq!(Ok(List(vec![])), result);
         }
     }
 

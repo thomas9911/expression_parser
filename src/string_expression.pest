@@ -12,7 +12,7 @@ var = { (ASCII_ALPHANUMERIC | ":" | "_" )+ }
 
 string  = @{ "\"" ~ letters ~ "\"" }
     letters = @{ (!("\"" | "\\") ~ char)* }
-    char = _{ PUNCTUATION | LETTER | NUMBER }
+    char = _{ PUNCTUATION | LETTER | NUMBER | " " }
 
 operation = _{ string_operation | binary_operation | number_operation}
 

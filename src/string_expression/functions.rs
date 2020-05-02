@@ -2,7 +2,6 @@ use crate::{Error, ExpressionValue, StringExpr, StringVariables};
 
 type Input = StringExpr;
 type Vars = StringVariables;
-// type Output = Option<ExpressionValue>;
 type Output = Result<ExpressionValue, Error>;
 
 // fn xd() -> Result<ExpressionValue, Error> {
@@ -14,10 +13,26 @@ type Output = Result<ExpressionValue, Error>;
 // }
 
 pub fn concat(inputs: Vec<Input>, vars: &Vars) -> Output {
-    into_value(inputs.iter().try_fold(String::new(), |mut acc, x| {
-        acc.push_str(&StringExpr::eval(x.clone(), vars)?.to_string());
+    let evaluated_inputs = inputs.iter().try_fold(Vec::new(), |mut acc, x| {
+        acc.push(StringExpr::eval(x.clone(), vars)?);
         Ok(acc)
-    }))
+    })?;
+
+    if evaluated_inputs.iter().all(|x| x.is_list()) {
+        match evaluated_inputs.iter().try_fold(Vec::new(), |mut acc, x| {
+            let mut list = x.as_list()?;
+            acc.append(&mut list);
+            Some(acc)
+        }) {
+            Some(x) => Ok(ExpressionValue::List(x)),
+            None => Err(Error::empty()),
+        }
+    } else {
+        ok_string(evaluated_inputs.iter().fold(String::new(), |mut acc, x| {
+            acc.push_str(&x.to_string());
+            acc
+        }))
+    }
 }
 
 pub fn trim(lhs: Input, rhs: Input, vars: &Vars) -> Output {
@@ -100,9 +115,9 @@ pub fn tan(lhs: Input, vars: &Vars) -> Output {
     ok_number(into_number(lhs, vars)?.tan())
 }
 
-fn into_value(result: Result<String, Error>) -> Output {
-    ok_string(result?)
-}
+// fn into_value(result: Result<String, Error>) -> Output {
+//     ok_string(result?)
+// }
 
 fn ok_string(string: String) -> Output {
     Ok(ExpressionValue::String(string))

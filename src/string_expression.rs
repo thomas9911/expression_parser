@@ -366,6 +366,16 @@ impl From<bool> for ExpressionValue {
     }
 }
 
+impl From<Vec<ExpressionValue>> for ExpressionValue {
+    fn from(input: Vec<ExpressionValue>) -> ExpressionValue {
+        let expressions = input
+            .iter()
+            .map(|x| StringExpr::Value(x.to_owned()))
+            .collect();
+        ExpressionValue::List(expressions)
+    }
+}
+
 impl_from_integers!(f32);
 impl_from_integers!(f64);
 
@@ -415,6 +425,42 @@ impl ExpressionValue {
         match self {
             List(x) => Some(x.to_owned()),
             _ => None,
+        }
+    }
+
+    pub fn is_number(&self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            Number(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_bool(&self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            Bool(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_string(&self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            String(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_list(&self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            List(_) => true,
+            _ => false,
         }
     }
 
@@ -813,6 +859,16 @@ mod tests {
         let parsed = StringExpr::parse(r#"concat("test")"#).unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Ok("test".into()), result);
+    }
+
+    #[test]
+    fn concat_function_list() {
+        let parsed = StringExpr::parse(r#"[1, 4, 5] ++ [2, 3]"#).unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(
+            Ok(vec![1.into(), 4.into(), 5.into(), 2.into(), 3.into()].into()),
+            result
+        );
     }
 
     #[test]

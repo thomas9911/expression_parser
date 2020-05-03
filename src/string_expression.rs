@@ -161,7 +161,12 @@ fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Functions::Concat(arguments)))
         }
-        _ => unreachable!(),
+        _ => {
+            return Err(make_pest_error(
+                pair_span,
+                format!("function {:?} is not defined", func_name),
+            ));
+        }
     })
 }
 
@@ -173,28 +178,33 @@ fn check_arguments(
     args: &Vec<StringExpr>,
 ) -> Result<(), PestError<Rule>> {
     if min_args > args.len() {
-        let variant = ErrorVariant::<Rule>::CustomError {
-            message: format!(
+        return Err(make_pest_error(
+            span,
+            format!(
                 "function {:?} should have more than {} arguments",
                 function_name, min_args
             ),
-        };
-        return Err(PestError::new_from_span(variant, span));
+        ));
     };
 
     if let Some(max_len) = max_args {
         if args.len() > max_len {
-            let variant = ErrorVariant::<Rule>::CustomError {
-                message: format!(
+            return Err(make_pest_error(
+                span,
+                format!(
                     "function {:?} should have less than {} arguments",
                     function_name, max_len
                 ),
-            };
-            return Err(PestError::new_from_span(variant, span));
+            ));
         };
     };
 
     Ok(())
+}
+
+fn make_pest_error(span: Span, message: String) -> PestError<Rule> {
+    let variant = ErrorVariant::<Rule>::CustomError { message: message };
+    PestError::new_from_span(variant, span)
 }
 
 #[derive(Debug, Clone)]
@@ -360,11 +370,9 @@ impl Functions {
             | Mul(lhs, rhs)
             | Div(lhs, rhs)
             | Pow(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
-            Lower(lhs) 
-            | Upper(lhs) 
-            | Cos(lhs) 
-            | Sin(lhs)
-            | Tan(lhs) => Box::new(lhs.iter_variables()),
+            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) => {
+                Box::new(lhs.iter_variables())
+            }
             Concat(list) => Box::new(list.iter().flat_map(|x| x.iter_variables())),
         }
     }

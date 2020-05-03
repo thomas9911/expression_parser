@@ -12,7 +12,7 @@ var = { (ASCII_ALPHANUMERIC | ":" | "_" )+ }
 
 string  = @{ "\"" ~ letters ~ "\"" }
     letters = @{ (!("\"" | "\\") ~ char)* }
-    char = _{ PUNCTUATION | LETTER | NUMBER | " " }
+    char = _{ PUNCTUATION | LETTER | NUMBER | WHITESPACE }
 
 operation = _{ string_operation | binary_operation | number_operation}
 
@@ -32,28 +32,18 @@ number_operation = _{ power | add | subtract | multiply | divide }
     divide   = { "/" }
     power    = { "^" | "**" }
 
-expr = { term ~ (operation ~ term)* }
+expr = !{ term ~ (operation ~ term)* }
 
-func = _{string_functions | number_functions}
-    one_argument = _{ expr }
-    two_arguments = _{expr ~ COMMA ~ expr}
+func = ${ func_name ~ "(" ~  spaces ~ any_arguments ~ spaces ~ ")" }
     any_arguments = _{ one_or_more_arguments? }
-    one_or_more_arguments = _{ expr ~ (COMMA ~ expr)* }
+    one_or_more_arguments = _{ spaces ~ expr ~ (spaces ~ COMMA ~ spaces ~ expr)* }
 
-string_functions = _{ upper | concat | trim | contains}
-    concat = { "concat(" ~ one_or_more_arguments ~ ")" }
-    trim = { "trim(" ~ two_arguments ~ ")" }
-    contains = { "contains(" ~ two_arguments ~ ")" }
-    upper = { "upper(" ~ one_argument ~ ")" }
-
-number_functions = _{ sin | cos | tan }
-    sin = { "sin(" ~ one_argument ~ ")" }
-    cos = { "cos(" ~ one_argument ~ ")" }
-    tan = { "tan(" ~ one_argument ~ ")" }
+    func_name = { ('a'..'z')+ }
 
 list = { "[" ~ any_arguments ~ "]"}
 
 term = _{ num | "(" ~ expr ~ ")" | string | func | var | list}
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
+spaces = _{ WHITESPACE* }
 COMMA = _{","}

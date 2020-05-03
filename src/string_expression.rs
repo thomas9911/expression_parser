@@ -1,9 +1,9 @@
 use std::collections::{BTreeMap, HashMap};
 
-use pest::error::Error as PestError;
+use pest::error::{Error as PestError, ErrorVariant};
 use pest::iterators::{Pair, Pairs};
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
-use pest::Parser;
+use pest::{Parser, Span};
 
 use crate::Error;
 
@@ -55,78 +55,147 @@ lazy_static! {
 }
 
 // mostly copied from pest calculator example
-fn parse_expression(expression: Pairs<Rule>) -> StringExpr {
+fn parse_expression(expression: Pairs<Rule>) -> Result<StringExpr, PestError<Rule>> {
     use StringExpr::*;
 
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
-            Rule::num => Value(pair.as_str().parse::<f64>().unwrap().into()),
-            Rule::string => Value(ExpressionValue::String(
+            Rule::num => Ok(Value(pair.as_str().parse::<f64>().unwrap().into())),
+            Rule::string => Ok(Value(ExpressionValue::String(
                 pair.as_str().trim_matches('"').to_string(),
-            )),
+            ))),
             Rule::list => {
-                let arguments: Vec<StringExpr> = pair
-                    .into_inner()
-                    .map(|x| parse_expression(x.into_inner()))
-                    .collect();
-                Value(ExpressionValue::List(arguments))
+                let arguments: Vec<StringExpr> =
+                    pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
+                        let p = parse_expression(x.into_inner())?;
+                        acc.push(p);
+                        Ok(acc)
+                    })?;
+                Ok(Value(ExpressionValue::List(arguments)))
             }
             Rule::expr => parse_expression(pair.into_inner()),
-            Rule::var => Var(pair.as_str().trim().to_string()),
-            rule => make_function(rule, pair),
-        },
-        |lhs: StringExpr, op: Pair<Rule>, rhs: StringExpr| match op.as_rule() {
-            Rule::concat_op => Expr(Box::new(Functions::Concat(vec![lhs, rhs]))),
-            Rule::equal => Expr(Box::new(Functions::Equal(lhs, rhs))),
-            Rule::not_equal => Expr(Box::new(Functions::NotEqual(lhs, rhs))),
-            Rule::and => Expr(Box::new(Functions::And(lhs, rhs))),
-            Rule::or => Expr(Box::new(Functions::Or(lhs, rhs))),
-            Rule::add => Expr(Box::new(Functions::Add(lhs, rhs))),
-            Rule::subtract => Expr(Box::new(Functions::Sub(lhs, rhs))),
-            Rule::multiply => Expr(Box::new(Functions::Mul(lhs, rhs))),
-            Rule::divide => Expr(Box::new(Functions::Div(lhs, rhs))),
-            Rule::power => Expr(Box::new(Functions::Pow(lhs, rhs))),
-            // _ => unreachable!(),
+            Rule::var => Ok(Var(pair.as_str().trim().to_string())),
+            Rule::func => make_function(pair),
             rule => {
                 println!("{:?}", rule);
                 unreachable!()
             }
         },
+        |lhs: Result<StringExpr, PestError<Rule>>,
+         op: Pair<Rule>,
+         rhs: Result<StringExpr, PestError<Rule>>| {
+            let lhs = lhs.unwrap();
+            let rhs = rhs.unwrap();
+
+            match op.as_rule() {
+                Rule::concat_op => Ok(Expr(Box::new(Functions::Concat(vec![lhs, rhs])))),
+                Rule::equal => Ok(Expr(Box::new(Functions::Equal(lhs, rhs)))),
+                Rule::not_equal => Ok(Expr(Box::new(Functions::NotEqual(lhs, rhs)))),
+                Rule::and => Ok(Expr(Box::new(Functions::And(lhs, rhs)))),
+                Rule::or => Ok(Expr(Box::new(Functions::Or(lhs, rhs)))),
+                Rule::add => Ok(Expr(Box::new(Functions::Add(lhs, rhs)))),
+                Rule::subtract => Ok(Expr(Box::new(Functions::Sub(lhs, rhs)))),
+                Rule::multiply => Ok(Expr(Box::new(Functions::Mul(lhs, rhs)))),
+                Rule::divide => Ok(Expr(Box::new(Functions::Div(lhs, rhs)))),
+                Rule::power => Ok(Expr(Box::new(Functions::Pow(lhs, rhs)))),
+                // _ => unreachable!(),
+                rule => {
+                    println!("{:?}", rule);
+                    unreachable!()
+                }
+            }
+        },
     )
 }
 
-fn make_function(rule: Rule, pair: Pair<Rule>) -> StringExpr {
-    use Rule::*;
+fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
     use StringExpr::Expr;
 
-    let arguments: Vec<StringExpr> = pair
-        .into_inner()
-        .map(|x| parse_expression(x.into_inner()))
-        .collect();
-    match rule {
-        upper => Expr(Box::new(Functions::Upper(arguments[0].clone()))),
-        cos => Expr(Box::new(Functions::Cos(arguments[0].clone()))),
-        sin => Expr(Box::new(Functions::Sin(arguments[0].clone()))),
-        tan => Expr(Box::new(Functions::Tan(arguments[0].clone()))),
-        trim => Expr(Box::new(Functions::Trim(
-            arguments[0].clone(),
-            arguments[1].clone(),
-        ))),
-        contains => Expr(Box::new(Functions::Contains(
-            arguments[0].clone(),
-            arguments[1].clone(),
-        ))),
-        concat => Expr(Box::new(Functions::Concat(arguments))),
+    let pair_span = pair.as_span();
+    let mut inner_pairs = pair.into_inner();
+    let function_name = inner_pairs.next().expect("function always has a name");
+
+    let arguments: Vec<StringExpr> = inner_pairs.try_fold(Vec::new(), |mut acc, x| {
+        acc.push(parse_expression(x.into_inner())?);
+        Ok(acc)
+    })?;
+    let func_name = function_name.as_str();
+
+    Ok(match func_name {
+        "upper" => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Functions::Upper(arguments[0].clone())))
+        }
+        "lower" => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Functions::Lower(arguments[0].clone())))
+        }
+        "cos" => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Functions::Cos(arguments[0].clone())))
+        }
+        "sin" => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Functions::Sin(arguments[0].clone())))
+        }
+        "tan" => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Functions::Tan(arguments[0].clone())))
+        }
+        "trim" => {
+            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            Expr(Box::new(Functions::Trim(
+                arguments[0].clone(),
+                arguments[1].clone(),
+            )))
+        }
+        "contains" => {
+            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            Expr(Box::new(Functions::Contains(
+                arguments[0].clone(),
+                arguments[1].clone(),
+            )))
+        }
+        "concat" => {
+            check_arguments(func_name, pair_span, 1, None, &arguments)?;
+            Expr(Box::new(Functions::Concat(arguments)))
+        }
         _ => unreachable!(),
-    }
+    })
 }
 
-// fn check_arguments(min_args: usize, max_args: usize, args: &Vec<StringExpr>) {
-//     if (min_args < args.len()) | (args.len() < max_args) {
-//         panic!("invalid arguments")
-//     }
-// }
+fn check_arguments(
+    function_name: &str,
+    span: Span,
+    min_args: usize,
+    max_args: Option<usize>,
+    args: &Vec<StringExpr>,
+) -> Result<(), PestError<Rule>> {
+    if min_args > args.len() {
+        let variant = ErrorVariant::<Rule>::CustomError {
+            message: format!(
+                "function {:?} should have more than {} arguments",
+                function_name, min_args
+            ),
+        };
+        return Err(PestError::new_from_span(variant, span));
+    };
+
+    if let Some(max_len) = max_args {
+        if args.len() > max_len {
+            let variant = ErrorVariant::<Rule>::CustomError {
+                message: format!(
+                    "function {:?} should have less than {} arguments",
+                    function_name, max_len
+                ),
+            };
+            return Err(PestError::new_from_span(variant, span));
+        };
+    };
+
+    Ok(())
+}
 
 #[derive(Debug, Clone)]
 pub struct StringVariables {
@@ -208,10 +277,7 @@ impl StringExpr {
 
     /// Takes input and returns a syntax tree
     pub fn parse(input: &str) -> Result<StringExpr, PestError<Rule>> {
-        Ok(parse_expression(StringExpressionParser::parse(
-            Rule::calculation,
-            input,
-        )?))
+        parse_expression(StringExpressionParser::parse(Rule::calculation, input)?)
     }
 
     /// returns all variables defined in the expression
@@ -243,6 +309,7 @@ pub enum Functions {
     Trim(StringExpr, StringExpr),
     Contains(StringExpr, StringExpr),
     Upper(StringExpr),
+    Lower(StringExpr),
     Add(StringExpr, StringExpr),
     Sub(StringExpr, StringExpr),
     Mul(StringExpr, StringExpr),
@@ -266,6 +333,7 @@ impl Functions {
             Or(lhs, rhs) => functions::or(lhs, rhs, vars),
             Contains(lhs, rhs) => functions::contains(lhs, rhs, vars),
             Upper(lhs) => functions::upper(lhs, vars),
+            Lower(lhs) => functions::lower(lhs, vars),
             Add(lhs, rhs) => functions::add(lhs, rhs, vars),
             Sub(lhs, rhs) => functions::sub(lhs, rhs, vars),
             Mul(lhs, rhs) => functions::mul(lhs, rhs, vars),
@@ -292,7 +360,11 @@ impl Functions {
             | Mul(lhs, rhs)
             | Div(lhs, rhs)
             | Pow(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
-            Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) => Box::new(lhs.iter_variables()),
+            Lower(lhs) 
+            | Upper(lhs) 
+            | Cos(lhs) 
+            | Sin(lhs)
+            | Tan(lhs) => Box::new(lhs.iter_variables()),
             Concat(list) => Box::new(list.iter().flat_map(|x| x.iter_variables())),
         }
     }
@@ -768,6 +840,12 @@ mod tests {
             let parsed = StringExpr::parse("tan(0)").unwrap();
             let result = StringExpr::eval(parsed, &StringVariables::default());
             assert_eq!(Ok(0.into()), result);
+        }
+
+        #[test]
+        fn sine_invalid_argments() {
+            assert!(StringExpr::parse("sin()").is_err());
+            assert!(StringExpr::parse("sin(1,2,3)").is_err());
         }
 
         #[test]

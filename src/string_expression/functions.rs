@@ -83,6 +83,10 @@ pub fn upper(lhs: Input, vars: &Vars) -> Output {
     ok_string(StringExpr::eval(lhs, vars)?.to_string().to_uppercase())
 }
 
+pub fn lower(lhs: Input, vars: &Vars) -> Output {
+    ok_string(StringExpr::eval(lhs, vars)?.to_string().to_lowercase())
+}
+
 pub fn add(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     ok_number(into_number(lhs, vars)? + into_number(rhs, vars)?)
 }

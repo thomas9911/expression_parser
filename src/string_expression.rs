@@ -144,10 +144,13 @@ fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
             Expr(Box::new(Functions::Tan(arguments[0].clone())))
         }
         "trim" => {
-            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
             Expr(Box::new(Functions::Trim(
                 arguments[0].clone(),
-                arguments[1].clone(),
+                arguments
+                    .get(1)
+                    .unwrap_or(&StringExpr::Value(String::from(" ").into()))
+                    .clone(),
             )))
         }
         "contains" => {
@@ -160,6 +163,22 @@ fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
         "concat" => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Functions::Concat(arguments)))
+        }
+        "random" | "rnd" => {
+            check_arguments(func_name, pair_span, 0, Some(2), &arguments)?;
+
+            let default_a = &StringExpr::Value(0.0.into());
+            let default_b = &StringExpr::Value(1.0.into());
+
+            let (a, b) = match arguments.get(0) {
+                None => (default_a, default_b),
+                Some(x) => match arguments.get(1) {
+                    None => (default_a, x),
+                    Some(y) => (x, y),
+                },
+            };
+
+            Expr(Box::new(Functions::Random(a.to_owned(), b.to_owned())))
         }
         _ => {
             return Err(make_pest_error(
@@ -328,6 +347,7 @@ pub enum Functions {
     Cos(StringExpr),
     Sin(StringExpr),
     Tan(StringExpr),
+    Random(StringExpr, StringExpr),
 }
 
 impl Functions {
@@ -352,6 +372,7 @@ impl Functions {
             Cos(lhs) => functions::cos(lhs, vars),
             Sin(lhs) => functions::sin(lhs, vars),
             Tan(lhs) => functions::tan(lhs, vars),
+            Random(lhs, rhs) => functions::random(lhs, rhs, vars),
         }
     }
 
@@ -369,7 +390,8 @@ impl Functions {
             | Sub(lhs, rhs)
             | Mul(lhs, rhs)
             | Div(lhs, rhs)
-            | Pow(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
+            | Pow(lhs, rhs)
+            | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
             Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) => {
                 Box::new(lhs.iter_variables())
             }
@@ -392,7 +414,7 @@ impl std::fmt::Display for ExpressionValue {
         use ExpressionValue::{Bool, List, Number};
 
         match self {
-            ExpressionValue::String(x) => write!(f, "{}", x),
+            ExpressionValue::String(x) => write!(f, "\"{}\"", x),
             Bool(x) => write!(f, "{}", x),
             Number(x) => write!(f, "{}", x),
             List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")),

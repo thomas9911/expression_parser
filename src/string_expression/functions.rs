@@ -29,15 +29,15 @@ pub fn concat(inputs: Vec<Input>, vars: &Vars) -> Output {
         }
     } else {
         ok_string(evaluated_inputs.iter().fold(String::new(), |mut acc, x| {
-            acc.push_str(&x.to_string());
+            acc.push_str(&as_string(x.to_owned()));
             acc
         }))
     }
 }
 
 pub fn trim(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string = StringExpr::eval(lhs, vars)?.to_string();
-    let trim_with = StringExpr::eval(rhs, vars)?.to_string();
+    let string = as_string(StringExpr::eval(lhs, vars)?);
+    let trim_with = as_string(StringExpr::eval(rhs, vars)?);
 
     ok_string(
         string
@@ -48,8 +48,8 @@ pub fn trim(lhs: Input, rhs: Input, vars: &Vars) -> Output {
 }
 
 pub fn contains(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string = StringExpr::eval(lhs, vars)?.to_string();
-    let contains = StringExpr::eval(rhs, vars)?.to_string();
+    let string = as_string(StringExpr::eval(lhs, vars)?);
+    let contains = as_string(StringExpr::eval(rhs, vars)?);
     Ok(string.contains(&contains).into())
 }
 
@@ -80,11 +80,11 @@ pub fn or(lhs: Input, rhs: Input, vars: &Vars) -> Output {
 }
 
 pub fn upper(lhs: Input, vars: &Vars) -> Output {
-    ok_string(StringExpr::eval(lhs, vars)?.to_string().to_uppercase())
+    ok_string(as_string(StringExpr::eval(lhs, vars)?).to_uppercase())
 }
 
 pub fn lower(lhs: Input, vars: &Vars) -> Output {
-    ok_string(StringExpr::eval(lhs, vars)?.to_string().to_lowercase())
+    ok_string(as_string(StringExpr::eval(lhs, vars)?).to_lowercase())
 }
 
 pub fn add(lhs: Input, rhs: Input, vars: &Vars) -> Output {
@@ -119,9 +119,31 @@ pub fn tan(lhs: Input, vars: &Vars) -> Output {
     ok_number(into_number(lhs, vars)?.tan())
 }
 
+pub fn random(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+    use rand::distributions::IndependentSample;
+
+    let a = into_number(lhs, vars)?;
+    let b = into_number(rhs, vars)?;
+
+    let value = if a == b {
+        a
+    } else {
+        let (c, d) = if a >= b { (b, a) } else { (a, b) };
+        let between = rand::distributions::range::Range::new(c, d);
+        let mut rng = rand::thread_rng();
+        between.ind_sample(&mut rng)
+    };
+
+    ok_number(value)
+}
+
 // fn into_value(result: Result<String, Error>) -> Output {
 //     ok_string(result?)
 // }
+
+fn as_string(val: ExpressionValue) -> String {
+    val.to_string().trim_matches('"').to_string()
+}
 
 fn ok_string(string: String) -> Output {
     Ok(ExpressionValue::String(string))

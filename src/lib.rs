@@ -92,7 +92,7 @@
 //! let result = StringExpr::eval(parsed, &StringVariables::default());
 //!
 //! assert_eq!(Ok(ExpressionValue::from("1234")), result);
-//! assert_eq!("1234", result.unwrap().to_string());
+//! assert_eq!("\"1234\"", result.unwrap().to_string());
 //! # Ok(())
 //! # }
 //! ```

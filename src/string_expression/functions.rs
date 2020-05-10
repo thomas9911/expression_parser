@@ -13,8 +13,8 @@ type Output = Result<ExpressionValue, Error>;
 // }
 
 pub fn concat(inputs: Vec<Input>, vars: &Vars) -> Output {
-    let evaluated_inputs = inputs.iter().try_fold(Vec::new(), |mut acc, x| {
-        acc.push(StringExpr::eval(x.clone(), vars)?);
+    let evaluated_inputs = inputs.into_iter().try_fold(Vec::new(), |mut acc, x| {
+        acc.push(StringExpr::eval(x, vars)?);
         Ok(acc)
     })?;
 
@@ -28,10 +28,14 @@ pub fn concat(inputs: Vec<Input>, vars: &Vars) -> Output {
             None => Err(Error::empty()),
         }
     } else {
-        ok_string(evaluated_inputs.iter().fold(String::new(), |mut acc, x| {
-            acc.push_str(&as_string(x.to_owned()));
-            acc
-        }))
+        ok_string(
+            evaluated_inputs
+                .into_iter()
+                .fold(String::new(), |mut acc, x| {
+                    acc.push_str(&as_string(x));
+                    acc
+                }),
+        )
     }
 }
 
@@ -156,5 +160,5 @@ fn ok_number(number: f64) -> Output {
 fn into_number(input: Input, vars: &Vars) -> Result<f64, Error> {
     StringExpr::eval(input, vars)?
         .as_number()
-        .ok_or(Error::empty())
+        .ok_or(Error::new_static("input should be a number"))
 }

@@ -37,6 +37,7 @@ lazy_static! {
         );
         m
     };
+    static ref DEFAULT_STRING_VARIABLES: StringVariables = { StringVariables::default() };
     static ref PREC_CLIMBER: PrecClimber<Rule> = {
         use Assoc::*;
         use Rule::*;
@@ -85,8 +86,8 @@ fn parse_expression(expression: Pairs<Rule>) -> Result<StringExpr, PestError<Rul
         |lhs: Result<StringExpr, PestError<Rule>>,
          op: Pair<Rule>,
          rhs: Result<StringExpr, PestError<Rule>>| {
-            let lhs = lhs.unwrap();
-            let rhs = rhs.unwrap();
+            let lhs = lhs?;
+            let rhs = rhs?;
 
             match op.as_rule() {
                 Rule::concat_op => Ok(Expr(Box::new(Functions::Concat(vec![lhs, rhs])))),
@@ -281,19 +282,29 @@ pub enum StringExpr {
     Var(String),
 }
 
+impl std::fmt::Display for StringExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use StringExpr::*;
+        match self {
+            Value(val) => write!(f, "{}", val),
+            Var(val) => write!(f, "{}", val),
+            Expr(val) => write!(f, "{}", val),
+        }
+    }
+}
+
 impl StringExpr {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
     pub fn eval(expression: StringExpr, vars: &StringVariables) -> EvalResult {
         match expression {
             StringExpr::Expr(op) => Functions::eval(*op, vars),
             StringExpr::Value(value) => match value {
-                ExpressionValue::List(list) => Ok(ExpressionValue::List(list.iter().try_fold(
-                    Vec::new(),
-                    |mut acc, x| {
-                        acc.push(StringExpr::Value(StringExpr::eval(x.clone(), vars)?));
+                ExpressionValue::List(list) => Ok(ExpressionValue::List(
+                    list.into_iter().try_fold(Vec::new(), |mut acc, x| {
+                        acc.push(StringExpr::Value(StringExpr::eval(x, vars)?));
                         Ok(acc)
-                    },
-                )?)),
+                    })?,
+                )),
                 x => Ok(x),
             },
             // StringExpr::Var(s) => vars.get(&s).clone(),
@@ -307,6 +318,22 @@ impl StringExpr {
     /// Takes input and returns a syntax tree
     pub fn parse(input: &str) -> Result<StringExpr, PestError<Rule>> {
         parse_expression(StringExpressionParser::parse(Rule::calculation, input)?)
+    }
+
+    pub fn compile(expression: StringExpr) -> Result<StringExpr, Error> {
+        match expression {
+            StringExpr::Value(value) => match value {
+                ExpressionValue::List(list) => Ok(StringExpr::Value(ExpressionValue::List(
+                    list.iter().try_fold(Vec::new(), |mut acc, x| {
+                        acc.push(StringExpr::compile(x.clone())?);
+                        Ok(acc)
+                    })?,
+                ))),
+                x => Ok(StringExpr::Value(x)),
+            },
+            StringExpr::Expr(op) => Functions::compile(*op),
+            other => Ok(other),
+        }
     }
 
     /// returns all variables defined in the expression
@@ -324,6 +351,14 @@ impl StringExpr {
             self.iter_variables()
                 .filter(|x| !DEFAULT_VARIABLES.contains_key(x)),
         )
+    }
+
+    pub fn is_value(&self) -> bool {
+        use StringExpr::Value;
+        match self {
+            Value(_) => true,
+            _ => false,
+        }
     }
 }
 
@@ -348,6 +383,32 @@ pub enum Functions {
     Sin(StringExpr),
     Tan(StringExpr),
     Random(StringExpr, StringExpr),
+}
+
+impl std::fmt::Display for Functions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Functions::*;
+        match self {
+            Concat(list) => write!(f, "concat({})", ExpressionValue::List(list.to_owned())),
+            Trim(lhs, rhs) => write!(f, "trim({}, {})", lhs, rhs),
+            Equal(lhs, rhs) => write!(f, "({} == {})", lhs, rhs),
+            NotEqual(lhs, rhs) => write!(f, "({} != {})", lhs, rhs),
+            And(lhs, rhs) => write!(f, "({} and {})", lhs, rhs),
+            Or(lhs, rhs) => write!(f, "({} or {})", lhs, rhs),
+            Contains(lhs, rhs) => write!(f, "contains({}, {})", lhs, rhs),
+            Upper(lhs) => write!(f, "upper({})", lhs),
+            Lower(lhs) => write!(f, "lower({})", lhs),
+            Add(lhs, rhs) => write!(f, "({} + {})", lhs, rhs),
+            Sub(lhs, rhs) => write!(f, "({} - {})", lhs, rhs),
+            Mul(lhs, rhs) => write!(f, "({} * {})", lhs, rhs),
+            Div(lhs, rhs) => write!(f, "({} / {})", lhs, rhs),
+            Pow(lhs, rhs) => write!(f, "({} ^ {})", lhs, rhs),
+            Cos(lhs) => write!(f, "cos({})", lhs),
+            Sin(lhs) => write!(f, "sin({})", lhs),
+            Tan(lhs) => write!(f, "tan({})", lhs),
+            Random(lhs, rhs) => write!(f, "random({}, {})", lhs, rhs),
+        }
+    }
 }
 
 impl Functions {
@@ -376,6 +437,61 @@ impl Functions {
         }
     }
 
+    pub fn compile(operator: Functions) -> Result<StringExpr, Error> {
+        use Functions::*;
+
+        if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
+            let funcs = match operator.to_owned() {
+                Concat(list) => {
+                    let list = list.into_iter().try_fold(Vec::new(), |mut acc, x| {
+                        acc.push(StringExpr::compile(x)?);
+                        Ok(acc)
+                    })?;
+                    Concat(list)
+                }
+                Trim(lhs, rhs) => Trim(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Equal(lhs, rhs) => Equal(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                NotEqual(lhs, rhs) => {
+                    NotEqual(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?)
+                }
+                And(lhs, rhs) => And(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Or(lhs, rhs) => Or(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Contains(lhs, rhs) => {
+                    Contains(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?)
+                }
+                Upper(lhs) => Upper(StringExpr::compile(lhs)?),
+                Lower(lhs) => Lower(StringExpr::compile(lhs)?),
+                Add(lhs, rhs) => Add(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Sub(lhs, rhs) => Sub(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Mul(lhs, rhs) => Mul(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Div(lhs, rhs) => Div(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Pow(lhs, rhs) => Pow(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Cos(lhs) => Cos(StringExpr::compile(lhs)?),
+                Sin(lhs) => Sin(StringExpr::compile(lhs)?),
+                Tan(lhs) => Tan(StringExpr::compile(lhs)?),
+                Random(lhs, rhs) => Random(lhs, rhs),
+            };
+
+            Ok(StringExpr::Expr(Box::new(funcs)))
+        } else {
+            Ok(StringExpr::Value(Functions::eval(
+                operator,
+                &DEFAULT_STRING_VARIABLES,
+            )?))
+        }
+    }
+
+    fn cannot_be_pre_evaluated(&self) -> bool {
+        match self {
+            Functions::Random(_, _) => true,
+            _ => false,
+        }
+    }
+
+    fn contains_variables(&self) -> bool {
+        self.iter_variables_without_defaults().count() != 0
+    }
+
     pub fn iter_variables<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
         use Functions::*;
 
@@ -397,6 +513,13 @@ impl Functions {
             }
             Concat(list) => Box::new(list.iter().flat_map(|x| x.iter_variables())),
         }
+    }
+
+    pub fn iter_variables_without_defaults<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
+        Box::new(
+            self.iter_variables()
+                .filter(|x| !DEFAULT_VARIABLES.contains_key(x)),
+        )
     }
 }
 
@@ -428,10 +551,7 @@ fn list_to_string(input: &Vec<StringExpr>) -> Vec<String> {
         .iter()
         .map(|x| match x {
             Value(y) => y.to_string(),
-            Expr(y) => {
-                // temp while StringExpr doesn't implement display
-                format!("{:?}", y)
-            }
+            Expr(y) => y.to_string(),
             Var(y) => y.to_string(),
         })
         .collect()
@@ -1028,5 +1148,86 @@ mod tests {
         .unwrap();
         let result = StringExpr::eval(parsed, &StringVariables::default());
         assert_eq!(Ok("1234_TESTING_TRUE".into()), result);
+    }
+
+    #[test]
+    fn compile_simple() {
+        let parsed = StringExpr::parse(r#"trim("..test...............", ".")"#).unwrap();
+        let compiled = StringExpr::compile(parsed);
+        assert_eq!("\"test\"", compiled.unwrap().to_string());
+
+        let parsed = StringExpr::parse(r#"trim("..test...............", a)"#).unwrap();
+        let compiled = StringExpr::compile(parsed).unwrap();
+        assert_eq!("trim(\"..test...............\", a)", compiled.to_string());
+    }
+
+    #[test]
+    fn compile_medium() {
+        let parsed = StringExpr::parse(
+            r#"
+            upper(
+                concat(
+                    1234, 
+                    "_", 
+                    contains(
+                        "test", 
+                        "something"
+                    ) or trim("__testing", "_"),
+                    "_", 
+                    true
+                )
+            )
+        "#,
+        )
+        .unwrap();
+        let compiled = StringExpr::compile(parsed).unwrap();
+        assert_eq!("\"1234_TESTING_TRUE\"", compiled.to_string());
+
+        let parsed = StringExpr::parse(
+            r#"
+            upper(
+                concat(
+                    1234, 
+                    "_", 
+                    contains(
+                        "test", 
+                        "something"
+                    ) or trim("__testing", a),
+                    "_", 
+                    true
+                )
+            )
+        "#,
+        )
+        .unwrap();
+        let compiled = StringExpr::compile(parsed).unwrap();
+        assert_eq!(
+            "upper(concat([ 1234, \"_\", (false or trim(\"__testing\", a)), \"_\", true ]))",
+            compiled.to_string()
+        );
+    }
+
+    #[test]
+    fn compile_random() {
+        let parsed = StringExpr::parse("random()").unwrap();
+
+        let compiled = StringExpr::compile(parsed).unwrap();
+        assert_eq!("random(0, 1)", compiled.to_string());
+    }
+
+    #[test]
+    fn compile_calculation() {
+        let parsed =
+            StringExpr::parse("1 + 2 + 3 + 4 + sin(pi) + e ^ 2 + abc * 8 - e ^ pi / 2 - abc")
+                .unwrap();
+        assert_eq!(
+            "((((((((1 + 2) + 3) + 4) + sin(pi)) + (e ^ 2)) + (abc * 8)) - ((e ^ pi) / 2)) - abc)",
+            parsed.to_string()
+        );
+        let compiled = StringExpr::compile(parsed).unwrap();
+        assert_eq!(
+            "(((17.38905609893065 + (abc * 8)) - 11.57034631638963) - abc)",
+            compiled.to_string()
+        );
     }
 }

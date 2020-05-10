@@ -161,9 +161,33 @@ fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
                 arguments[1].clone(),
             )))
         }
+        "if" => {
+            check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
+            Expr(Box::new(Functions::If(
+                arguments[0].clone(),
+                arguments[1].clone(),
+                arguments[2].clone(),
+            )))
+        }
         "concat" => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Functions::Concat(arguments)))
+        }
+        "sum" => {
+            check_arguments(func_name, pair_span, 1, None, &arguments)?;
+            Expr(Box::new(Functions::Sum(arguments)))
+        }
+        "product" => {
+            check_arguments(func_name, pair_span, 1, None, &arguments)?;
+            Expr(Box::new(Functions::Product(arguments)))
+        }
+        "all" => {
+            check_arguments(func_name, pair_span, 1, None, &arguments)?;
+            Expr(Box::new(Functions::All(arguments)))
+        }
+        "any" => {
+            check_arguments(func_name, pair_span, 1, None, &arguments)?;
+            Expr(Box::new(Functions::Any(arguments)))
         }
         "random" | "rnd" => {
             check_arguments(func_name, pair_span, 0, Some(2), &arguments)?;
@@ -366,12 +390,17 @@ impl StringExpr {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Functions {
     Concat(Vec<StringExpr>),
+    Sum(Vec<StringExpr>),
+    Product(Vec<StringExpr>),
+    All(Vec<StringExpr>),
+    Any(Vec<StringExpr>),
     Equal(StringExpr, StringExpr),
     NotEqual(StringExpr, StringExpr),
     And(StringExpr, StringExpr),
     Or(StringExpr, StringExpr),
     Trim(StringExpr, StringExpr),
     Contains(StringExpr, StringExpr),
+    If(StringExpr, StringExpr, StringExpr),
     Upper(StringExpr),
     Lower(StringExpr),
     Add(StringExpr, StringExpr),
@@ -389,13 +418,18 @@ impl std::fmt::Display for Functions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Functions::*;
         match self {
-            Concat(list) => write!(f, "concat({})", ExpressionValue::List(list.to_owned())),
+            Concat(list) => write!(f, "concat({})", list_to_string(list).join(", ")),
+            Sum(list) => write!(f, "sum({})", list_to_string(list).join(", ")),
+            Product(list) => write!(f, "product({})", list_to_string(list).join(", ")),
+            All(list) => write!(f, "all({})", list_to_string(list).join(", ")),
+            Any(list) => write!(f, "any({})", list_to_string(list).join(", ")),
             Trim(lhs, rhs) => write!(f, "trim({}, {})", lhs, rhs),
             Equal(lhs, rhs) => write!(f, "({} == {})", lhs, rhs),
             NotEqual(lhs, rhs) => write!(f, "({} != {})", lhs, rhs),
             And(lhs, rhs) => write!(f, "({} and {})", lhs, rhs),
             Or(lhs, rhs) => write!(f, "({} or {})", lhs, rhs),
             Contains(lhs, rhs) => write!(f, "contains({}, {})", lhs, rhs),
+            If(lhs, mdl, rhs) => write!(f, "if({}, {}, {})", lhs, mdl, rhs),
             Upper(lhs) => write!(f, "upper({})", lhs),
             Lower(lhs) => write!(f, "lower({})", lhs),
             Add(lhs, rhs) => write!(f, "({} + {})", lhs, rhs),
@@ -417,12 +451,17 @@ impl Functions {
 
         match operator {
             Concat(list) => functions::concat(list, vars),
+            Sum(list) => functions::sum(list, vars),
+            Product(list) => functions::product(list, vars),
+            All(list) => functions::all(list, vars),
+            Any(list) => functions::any(list, vars),
             Trim(lhs, rhs) => functions::trim(lhs, rhs, vars),
             Equal(lhs, rhs) => functions::equal(lhs, rhs, vars),
             NotEqual(lhs, rhs) => functions::not_equal(lhs, rhs, vars),
             And(lhs, rhs) => functions::and(lhs, rhs, vars),
             Or(lhs, rhs) => functions::or(lhs, rhs, vars),
             Contains(lhs, rhs) => functions::contains(lhs, rhs, vars),
+            If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, vars),
             Upper(lhs) => functions::upper(lhs, vars),
             Lower(lhs) => functions::lower(lhs, vars),
             Add(lhs, rhs) => functions::add(lhs, rhs, vars),
@@ -442,13 +481,11 @@ impl Functions {
 
         if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
             let funcs = match operator.to_owned() {
-                Concat(list) => {
-                    let list = list.into_iter().try_fold(Vec::new(), |mut acc, x| {
-                        acc.push(StringExpr::compile(x)?);
-                        Ok(acc)
-                    })?;
-                    Concat(list)
-                }
+                Concat(list) => Concat(Functions::compile_list(list)?),
+                Sum(list) => Sum(Functions::compile_list(list)?),
+                Product(list) => Product(Functions::compile_list(list)?),
+                All(list) => All(Functions::compile_list(list)?),
+                Any(list) => Any(Functions::compile_list(list)?),
                 Trim(lhs, rhs) => Trim(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
                 Equal(lhs, rhs) => Equal(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
                 NotEqual(lhs, rhs) => {
@@ -458,6 +495,9 @@ impl Functions {
                 Or(lhs, rhs) => Or(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
                 Contains(lhs, rhs) => {
                     Contains(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?)
+                }
+                If(lhs, mdl, rhs) => {
+                    If(StringExpr::compile(lhs)?, StringExpr::compile(mdl)?, StringExpr::compile(rhs)?)
                 }
                 Upper(lhs) => Upper(StringExpr::compile(lhs)?),
                 Lower(lhs) => Lower(StringExpr::compile(lhs)?),
@@ -479,6 +519,13 @@ impl Functions {
                 &DEFAULT_STRING_VARIABLES,
             )?))
         }
+    }
+
+    fn compile_list(list: Vec<StringExpr>) -> Result<Vec<StringExpr>, Error> {
+        list.into_iter().try_fold(Vec::new(), |mut acc, x| {
+            acc.push(StringExpr::compile(x)?);
+            Ok(acc)
+        })
     }
 
     fn cannot_be_pre_evaluated(&self) -> bool {
@@ -508,10 +555,20 @@ impl Functions {
             | Div(lhs, rhs)
             | Pow(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
-            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) => {
-                Box::new(lhs.iter_variables())
-            }
-            Concat(list) => Box::new(list.iter().flat_map(|x| x.iter_variables())),
+
+            Lower(lhs) 
+            | Upper(lhs) 
+            | Cos(lhs) 
+            | Sin(lhs) 
+            | Tan(lhs) => Box::new(lhs.iter_variables()),
+
+            If(lhs, mdl, rhs) => Box::new(lhs.iter_variables().chain(mdl.iter_variables()).chain(rhs.iter_variables())),
+
+            Concat(list) 
+            | Product(list)
+            | Sum(list) 
+            | All(list) 
+            | Any(list) => Box::new(list.iter().flat_map(|x| x.iter_variables())),
         }
     }
 
@@ -546,14 +603,9 @@ impl std::fmt::Display for ExpressionValue {
 }
 
 fn list_to_string(input: &Vec<StringExpr>) -> Vec<String> {
-    use StringExpr::*;
     input
         .iter()
-        .map(|x| match x {
-            Value(y) => y.to_string(),
-            Expr(y) => y.to_string(),
-            Var(y) => y.to_string(),
-        })
+        .map(|x| format!("{}", x))
         .collect()
 }
 
@@ -614,6 +666,7 @@ impl_from_integers!(i64);
 impl_from_integers!(isize);
 
 impl ExpressionValue {
+    /// casts value as a number
     pub fn as_number(&self) -> Option<f64> {
         use ExpressionValue::*;
 
@@ -623,6 +676,19 @@ impl ExpressionValue {
         }
     }
 
+    /// casts value as a number, if the value was a boolean returns 0, for false, or 1, for true.
+    pub fn as_number_or_boolean(&self) -> Option<f64> {
+        use ExpressionValue::*;
+
+        match self {
+            Number(x) => Some(*x),
+            Bool(true) => Some(1.0),
+            Bool(false) => Some(0.0),
+            _ => None,
+        }
+    }
+
+    /// casts value as a boolean
     pub fn as_bool(&self) -> Option<bool> {
         use ExpressionValue::*;
 
@@ -632,6 +698,7 @@ impl ExpressionValue {
         }
     }
 
+    /// casts value as a string
     pub fn as_string(&self) -> Option<String> {
         use ExpressionValue::*;
 
@@ -641,6 +708,7 @@ impl ExpressionValue {
         }
     }
 
+    /// casts value as a list
     pub fn as_list(&self) -> Option<Vec<StringExpr>> {
         use ExpressionValue::*;
 
@@ -655,6 +723,15 @@ impl ExpressionValue {
 
         match self {
             Number(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_number_or_boolean(&self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            Number(_) | Bool(_) => true,
             _ => false,
         }
     }
@@ -700,19 +777,19 @@ impl ExpressionValue {
         !self.is_falsy()
     }
 
-    pub fn and(&self, other: &ExpressionValue) -> ExpressionValue {
+    pub fn and(self, other: ExpressionValue) -> ExpressionValue {
         if self.is_truthy() {
-            other.to_owned()
+            other
         } else {
-            self.to_owned()
+            self
         }
     }
 
-    pub fn or(&self, other: &ExpressionValue) -> ExpressionValue {
+    pub fn or(self, other: ExpressionValue) -> ExpressionValue {
         if self.is_truthy() {
-            self.to_owned()
+            self
         } else {
-            other.to_owned()
+            other
         }
     }
 }
@@ -1128,6 +1205,20 @@ mod tests {
     }
 
     #[test]
+    fn if_truthy() {
+        let parsed = StringExpr::parse(r#"if("test", "left", "right")"#).unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Ok("left".into()), result);  
+    }
+
+    #[test]
+    fn if_falsy() {
+        let parsed = StringExpr::parse(r#"if([], "left", "right")"#).unwrap();
+        let result = StringExpr::eval(parsed, &StringVariables::default());
+        assert_eq!(Ok("right".into()), result);  
+    }
+
+    #[test]
     fn combine_functions() {
         let parsed = StringExpr::parse(
             r#"
@@ -1173,8 +1264,8 @@ mod tests {
                         "test", 
                         "something"
                     ) or trim("__testing", "_"),
-                    "_", 
-                    true
+                    if("", "!", "_"), 
+                    all([1], true, 12, "oke")
                 )
             )
         "#,
@@ -1193,8 +1284,8 @@ mod tests {
                         "test", 
                         "something"
                     ) or trim("__testing", a),
-                    "_", 
-                    true
+                    if("", "!", "_"), 
+                    all([1], true, 12, "oke")
                 )
             )
         "#,
@@ -1202,7 +1293,7 @@ mod tests {
         .unwrap();
         let compiled = StringExpr::compile(parsed).unwrap();
         assert_eq!(
-            "upper(concat([ 1234, \"_\", (false or trim(\"__testing\", a)), \"_\", true ]))",
+            "upper(concat(1234, \"_\", (false or trim(\"__testing\", a)), \"_\", true))",
             compiled.to_string()
         );
     }

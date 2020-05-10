@@ -12,11 +12,44 @@ type Output = Result<ExpressionValue, Error>;
 //     Ok("".into())
 // }
 
+pub fn sum(inputs: Vec<Input>, vars: &Vars) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+    if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
+        Ok(evaluated_inputs
+            .iter()
+            .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
+            .sum::<f64>()
+            .into())
+    } else {
+        Err(Error::new_static("sum contains non number inputs"))
+    }
+}
+
+pub fn product(inputs: Vec<Input>, vars: &Vars) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+    if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
+        Ok(evaluated_inputs
+            .iter()
+            .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
+            .product::<f64>()
+            .into())
+    } else {
+        Err(Error::new_static("sum contains non number inputs"))
+    }
+}
+
+pub fn all(inputs: Vec<Input>, vars: &Vars) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+    Ok(evaluated_inputs.iter().all(|x| x.is_truthy()).into())
+}
+
+pub fn any(inputs: Vec<Input>, vars: &Vars) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+    Ok(evaluated_inputs.iter().any(|x| x.is_truthy()).into())
+}
+
 pub fn concat(inputs: Vec<Input>, vars: &Vars) -> Output {
-    let evaluated_inputs = inputs.into_iter().try_fold(Vec::new(), |mut acc, x| {
-        acc.push(StringExpr::eval(x, vars)?);
-        Ok(acc)
-    })?;
+    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
 
     if evaluated_inputs.iter().all(|x| x.is_list()) {
         match evaluated_inputs.iter().try_fold(Vec::new(), |mut acc, x| {
@@ -57,6 +90,15 @@ pub fn contains(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     Ok(string.contains(&contains).into())
 }
 
+pub fn if_function(lhs: Input, mdl: Input, rhs: Input, vars: &Vars) -> Output {
+    let condition = StringExpr::eval(lhs, vars)?;
+    if condition.is_truthy(){
+        StringExpr::eval(mdl, vars)
+    } else {
+        StringExpr::eval(rhs, vars)
+    }
+}
+
 pub fn equal(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     let string = StringExpr::eval(lhs, vars)?;
     let other = StringExpr::eval(rhs, vars)?;
@@ -74,13 +116,13 @@ pub fn not_equal(lhs: Input, rhs: Input, vars: &Vars) -> Output {
 pub fn and(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     let string: ExpressionValue = StringExpr::eval(lhs, vars)?;
     let other: ExpressionValue = StringExpr::eval(rhs, vars)?;
-    Ok(string.and(&other).into())
+    Ok(string.and(other).into())
 }
 
 pub fn or(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     let string: ExpressionValue = StringExpr::eval(lhs, vars)?;
     let other: ExpressionValue = StringExpr::eval(rhs, vars)?;
-    Ok(string.or(&other).into())
+    Ok(string.or(other).into())
 }
 
 pub fn upper(lhs: Input, vars: &Vars) -> Output {
@@ -161,4 +203,11 @@ fn into_number(input: Input, vars: &Vars) -> Result<f64, Error> {
     StringExpr::eval(input, vars)?
         .as_number()
         .ok_or(Error::new_static("input should be a number"))
+}
+
+fn evaluate_inputs(inputs: Vec<Input>, vars: &Vars) -> Result<Vec<ExpressionValue>, Error> {
+    inputs.into_iter().try_fold(Vec::new(), |mut acc, x| {
+        acc.push(StringExpr::eval(x, vars)?);
+        Ok(acc)
+    })
 }

@@ -95,6 +95,8 @@ impl Function {
     }
 
     pub fn compile(operator: Function) -> Result<Expression, Error> {
+        use Expression as E;
+        use Expression::*;
         use Function::*;
 
         if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
@@ -104,40 +106,29 @@ impl Function {
                 Product(list) => Product(Function::compile_list(list)?),
                 All(list) => All(Function::compile_list(list)?),
                 Any(list) => Any(Function::compile_list(list)?),
-                Trim(lhs, rhs) => Trim(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Equal(lhs, rhs) => Equal(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                NotEqual(lhs, rhs) => {
-                    NotEqual(Expression::compile(lhs)?, Expression::compile(rhs)?)
-                }
-                And(lhs, rhs) => And(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Or(lhs, rhs) => Or(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Contains(lhs, rhs) => {
-                    Contains(Expression::compile(lhs)?, Expression::compile(rhs)?)
-                }
-                If(lhs, mdl, rhs) => If(
-                    Expression::compile(lhs)?,
-                    Expression::compile(mdl)?,
-                    Expression::compile(rhs)?,
-                ),
-                Upper(lhs) => Upper(Expression::compile(lhs)?),
-                Lower(lhs) => Lower(Expression::compile(lhs)?),
-                Add(lhs, rhs) => Add(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Sub(lhs, rhs) => Sub(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Mul(lhs, rhs) => Mul(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Div(lhs, rhs) => Div(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Pow(lhs, rhs) => Pow(Expression::compile(lhs)?, Expression::compile(rhs)?),
-                Cos(lhs) => Cos(Expression::compile(lhs)?),
-                Sin(lhs) => Sin(Expression::compile(lhs)?),
-                Tan(lhs) => Tan(Expression::compile(lhs)?),
+                Trim(lhs, rhs) => Trim(E::compile(lhs)?, E::compile(rhs)?),
+                Equal(lhs, rhs) => Equal(E::compile(lhs)?, E::compile(rhs)?),
+                NotEqual(lhs, rhs) => NotEqual(E::compile(lhs)?, E::compile(rhs)?),
+                And(lhs, rhs) => And(E::compile(lhs)?, E::compile(rhs)?),
+                Or(lhs, rhs) => Or(E::compile(lhs)?, E::compile(rhs)?),
+                Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
+                If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
+                Upper(lhs) => Upper(E::compile(lhs)?),
+                Lower(lhs) => Lower(E::compile(lhs)?),
+                Add(lhs, rhs) => Add(E::compile(lhs)?, E::compile(rhs)?),
+                Sub(lhs, rhs) => Sub(E::compile(lhs)?, E::compile(rhs)?),
+                Mul(lhs, rhs) => Mul(E::compile(lhs)?, E::compile(rhs)?),
+                Div(lhs, rhs) => Div(E::compile(lhs)?, E::compile(rhs)?),
+                Pow(lhs, rhs) => Pow(E::compile(lhs)?, E::compile(rhs)?),
+                Cos(lhs) => Cos(E::compile(lhs)?),
+                Sin(lhs) => Sin(E::compile(lhs)?),
+                Tan(lhs) => Tan(E::compile(lhs)?),
                 Random(lhs, rhs) => Random(lhs, rhs),
             };
 
-            Ok(Expression::Expr(Box::new(funcs)))
+            Ok(Expr(Box::new(funcs)))
         } else {
-            Ok(Expression::Value(Function::eval(
-                operator,
-                &DEFAULT_STRING_VARIABLES,
-            )?))
+            Ok(Value(Function::eval(operator, &DEFAULT_STRING_VARIABLES)?))
         }
     }
 

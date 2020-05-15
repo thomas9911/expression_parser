@@ -11,56 +11,56 @@ cargo run --example calculator 1 + 12
 
 Simple example
 ```rust
-use expression_parser::{Expr, Variables};
+use expression_parser::{StringExpr, StringVariables};
 
-let parsed = Expr::parse("1 + 5 - 2")?;
-let result = Expr::eval(parsed, &Variables::default());
+let parsed = StringExpr::parse("1 + 5 - 2")?;
+let result = StringExpr::eval(parsed, &StringVariables::default());
 
-assert_eq!(Some(4.0), result);
+assert_eq!(Ok(4.0.into()), result);
 ```
 
 Another example
 ```rust
-use expression_parser::{Expr, Variables};
+use expression_parser::{StringExpr, StringVariables};
 
-let parsed = Expr::parse("e ^ (1 + 5 - 2)")?;
-let result = Expr::eval(parsed, &Variables::default());
+let parsed = StringExpr::parse("e ^ (1 + 5 - 2)")?;
+let result = StringExpr::eval(parsed, &StringVariables::default());
 
-assert_eq!(Some(std::f64::consts::E.powf(4.0)), result);
+assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 ```
 
 Use build-in variables and functions
 ```rust
-use expression_parser::{Expr, Variables};
+use expression_parser::{StringExpr, StringVariables};
 
-let parsed = Expr::parse("sin(e) + 1")?;
-let result = Expr::eval(parsed, &Variables::default());
+let parsed = StringExpr::parse("sin(e) + 1")?;
+let result = StringExpr::eval(parsed, &StringVariables::default());
 
-assert_eq!(Some(std::f64::consts::E.sin() + 1.0), result);
+assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 ```
 
 Use your own variables
 ```rust
-use expression_parser::{Expr, Variables};
+use expression_parser::{StringExpr, StringVariables};
 
-let parsed = Expr::parse("x + y + z")?;
+let parsed = StringExpr::parse("x + y + z")?;
 
 let mut vars = std::collections::HashMap::new();
-vars.insert(String::from("x"), 3.0);
-vars.insert(String::from("y"), 3.0);
-vars.insert(String::from("z"), 10.0);
+vars.insert(String::from("x"), 3.0.into());
+vars.insert(String::from("y"), 3.0.into());
+vars.insert(String::from("z"), 10.0.into());
 
-let result = Expr::eval(parsed.clone(), &vars.into());
+let result = StringExpr::eval(parsed.clone(), &vars.into());
 
-assert_eq!(Some(16.0), result);
+assert_eq!(Ok(16.0.into()), result);
 
-let mut vars = Variables::default();
+let mut vars = StringVariables::default();
 vars.insert("x", 3.0);
 vars.insert("y", 3.0);
 vars.insert("z", 10.0);
 
-let result = Expr::eval(parsed, &vars);
-assert_eq!(Some(16.0), result);
+let result = StringExpr::eval(parsed, &vars);
+assert_eq!(Ok(16.0.into()), result);
 ```
 
 Simple String example
@@ -71,6 +71,6 @@ let parsed = StringExpr::parse(r#"concat("1", "2", "3", "4")"#)?;
 let result = StringExpr::eval(parsed, &StringVariables::default());
 
 assert_eq!(Ok(ExpressionValue::from("1234")), result);
-assert_eq!("1234", result.unwrap().to_string());
+assert_eq!("\"1234\"", result.unwrap().to_string());
 ```
 

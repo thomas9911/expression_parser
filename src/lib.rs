@@ -11,7 +11,7 @@
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expression, Variables};
-//! # use expression_parser::string_expression::Rule;
+//! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("1 + 5 - 2")?;
@@ -26,7 +26,7 @@
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expression, Variables};
-//! # use expression_parser::string_expression::Rule;
+//! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("e ^ (1 + 5 - 2)")?;
@@ -41,7 +41,7 @@
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expression, Variables};
-//! # use expression_parser::string_expression::Rule;
+//! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("sin(e) + 1")?;
@@ -56,7 +56,7 @@
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expression, Variables};
-//! # use expression_parser::string_expression::Rule;
+//! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("x + y + z")?;
@@ -85,7 +85,7 @@
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{Expression, Variables, ExpressionValue};
-//! # use expression_parser::string_expression::Rule;
+//! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse(r#"concat("1", "2", "3", "4")"#)?;
@@ -105,7 +105,15 @@ extern crate pest_derive;
 extern crate lazy_static;
 
 pub mod error;
+pub mod expression_value;
+pub mod function;
+pub mod grammar;
+pub mod statics;
 pub mod string_expression;
+pub mod variables;
 
 pub use error::Error;
-pub use string_expression::{Expression, ExpressionValue, Functions, Variables};
+pub use expression_value::ExpressionValue;
+pub use function::Function;
+pub use string_expression::Expression;
+pub use variables::Variables;

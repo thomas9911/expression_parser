@@ -1,4 +1,4 @@
-use expression_parser::{StringExpr, StringVariables};
+use expression_parser::{Expression, Variables};
 use std::io::{self, Error, StdoutLock, Write};
 
 const HELP_TEXT: &'static str = "Expression interactive example
@@ -40,7 +40,7 @@ fn main() -> Result<(), Error> {
         true => return Ok(()),
     };
 
-    let mut vars = StringVariables::default();
+    let mut vars = Variables::default();
 
     let is_debug = parse_debug_env_var();
 
@@ -90,25 +90,25 @@ fn print_help(first_arg: &str) -> bool {
     }
 }
 
-fn do_expression(buffer: String, vars: &StringVariables, is_debug: bool) {
-    let parsed = match StringExpr::parse(buffer.as_ref()) {
+fn do_expression(buffer: String, vars: &Variables, is_debug: bool) {
+    let parsed = match Expression::parse(buffer.as_ref()) {
         Ok(x) => x,
         Err(e) => return println!("Invalid expression{}", e),
     };
     if is_debug {
         println!("{:?}", parsed); // 'ast'
     }
-    match StringExpr::eval(parsed, vars) {
+    match Expression::eval(parsed, vars) {
         Ok(x) => println!("{}", x), // evaluated expression
         Err(e) => println!("{}", e),
     }
 }
 
-fn assignment(buffer: &str, vars: &mut StringVariables) -> Option<()> {
+fn assignment(buffer: &str, vars: &mut Variables) -> Option<()> {
     let a: Vec<&str> = buffer.split('=').map(|x| x.trim()).collect();
     if a.len() == 2 {
-        let parsed = match StringExpr::parse(a[1].as_ref()) {
-            Ok(x) => match StringExpr::eval(x, vars) {
+        let parsed = match Expression::parse(a[1].as_ref()) {
+            Ok(x) => match Expression::eval(x, vars) {
                 Ok(z) => z,
                 Err(e) => return Some(println!("{}", e)),
             },

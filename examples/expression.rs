@@ -1,4 +1,4 @@
-use expression_parser::{StringExpr, StringVariables};
+use expression_parser::{Expression, Variables};
 
 const HELP_TEXT: &'static str = "Expression example
 Usage: expression [OPTIONS] [ARGS ..]
@@ -22,14 +22,14 @@ fn main() {
         true => return,
     };
 
-    let parsed = match StringExpr::parse(args.join(" ").as_ref()) {
+    let parsed = match Expression::parse(args.join(" ").as_ref()) {
         Ok(x) => x,
         Err(e) => return println!("Invalid expression{}", e),
     };
     if parse_debug_env_var() {
         println!("{:?}", parsed); // 'ast'
     }
-    match StringExpr::eval(parsed, &StringVariables::default()) {
+    match Expression::eval(parsed, &Variables::default()) {
         Ok(x) => println!("{}", x), // evaluated expression
         Err(e) => println!("{}", e),
     }

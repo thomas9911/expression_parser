@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
 #[grammar = "string_expression.pest"]
-struct StringExpressionParser;
+struct ExpressionessionParser;
 
 type EvalResult = Result<ExpressionValue, Error>;
 
@@ -37,7 +37,7 @@ lazy_static! {
         );
         m
     };
-    static ref DEFAULT_STRING_VARIABLES: StringVariables = { StringVariables::default() };
+    static ref DEFAULT_STRING_VARIABLES: Variables = { Variables::default() };
     static ref PREC_CLIMBER: PrecClimber<Rule> = {
         use Assoc::*;
         use Rule::*;
@@ -56,8 +56,8 @@ lazy_static! {
 }
 
 // mostly copied from pest calculator example
-fn parse_expression(expression: Pairs<Rule>) -> Result<StringExpr, PestError<Rule>> {
-    use StringExpr::*;
+fn parse_expression(expression: Pairs<Rule>) -> Result<Expression, PestError<Rule>> {
+    use Expression::*;
 
     PREC_CLIMBER.climb(
         expression,
@@ -67,7 +67,7 @@ fn parse_expression(expression: Pairs<Rule>) -> Result<StringExpr, PestError<Rul
                 pair.as_str().trim_matches('"').to_string(),
             ))),
             Rule::list => {
-                let arguments: Vec<StringExpr> =
+                let arguments: Vec<Expression> =
                     pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
                         let p = parse_expression(x.into_inner())?;
                         acc.push(p);
@@ -83,9 +83,9 @@ fn parse_expression(expression: Pairs<Rule>) -> Result<StringExpr, PestError<Rul
                 unreachable!()
             }
         },
-        |lhs: Result<StringExpr, PestError<Rule>>,
+        |lhs: Result<Expression, PestError<Rule>>,
          op: Pair<Rule>,
-         rhs: Result<StringExpr, PestError<Rule>>| {
+         rhs: Result<Expression, PestError<Rule>>| {
             let lhs = lhs?;
             let rhs = rhs?;
 
@@ -110,14 +110,14 @@ fn parse_expression(expression: Pairs<Rule>) -> Result<StringExpr, PestError<Rul
     )
 }
 
-fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
-    use StringExpr::Expr;
+fn make_function(pair: Pair<Rule>) -> Result<Expression, PestError<Rule>> {
+    use Expression::Expr;
 
     let pair_span = pair.as_span();
     let mut inner_pairs = pair.into_inner();
     let function_name = inner_pairs.next().expect("function always has a name");
 
-    let arguments: Vec<StringExpr> = inner_pairs.try_fold(Vec::new(), |mut acc, x| {
+    let arguments: Vec<Expression> = inner_pairs.try_fold(Vec::new(), |mut acc, x| {
         acc.push(parse_expression(x.into_inner())?);
         Ok(acc)
     })?;
@@ -150,7 +150,7 @@ fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
                 arguments[0].clone(),
                 arguments
                     .get(1)
-                    .unwrap_or(&StringExpr::Value(String::from(" ").into()))
+                    .unwrap_or(&Expression::Value(String::from(" ").into()))
                     .clone(),
             )))
         }
@@ -192,8 +192,8 @@ fn make_function(pair: Pair<Rule>) -> Result<StringExpr, PestError<Rule>> {
         "random" | "rnd" => {
             check_arguments(func_name, pair_span, 0, Some(2), &arguments)?;
 
-            let default_a = &StringExpr::Value(0.0.into());
-            let default_b = &StringExpr::Value(1.0.into());
+            let default_a = &Expression::Value(0.0.into());
+            let default_b = &Expression::Value(1.0.into());
 
             let (a, b) = match arguments.get(0) {
                 None => (default_a, default_b),
@@ -219,7 +219,7 @@ fn check_arguments(
     span: Span,
     min_args: usize,
     max_args: Option<usize>,
-    args: &Vec<StringExpr>,
+    args: &Vec<Expression>,
 ) -> Result<(), PestError<Rule>> {
     if min_args > args.len() {
         return Err(make_pest_error(
@@ -252,11 +252,11 @@ fn make_pest_error(span: Span, message: String) -> PestError<Rule> {
 }
 
 #[derive(Debug, Clone)]
-pub struct StringVariables {
+pub struct Variables {
     state: HashMap<String, ExpressionValue>,
 }
 
-impl StringVariables {
+impl Variables {
     pub fn get(&self, key: &str) -> Option<&ExpressionValue> {
         self.state.get(key)
     }
@@ -268,47 +268,45 @@ impl StringVariables {
         self.state.insert(String::from(key), value.into())
     }
 
-    pub fn from_iter<T: IntoIterator<Item = (String, ExpressionValue)>>(
-        iter: T,
-    ) -> StringVariables {
+    pub fn from_iter<T: IntoIterator<Item = (String, ExpressionValue)>>(iter: T) -> Variables {
         let mut variables = DEFAULT_VARIABLES.to_owned();
         variables.extend(iter);
 
-        StringVariables { state: variables }
+        Variables { state: variables }
     }
 }
 
-impl std::default::Default for StringVariables {
-    fn default() -> StringVariables {
-        StringVariables {
+impl std::default::Default for Variables {
+    fn default() -> Variables {
+        Variables {
             state: DEFAULT_VARIABLES.to_owned(),
         }
     }
 }
 
-impl From<HashMap<String, ExpressionValue>> for StringVariables {
-    fn from(state: HashMap<String, ExpressionValue>) -> StringVariables {
-        StringVariables::from_iter(state.into_iter())
+impl From<HashMap<String, ExpressionValue>> for Variables {
+    fn from(state: HashMap<String, ExpressionValue>) -> Variables {
+        Variables::from_iter(state.into_iter())
     }
 }
 
-impl From<BTreeMap<String, ExpressionValue>> for StringVariables {
-    fn from(state: BTreeMap<String, ExpressionValue>) -> StringVariables {
-        StringVariables::from_iter(state.into_iter())
+impl From<BTreeMap<String, ExpressionValue>> for Variables {
+    fn from(state: BTreeMap<String, ExpressionValue>) -> Variables {
+        Variables::from_iter(state.into_iter())
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub enum StringExpr {
+pub enum Expression {
     Value(ExpressionValue),
     Expr(Box<Functions>),
     Var(String),
 }
 
-impl std::fmt::Display for StringExpr {
+impl std::fmt::Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use StringExpr::*;
+        use Expression::*;
         match self {
             Value(val) => write!(f, "{}", val),
             Var(val) => write!(f, "{}", val),
@@ -317,22 +315,22 @@ impl std::fmt::Display for StringExpr {
     }
 }
 
-impl StringExpr {
+impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
-    pub fn eval(expression: StringExpr, vars: &StringVariables) -> EvalResult {
+    pub fn eval(expression: Expression, vars: &Variables) -> EvalResult {
         match expression {
-            StringExpr::Expr(op) => Functions::eval(*op, vars),
-            StringExpr::Value(value) => match value {
+            Expression::Expr(op) => Functions::eval(*op, vars),
+            Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(ExpressionValue::List(
                     list.into_iter().try_fold(Vec::new(), |mut acc, x| {
-                        acc.push(StringExpr::Value(StringExpr::eval(x, vars)?));
+                        acc.push(Expression::Value(Expression::eval(x, vars)?));
                         Ok(acc)
                     })?,
                 )),
                 x => Ok(x),
             },
-            // StringExpr::Var(s) => vars.get(&s).clone(),
-            StringExpr::Var(s) => match vars.get(&s) {
+            // Expression::Var(s) => vars.get(&s).clone(),
+            Expression::Var(s) => match vars.get(&s) {
                 Some(x) => Ok(x.clone()),
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
@@ -340,22 +338,22 @@ impl StringExpr {
     }
 
     /// Takes input and returns a syntax tree
-    pub fn parse(input: &str) -> Result<StringExpr, PestError<Rule>> {
-        parse_expression(StringExpressionParser::parse(Rule::calculation, input)?)
+    pub fn parse(input: &str) -> Result<Expression, PestError<Rule>> {
+        parse_expression(ExpressionessionParser::parse(Rule::calculation, input)?)
     }
 
-    pub fn compile(expression: StringExpr) -> Result<StringExpr, Error> {
+    pub fn compile(expression: Expression) -> Result<Expression, Error> {
         match expression {
-            StringExpr::Value(value) => match value {
-                ExpressionValue::List(list) => Ok(StringExpr::Value(ExpressionValue::List(
+            Expression::Value(value) => match value {
+                ExpressionValue::List(list) => Ok(Expression::Value(ExpressionValue::List(
                     list.iter().try_fold(Vec::new(), |mut acc, x| {
-                        acc.push(StringExpr::compile(x.clone())?);
+                        acc.push(Expression::compile(x.clone())?);
                         Ok(acc)
                     })?,
                 ))),
-                x => Ok(StringExpr::Value(x)),
+                x => Ok(Expression::Value(x)),
             },
-            StringExpr::Expr(op) => Functions::compile(*op),
+            Expression::Expr(op) => Functions::compile(*op),
             other => Ok(other),
         }
     }
@@ -363,9 +361,9 @@ impl StringExpr {
     /// returns all variables defined in the expression
     pub fn iter_variables<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
         match self {
-            StringExpr::Value(_) => Box::new(std::iter::empty::<String>()),
-            StringExpr::Var(x) => Box::new(std::iter::once(x.to_owned())),
-            StringExpr::Expr(f) => f.iter_variables(),
+            Expression::Value(_) => Box::new(std::iter::empty::<String>()),
+            Expression::Var(x) => Box::new(std::iter::once(x.to_owned())),
+            Expression::Expr(f) => f.iter_variables(),
         }
     }
 
@@ -378,7 +376,7 @@ impl StringExpr {
     }
 
     pub fn is_value(&self) -> bool {
-        use StringExpr::Value;
+        use Expression::Value;
         match self {
             Value(_) => true,
             _ => false,
@@ -389,29 +387,29 @@ impl StringExpr {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Functions {
-    Concat(Vec<StringExpr>),
-    Sum(Vec<StringExpr>),
-    Product(Vec<StringExpr>),
-    All(Vec<StringExpr>),
-    Any(Vec<StringExpr>),
-    Equal(StringExpr, StringExpr),
-    NotEqual(StringExpr, StringExpr),
-    And(StringExpr, StringExpr),
-    Or(StringExpr, StringExpr),
-    Trim(StringExpr, StringExpr),
-    Contains(StringExpr, StringExpr),
-    If(StringExpr, StringExpr, StringExpr),
-    Upper(StringExpr),
-    Lower(StringExpr),
-    Add(StringExpr, StringExpr),
-    Sub(StringExpr, StringExpr),
-    Mul(StringExpr, StringExpr),
-    Div(StringExpr, StringExpr),
-    Pow(StringExpr, StringExpr),
-    Cos(StringExpr),
-    Sin(StringExpr),
-    Tan(StringExpr),
-    Random(StringExpr, StringExpr),
+    Concat(Vec<Expression>),
+    Sum(Vec<Expression>),
+    Product(Vec<Expression>),
+    All(Vec<Expression>),
+    Any(Vec<Expression>),
+    Equal(Expression, Expression),
+    NotEqual(Expression, Expression),
+    And(Expression, Expression),
+    Or(Expression, Expression),
+    Trim(Expression, Expression),
+    Contains(Expression, Expression),
+    If(Expression, Expression, Expression),
+    Upper(Expression),
+    Lower(Expression),
+    Add(Expression, Expression),
+    Sub(Expression, Expression),
+    Mul(Expression, Expression),
+    Div(Expression, Expression),
+    Pow(Expression, Expression),
+    Cos(Expression),
+    Sin(Expression),
+    Tan(Expression),
+    Random(Expression, Expression),
 }
 
 impl std::fmt::Display for Functions {
@@ -446,7 +444,7 @@ impl std::fmt::Display for Functions {
 }
 
 impl Functions {
-    pub fn eval(operator: Functions, vars: &StringVariables) -> EvalResult {
+    pub fn eval(operator: Functions, vars: &Variables) -> EvalResult {
         use Functions::*;
 
         match operator {
@@ -476,7 +474,7 @@ impl Functions {
         }
     }
 
-    pub fn compile(operator: Functions) -> Result<StringExpr, Error> {
+    pub fn compile(operator: Functions) -> Result<Expression, Error> {
         use Functions::*;
 
         if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
@@ -486,44 +484,46 @@ impl Functions {
                 Product(list) => Product(Functions::compile_list(list)?),
                 All(list) => All(Functions::compile_list(list)?),
                 Any(list) => Any(Functions::compile_list(list)?),
-                Trim(lhs, rhs) => Trim(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
-                Equal(lhs, rhs) => Equal(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                Trim(lhs, rhs) => Trim(Expression::compile(lhs)?, Expression::compile(rhs)?),
+                Equal(lhs, rhs) => Equal(Expression::compile(lhs)?, Expression::compile(rhs)?),
                 NotEqual(lhs, rhs) => {
-                    NotEqual(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?)
+                    NotEqual(Expression::compile(lhs)?, Expression::compile(rhs)?)
                 }
-                And(lhs, rhs) => And(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
-                Or(lhs, rhs) => Or(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
+                And(lhs, rhs) => And(Expression::compile(lhs)?, Expression::compile(rhs)?),
+                Or(lhs, rhs) => Or(Expression::compile(lhs)?, Expression::compile(rhs)?),
                 Contains(lhs, rhs) => {
-                    Contains(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?)
+                    Contains(Expression::compile(lhs)?, Expression::compile(rhs)?)
                 }
-                If(lhs, mdl, rhs) => {
-                    If(StringExpr::compile(lhs)?, StringExpr::compile(mdl)?, StringExpr::compile(rhs)?)
-                }
-                Upper(lhs) => Upper(StringExpr::compile(lhs)?),
-                Lower(lhs) => Lower(StringExpr::compile(lhs)?),
-                Add(lhs, rhs) => Add(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
-                Sub(lhs, rhs) => Sub(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
-                Mul(lhs, rhs) => Mul(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
-                Div(lhs, rhs) => Div(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
-                Pow(lhs, rhs) => Pow(StringExpr::compile(lhs)?, StringExpr::compile(rhs)?),
-                Cos(lhs) => Cos(StringExpr::compile(lhs)?),
-                Sin(lhs) => Sin(StringExpr::compile(lhs)?),
-                Tan(lhs) => Tan(StringExpr::compile(lhs)?),
+                If(lhs, mdl, rhs) => If(
+                    Expression::compile(lhs)?,
+                    Expression::compile(mdl)?,
+                    Expression::compile(rhs)?,
+                ),
+                Upper(lhs) => Upper(Expression::compile(lhs)?),
+                Lower(lhs) => Lower(Expression::compile(lhs)?),
+                Add(lhs, rhs) => Add(Expression::compile(lhs)?, Expression::compile(rhs)?),
+                Sub(lhs, rhs) => Sub(Expression::compile(lhs)?, Expression::compile(rhs)?),
+                Mul(lhs, rhs) => Mul(Expression::compile(lhs)?, Expression::compile(rhs)?),
+                Div(lhs, rhs) => Div(Expression::compile(lhs)?, Expression::compile(rhs)?),
+                Pow(lhs, rhs) => Pow(Expression::compile(lhs)?, Expression::compile(rhs)?),
+                Cos(lhs) => Cos(Expression::compile(lhs)?),
+                Sin(lhs) => Sin(Expression::compile(lhs)?),
+                Tan(lhs) => Tan(Expression::compile(lhs)?),
                 Random(lhs, rhs) => Random(lhs, rhs),
             };
 
-            Ok(StringExpr::Expr(Box::new(funcs)))
+            Ok(Expression::Expr(Box::new(funcs)))
         } else {
-            Ok(StringExpr::Value(Functions::eval(
+            Ok(Expression::Value(Functions::eval(
                 operator,
                 &DEFAULT_STRING_VARIABLES,
             )?))
         }
     }
 
-    fn compile_list(list: Vec<StringExpr>) -> Result<Vec<StringExpr>, Error> {
+    fn compile_list(list: Vec<Expression>) -> Result<Vec<Expression>, Error> {
         list.into_iter().try_fold(Vec::new(), |mut acc, x| {
-            acc.push(StringExpr::compile(x)?);
+            acc.push(Expression::compile(x)?);
             Ok(acc)
         })
     }
@@ -556,19 +556,19 @@ impl Functions {
             | Pow(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
-            Lower(lhs) 
-            | Upper(lhs) 
-            | Cos(lhs) 
-            | Sin(lhs) 
-            | Tan(lhs) => Box::new(lhs.iter_variables()),
+            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) => {
+                Box::new(lhs.iter_variables())
+            }
 
-            If(lhs, mdl, rhs) => Box::new(lhs.iter_variables().chain(mdl.iter_variables()).chain(rhs.iter_variables())),
+            If(lhs, mdl, rhs) => Box::new(
+                lhs.iter_variables()
+                    .chain(mdl.iter_variables())
+                    .chain(rhs.iter_variables()),
+            ),
 
-            Concat(list) 
-            | Product(list)
-            | Sum(list) 
-            | All(list) 
-            | Any(list) => Box::new(list.iter().flat_map(|x| x.iter_variables())),
+            Concat(list) | Product(list) | Sum(list) | All(list) | Any(list) => {
+                Box::new(list.iter().flat_map(|x| x.iter_variables()))
+            }
         }
     }
 
@@ -586,7 +586,7 @@ pub enum ExpressionValue {
     String(String),
     Bool(bool),
     Number(f64),
-    List(Vec<StringExpr>),
+    List(Vec<Expression>),
 }
 
 impl std::fmt::Display for ExpressionValue {
@@ -602,11 +602,8 @@ impl std::fmt::Display for ExpressionValue {
     }
 }
 
-fn list_to_string(input: &Vec<StringExpr>) -> Vec<String> {
-    input
-        .iter()
-        .map(|x| format!("{}", x))
-        .collect()
+fn list_to_string(input: &Vec<Expression>) -> Vec<String> {
+    input.iter().map(|x| format!("{}", x)).collect()
 }
 
 macro_rules! impl_from_integers {
@@ -644,7 +641,7 @@ impl From<Vec<ExpressionValue>> for ExpressionValue {
     fn from(input: Vec<ExpressionValue>) -> ExpressionValue {
         let expressions = input
             .iter()
-            .map(|x| StringExpr::Value(x.to_owned()))
+            .map(|x| Expression::Value(x.to_owned()))
             .collect();
         ExpressionValue::List(expressions)
     }
@@ -709,7 +706,7 @@ impl ExpressionValue {
     }
 
     /// casts value as a list
-    pub fn as_list(&self) -> Option<Vec<StringExpr>> {
+    pub fn as_list(&self) -> Option<Vec<Expression>> {
         use ExpressionValue::*;
 
         match self {
@@ -818,18 +815,18 @@ fn test_not_nearly_zero() {
 #[cfg(test)]
 mod tests {
     mod iter_variables {
-        use crate::StringExpr;
+        use crate::Expression;
 
         #[test]
         fn simple_expression() {
-            let parsed = StringExpr::parse(r#"true | false"#).unwrap();
+            let parsed = Expression::parse(r#"true | false"#).unwrap();
             let result: Vec<String> = parsed.iter_variables().collect();
             assert_eq!(result, ["true", "false"]);
         }
 
         #[test]
         fn advanced_expression() {
-            let parsed = StringExpr::parse(
+            let parsed = Expression::parse(
                 r#"
                 upper(
                     concat(
@@ -852,235 +849,235 @@ mod tests {
 
         #[test]
         fn simple_expression_without_defaults() {
-            let parsed = StringExpr::parse(r#"true | false | test"#).unwrap();
+            let parsed = Expression::parse(r#"true | false | test"#).unwrap();
             let result: Vec<String> = parsed.iter_variables_without_defaults().collect();
             assert_eq!(result, ["test"]);
         }
     }
 
     mod or {
-        use crate::{ExpressionValue, StringExpr, StringVariables};
+        use crate::{Expression, ExpressionValue, Variables};
 
         #[test]
         fn operator_true() {
-            let parsed = StringExpr::parse(r#"true | false"#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"true | false"#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(true.into()), result);
         }
 
         #[test]
         fn operator_false() {
-            let parsed = StringExpr::parse(r#"false | false"#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"false | false"#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(false.into()), result);
         }
 
         #[test]
         fn operator_false_string() {
-            let parsed = StringExpr::parse(r#"false | "test""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"false | "test""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok("test".into()), result);
         }
 
         #[test]
         fn operator_true_string() {
-            let parsed = StringExpr::parse(r#"true | "test""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"true | "test""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(true.into()), result);
         }
 
         #[test]
         fn operator_false_number_string() {
-            let parsed = StringExpr::parse(r#"0 | "test""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"0 | "test""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok("test".into()), result);
         }
 
         #[test]
         fn operator_true_number_string() {
-            let parsed = StringExpr::parse(r#"1 | "test""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"1 | "test""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(1.0f64.into()), result);
         }
 
         #[test]
         fn operator_string_string() {
-            let parsed = StringExpr::parse(r#""test" | "other""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#""test" | "other""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok("test".into()), result);
         }
 
         #[test]
         fn operator_vec_string() {
+            use Expression::Value;
             use ExpressionValue::{List, Number};
-            use StringExpr::Value;
 
-            let parsed = StringExpr::parse(r#"[1] | "other""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"[1] | "other""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(List(vec![Value(Number(1.0))])), result);
         }
 
         #[test]
         fn operator_empty_vec_string() {
-            let parsed = StringExpr::parse(r#"[] | "other""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"[] | "other""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok("other".into()), result);
         }
     }
 
     mod and {
-        use crate::{ExpressionValue, StringExpr, StringVariables};
+        use crate::{Expression, ExpressionValue, Variables};
 
         #[test]
         fn operator_false() {
-            let parsed = StringExpr::parse(r#"true & false"#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"true & false"#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(false.into()), result);
         }
 
         #[test]
         fn operator_false_2() {
-            let parsed = StringExpr::parse(r#"false & false"#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"false & false"#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(false.into()), result);
         }
 
         #[test]
         fn operator_true() {
-            let parsed = StringExpr::parse(r#"true & true"#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"true & true"#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(true.into()), result);
         }
 
         #[test]
         fn operator_number_false() {
-            let parsed = StringExpr::parse(r#"5 & false"#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"5 & false"#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(false.into()), result);
         }
 
         #[test]
         fn operator_number_true() {
-            let parsed = StringExpr::parse(r#"1 & true"#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"1 & true"#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(true.into()), result);
         }
 
         #[test]
         fn operator_false_string() {
-            let parsed = StringExpr::parse(r#"false & "test""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"false & "test""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(false.into()), result);
         }
 
         #[test]
         fn operator_true_string() {
-            let parsed = StringExpr::parse(r#"true & "test""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"true & "test""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok("test".into()), result);
         }
 
         #[test]
         fn operator_string_string() {
-            let parsed = StringExpr::parse(r#""test" & "other""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#""test" & "other""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok("other".into()), result);
         }
 
         #[test]
         fn operator_string_string_2() {
-            let parsed = StringExpr::parse(r#"false & "other""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"false & "other""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(false.into()), result);
         }
 
         #[test]
         fn operator_vec_string() {
-            let parsed = StringExpr::parse(r#"[1] & "other""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"[1] & "other""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok("other".into()), result);
         }
 
         #[test]
         fn operator_empty_vec_string() {
             use ExpressionValue::List;
-            let parsed = StringExpr::parse(r#"[] & "other""#).unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse(r#"[] & "other""#).unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(List(vec![])), result);
         }
     }
 
     mod number {
-        use crate::{StringExpr, StringVariables};
+        use crate::{Expression, Variables};
 
         #[test]
         fn simple_addition() {
-            let parsed = StringExpr::parse("1 + 2").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("1 + 2").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(3.into()), result);
         }
 
         #[test]
         fn simple_subtraction() {
-            let parsed = StringExpr::parse("1 - 2").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("1 - 2").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok((-1).into()), result);
         }
 
         #[test]
         fn simple_multiplication() {
-            let parsed = StringExpr::parse("1 * 2").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("1 * 2").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(2.into()), result);
         }
 
         #[test]
         fn simple_division() {
-            let parsed = StringExpr::parse("1 / 2").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("1 / 2").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(0.5.into()), result);
         }
 
         #[test]
         fn simple_power() {
-            let parsed = StringExpr::parse("2^2").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("2^2").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(4.into()), result);
         }
 
         #[test]
         fn cosine() {
-            let parsed = StringExpr::parse("cos(0)").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("cos(0)").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(1.into()), result);
         }
 
         #[test]
         fn sine() {
-            let parsed = StringExpr::parse("sin(0)").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("sin(0)").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(0.into()), result);
         }
 
         #[test]
         fn tangent() {
-            let parsed = StringExpr::parse("tan(0)").unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default());
+            let parsed = Expression::parse("tan(0)").unwrap();
+            let result = Expression::eval(parsed, &Variables::default());
             assert_eq!(Ok(0.into()), result);
         }
 
         #[test]
         fn sine_invalid_argments() {
-            assert!(StringExpr::parse("sin()").is_err());
-            assert!(StringExpr::parse("sin(1,2,3)").is_err());
+            assert!(Expression::parse("sin()").is_err());
+            assert!(Expression::parse("sin(1,2,3)").is_err());
         }
 
         #[test]
         fn combine_functions() {
             let parsed =
-                StringExpr::parse(r#"3*((((1 + 2) / (3**2) + 5) - 2 + 5) * (2 / 4) * 4) / 2.5"#)
+                Expression::parse(r#"3*((((1 + 2) / (3**2) + 5) - 2 + 5) * (2 / 4) * 4) / 2.5"#)
                     .unwrap();
-            let result = StringExpr::eval(parsed, &StringVariables::default())
+            let result = Expression::eval(parsed, &Variables::default())
                 .unwrap()
                 .as_number()
                 .unwrap();
@@ -1088,88 +1085,88 @@ mod tests {
         }
     }
 
-    use crate::{StringExpr, StringVariables};
+    use crate::{Expression, Variables};
 
     #[test]
     fn equal_operator_true() {
-        let parsed = StringExpr::parse(r#""test" == "test""#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#""test" == "test""#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok(true.into()), result);
     }
 
     #[test]
     fn equal_operator_false() {
-        let parsed = StringExpr::parse(r#""test" == "other""#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#""test" == "other""#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn not_equal_operator_true() {
-        let parsed = StringExpr::parse(r#""test" != "test""#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#""test" != "test""#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn not_equal_operator_false() {
-        let parsed = StringExpr::parse(r#""test" != "other""#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#""test" != "other""#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok(true.into()), result);
     }
 
     #[test]
     fn concat_operator() {
-        // let parsed = StringExpr::parse(r#""test" ++ "test""#).unwrap();
-        let parsed = match StringExpr::parse(r#""test" ++ "test""#) {
+        // let parsed = Expression::parse(r#""test" ++ "test""#).unwrap();
+        let parsed = match Expression::parse(r#""test" ++ "test""#) {
             Ok(x) => x,
             Err(e) => {
                 println!("{}", e);
                 panic!("error")
             }
         };
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok("testtest".into()), result);
     }
 
     #[test]
     fn concat_function() {
-        let parsed = StringExpr::parse(r#"concat("other", "test")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"concat("other", "test")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok("othertest".into()), result);
     }
 
     #[test]
     fn concat_function_multi() {
-        let parsed = StringExpr::parse(r#"concat("1", 2, "3", "4")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"concat("1", 2, "3", "4")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok("1234".into()), result);
     }
 
     #[test]
     fn concat_function_variables() {
-        let parsed = StringExpr::parse(r#"concat(test, "-", other, third, "!!")"#).unwrap();
+        let parsed = Expression::parse(r#"concat(test, "-", other, third, "!!")"#).unwrap();
 
-        let mut vars = StringVariables::default();
+        let mut vars = Variables::default();
         vars.insert("test", "1");
         vars.insert("other", "test");
         vars.insert("third", "3456");
 
-        let result = StringExpr::eval(parsed, &vars);
+        let result = Expression::eval(parsed, &vars);
         assert_eq!(Ok("1-test3456!!".into()), result);
     }
 
     #[test]
     fn concat_function_one() {
-        let parsed = StringExpr::parse(r#"concat("test")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"concat("test")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok("test".into()), result);
     }
 
     #[test]
     fn concat_function_list() {
-        let parsed = StringExpr::parse(r#"[1, 4, 5] ++ [2, 3]"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"[1, 4, 5] ++ [2, 3]"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(
             Ok(vec![1.into(), 4.into(), 5.into(), 2.into(), 3.into()].into()),
             result
@@ -1178,49 +1175,49 @@ mod tests {
 
     #[test]
     fn upper() {
-        let parsed = StringExpr::parse(r#"upper("test")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"upper("test")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok("TEST".into()), result);
     }
 
     #[test]
     fn trim() {
-        let parsed = StringExpr::parse(r#"trim("..test...............", ".")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"trim("..test...............", ".")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok("test".into()), result);
     }
 
     #[test]
     fn contains_true() {
-        let parsed = StringExpr::parse(r#"contains("test", "test")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"contains("test", "test")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok(true.into()), result);
     }
 
     #[test]
     fn contains_false() {
-        let parsed = StringExpr::parse(r#"contains("test", "something")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let parsed = Expression::parse(r#"contains("test", "something")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn if_truthy() {
-        let parsed = StringExpr::parse(r#"if("test", "left", "right")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
-        assert_eq!(Ok("left".into()), result);  
+        let parsed = Expression::parse(r#"if("test", "left", "right")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
+        assert_eq!(Ok("left".into()), result);
     }
 
     #[test]
     fn if_falsy() {
-        let parsed = StringExpr::parse(r#"if([], "left", "right")"#).unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
-        assert_eq!(Ok("right".into()), result);  
+        let parsed = Expression::parse(r#"if([], "left", "right")"#).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
+        assert_eq!(Ok("right".into()), result);
     }
 
     #[test]
     fn combine_functions() {
-        let parsed = StringExpr::parse(
+        let parsed = Expression::parse(
             r#"
             upper(
                 concat(
@@ -1237,24 +1234,24 @@ mod tests {
         "#,
         )
         .unwrap();
-        let result = StringExpr::eval(parsed, &StringVariables::default());
+        let result = Expression::eval(parsed, &Variables::default());
         assert_eq!(Ok("1234_TESTING_TRUE".into()), result);
     }
 
     #[test]
     fn compile_simple() {
-        let parsed = StringExpr::parse(r#"trim("..test...............", ".")"#).unwrap();
-        let compiled = StringExpr::compile(parsed);
+        let parsed = Expression::parse(r#"trim("..test...............", ".")"#).unwrap();
+        let compiled = Expression::compile(parsed);
         assert_eq!("\"test\"", compiled.unwrap().to_string());
 
-        let parsed = StringExpr::parse(r#"trim("..test...............", a)"#).unwrap();
-        let compiled = StringExpr::compile(parsed).unwrap();
+        let parsed = Expression::parse(r#"trim("..test...............", a)"#).unwrap();
+        let compiled = Expression::compile(parsed).unwrap();
         assert_eq!("trim(\"..test...............\", a)", compiled.to_string());
     }
 
     #[test]
     fn compile_medium() {
-        let parsed = StringExpr::parse(
+        let parsed = Expression::parse(
             r#"
             upper(
                 concat(
@@ -1271,10 +1268,10 @@ mod tests {
         "#,
         )
         .unwrap();
-        let compiled = StringExpr::compile(parsed).unwrap();
+        let compiled = Expression::compile(parsed).unwrap();
         assert_eq!("\"1234_TESTING_TRUE\"", compiled.to_string());
 
-        let parsed = StringExpr::parse(
+        let parsed = Expression::parse(
             r#"
             upper(
                 concat(
@@ -1291,7 +1288,7 @@ mod tests {
         "#,
         )
         .unwrap();
-        let compiled = StringExpr::compile(parsed).unwrap();
+        let compiled = Expression::compile(parsed).unwrap();
         assert_eq!(
             "upper(concat(1234, \"_\", (false or trim(\"__testing\", a)), \"_\", true))",
             compiled.to_string()
@@ -1300,22 +1297,22 @@ mod tests {
 
     #[test]
     fn compile_random() {
-        let parsed = StringExpr::parse("random()").unwrap();
+        let parsed = Expression::parse("random()").unwrap();
 
-        let compiled = StringExpr::compile(parsed).unwrap();
+        let compiled = Expression::compile(parsed).unwrap();
         assert_eq!("random(0, 1)", compiled.to_string());
     }
 
     #[test]
     fn compile_calculation() {
         let parsed =
-            StringExpr::parse("1 + 2 + 3 + 4 + sin(pi) + e ^ 2 + abc * 8 - e ^ pi / 2 - abc")
+            Expression::parse("1 + 2 + 3 + 4 + sin(pi) + e ^ 2 + abc * 8 - e ^ pi / 2 - abc")
                 .unwrap();
         assert_eq!(
             "((((((((1 + 2) + 3) + 4) + sin(pi)) + (e ^ 2)) + (abc * 8)) - ((e ^ pi) / 2)) - abc)",
             parsed.to_string()
         );
-        let compiled = StringExpr::compile(parsed).unwrap();
+        let compiled = Expression::compile(parsed).unwrap();
         assert_eq!(
             "(((17.38905609893065 + (abc * 8)) - 11.57034631638963) - abc)",
             compiled.to_string()

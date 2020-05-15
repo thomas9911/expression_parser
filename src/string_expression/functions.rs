@@ -1,7 +1,7 @@
-use crate::{Error, ExpressionValue, StringExpr, StringVariables};
+use crate::{Error, Expression, ExpressionValue, Variables};
 
-type Input = StringExpr;
-type Vars = StringVariables;
+type Input = Expression;
+type Vars = Variables;
 type Output = Result<ExpressionValue, Error>;
 
 // fn xd() -> Result<ExpressionValue, Error> {
@@ -73,8 +73,8 @@ pub fn concat(inputs: Vec<Input>, vars: &Vars) -> Output {
 }
 
 pub fn trim(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string = as_string(StringExpr::eval(lhs, vars)?);
-    let trim_with = as_string(StringExpr::eval(rhs, vars)?);
+    let string = as_string(Expression::eval(lhs, vars)?);
+    let trim_with = as_string(Expression::eval(rhs, vars)?);
 
     ok_string(
         string
@@ -85,52 +85,52 @@ pub fn trim(lhs: Input, rhs: Input, vars: &Vars) -> Output {
 }
 
 pub fn contains(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string = as_string(StringExpr::eval(lhs, vars)?);
-    let contains = as_string(StringExpr::eval(rhs, vars)?);
+    let string = as_string(Expression::eval(lhs, vars)?);
+    let contains = as_string(Expression::eval(rhs, vars)?);
     Ok(string.contains(&contains).into())
 }
 
 pub fn if_function(lhs: Input, mdl: Input, rhs: Input, vars: &Vars) -> Output {
-    let condition = StringExpr::eval(lhs, vars)?;
-    if condition.is_truthy(){
-        StringExpr::eval(mdl, vars)
+    let condition = Expression::eval(lhs, vars)?;
+    if condition.is_truthy() {
+        Expression::eval(mdl, vars)
     } else {
-        StringExpr::eval(rhs, vars)
+        Expression::eval(rhs, vars)
     }
 }
 
 pub fn equal(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string = StringExpr::eval(lhs, vars)?;
-    let other = StringExpr::eval(rhs, vars)?;
+    let string = Expression::eval(lhs, vars)?;
+    let other = Expression::eval(rhs, vars)?;
     Ok(string.eq(&other).into())
 }
 
 pub fn not_equal(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     use std::ops::Not;
 
-    let string = StringExpr::eval(lhs, vars)?;
-    let other = StringExpr::eval(rhs, vars)?;
+    let string = Expression::eval(lhs, vars)?;
+    let other = Expression::eval(rhs, vars)?;
     Ok(string.eq(&other).not().into())
 }
 
 pub fn and(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string: ExpressionValue = StringExpr::eval(lhs, vars)?;
-    let other: ExpressionValue = StringExpr::eval(rhs, vars)?;
+    let string: ExpressionValue = Expression::eval(lhs, vars)?;
+    let other: ExpressionValue = Expression::eval(rhs, vars)?;
     Ok(string.and(other).into())
 }
 
 pub fn or(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string: ExpressionValue = StringExpr::eval(lhs, vars)?;
-    let other: ExpressionValue = StringExpr::eval(rhs, vars)?;
+    let string: ExpressionValue = Expression::eval(lhs, vars)?;
+    let other: ExpressionValue = Expression::eval(rhs, vars)?;
     Ok(string.or(other).into())
 }
 
 pub fn upper(lhs: Input, vars: &Vars) -> Output {
-    ok_string(as_string(StringExpr::eval(lhs, vars)?).to_uppercase())
+    ok_string(as_string(Expression::eval(lhs, vars)?).to_uppercase())
 }
 
 pub fn lower(lhs: Input, vars: &Vars) -> Output {
-    ok_string(as_string(StringExpr::eval(lhs, vars)?).to_lowercase())
+    ok_string(as_string(Expression::eval(lhs, vars)?).to_lowercase())
 }
 
 pub fn add(lhs: Input, rhs: Input, vars: &Vars) -> Output {
@@ -200,14 +200,14 @@ fn ok_number(number: f64) -> Output {
 }
 
 fn into_number(input: Input, vars: &Vars) -> Result<f64, Error> {
-    StringExpr::eval(input, vars)?
+    Expression::eval(input, vars)?
         .as_number()
         .ok_or(Error::new_static("input should be a number"))
 }
 
 fn evaluate_inputs(inputs: Vec<Input>, vars: &Vars) -> Result<Vec<ExpressionValue>, Error> {
     inputs.into_iter().try_fold(Vec::new(), |mut acc, x| {
-        acc.push(StringExpr::eval(x, vars)?);
+        acc.push(Expression::eval(x, vars)?);
         Ok(acc)
     })
 }

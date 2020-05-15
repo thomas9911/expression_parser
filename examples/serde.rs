@@ -1,4 +1,4 @@
-use expression_parser::{Expr, StringExpr};
+use expression_parser::{Expr, Expression};
 use serde_json::to_string_pretty;
 
 fn main() {
@@ -6,7 +6,7 @@ fn main() {
 
     println!("{}", to_string_pretty(&parsed).unwrap()); // 'ast'
 
-    let parsed = StringExpr::parse(
+    let parsed = Expression::parse(
         r#"
         upper(
             concat(

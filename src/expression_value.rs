@@ -1,4 +1,6 @@
 use crate::Expression;
+use std::collections::{BinaryHeap, HashMap};
+use std::iter::FromIterator;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -7,7 +9,12 @@ pub enum ExpressionValue {
     Bool(bool),
     Number(f64),
     List(Vec<Expression>),
+    Map(ExpressionMap),
 }
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct ExpressionMap(pub HashMap<String, Expression>);
 
 impl std::fmt::Display for ExpressionValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -18,7 +25,18 @@ impl std::fmt::Display for ExpressionValue {
             Bool(x) => write!(f, "{}", x),
             Number(x) => write!(f, "{}", x),
             List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")),
+            ExpressionValue::Map(map) => write!(f, "{}", map),
         }
+    }
+}
+
+impl std::fmt::Display for ExpressionMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let printed_map =
+            BinaryHeap::from_iter(self.0.iter().map(|(k, v)| format!("{:?}: {}", k, v)))
+                .into_sorted_vec()
+                .join(", ");
+        write!(f, "{{{}}}", printed_map)
     }
 }
 
@@ -57,13 +75,25 @@ impl From<bool> for ExpressionValue {
     }
 }
 
-impl From<Vec<ExpressionValue>> for ExpressionValue {
-    fn from(input: Vec<ExpressionValue>) -> ExpressionValue {
+impl<T> From<Vec<T>> for ExpressionValue
+where
+    T: Into<ExpressionValue>,
+{
+    fn from(input: Vec<T>) -> ExpressionValue {
         let expressions = input
-            .iter()
-            .map(|x| Expression::Value(x.to_owned()))
+            .into_iter()
+            .map(|x| Expression::Value(x.into()))
             .collect();
         ExpressionValue::List(expressions)
+    }
+}
+
+impl<T> From<HashMap<String, T>> for ExpressionValue
+where
+    T: Into<ExpressionValue>,
+{
+    fn from(input: HashMap<String, T>) -> ExpressionValue {
+        ExpressionValue::Map(ExpressionMap::from(input))
     }
 }
 
@@ -135,6 +165,16 @@ impl ExpressionValue {
         }
     }
 
+    /// casts value as a map
+    pub fn as_map(&self) -> Option<HashMap<String, Expression>> {
+        use ExpressionValue::*;
+
+        match self {
+            Map(x) => Some(x.0.to_owned()),
+            _ => None,
+        }
+    }
+
     pub fn is_number(&self) -> bool {
         use ExpressionValue::*;
 
@@ -180,6 +220,15 @@ impl ExpressionValue {
         }
     }
 
+    pub fn is_map(&self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            Map(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_falsy(&self) -> bool {
         use ExpressionValue::*;
         match self {
@@ -187,6 +236,7 @@ impl ExpressionValue {
             Bool(b) => !b,
             Number(float) => nearly_zero(float),
             List(list) => list.is_empty(),
+            Map(map) => map.0.is_empty(),
         }
     }
 
@@ -221,6 +271,26 @@ fn nearly_zero(number: &f64) -> bool {
     true
 }
 
+impl ExpressionMap {
+    pub fn insert<T: Into<ExpressionValue>>(&mut self, k: &str, v: T) -> Option<Expression> {
+        self.0.insert(String::from(k), Expression::Value(v.into()))
+    }
+}
+
+impl<T> From<HashMap<String, T>> for ExpressionMap
+where
+    T: Into<ExpressionValue>,
+{
+    fn from(input: HashMap<String, T>) -> ExpressionMap {
+        let map = HashMap::from_iter(
+            input
+                .into_iter()
+                .map(|(k, v)| (k, Expression::Value(v.into()))),
+        );
+        ExpressionMap { 0: map }
+    }
+}
+
 #[test]
 fn test_nearly_zero() {
     assert!(nearly_zero(&0.0));
@@ -230,4 +300,20 @@ fn test_nearly_zero() {
 fn test_not_nearly_zero() {
     assert!(!nearly_zero(&1.5e-12));
     assert!(!nearly_zero(&-1.5e-12));
+}
+
+#[test]
+fn format_map() {
+    let mut data = HashMap::new();
+    data.insert(String::from("test"), 1);
+    data.insert(String::from("testing"), 2);
+
+    let mut map = ExpressionMap::from(data.clone());
+    map.insert("list", vec![1, 2, 3]);
+    map.insert("map", data);
+
+    assert_eq!(
+        "{\"list\": [ 1, 2, 3 ], \"map\": {\"test\": 1, \"testing\": 2}, \"test\": 1, \"testing\": 2}",
+        map.to_string()
+    );
 }

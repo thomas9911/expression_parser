@@ -269,7 +269,8 @@ mod number {
     }
 }
 
-use expression_parser::{Expression, Variables};
+use expression_parser::{Expression, ExpressionMap, ExpressionValue, Variables};
+use std::collections::HashMap;
 
 #[test]
 fn equal_operator_true() {
@@ -351,10 +352,7 @@ fn concat_function_one() {
 fn concat_function_list() {
     let parsed = Expression::parse(r#"[1, 4, 5] ++ [2, 3]"#).unwrap();
     let result = Expression::eval(parsed, &Variables::default());
-    assert_eq!(
-        Ok(vec![1.into(), 4.into(), 5.into(), 2.into(), 3.into()].into()),
-        result
-    );
+    assert_eq!(Ok(vec![1, 4, 5, 2, 3].into()), result);
 }
 
 #[test]
@@ -397,6 +395,31 @@ fn if_falsy() {
     let parsed = Expression::parse(r#"if([], "left", "right")"#).unwrap();
     let result = Expression::eval(parsed, &Variables::default());
     assert_eq!(Ok("right".into()), result);
+}
+
+#[test]
+fn map_parse() {
+    let parsed = Expression::parse("{\"list\": [ 1, 2, 3 ], \"map\": {\"test\": 1, \"testing\": 2}, \"test\": 1, \"testing\": 2}").unwrap();
+
+    let mut data = HashMap::new();
+    data.insert(String::from("test"), 1);
+    data.insert(String::from("testing"), 2);
+
+    let mut map = ExpressionMap::from(data.clone());
+    map.insert("list", vec![1, 2, 3]);
+    map.insert("map", data);
+
+    assert_eq!(parsed, Expression::Value(ExpressionValue::Map(map)));
+}
+
+#[test]
+fn map_evalutate_functions() {
+    let parsed =
+        Expression::parse(r#"{"testing": sum(1,2,3,4) + 15, "test":  {"testing": sum(1,2,3,4)}}"#)
+            .unwrap();
+    let expected = Expression::parse(r#"{"testing": 25, "test":  {"testing": 10}}"#).unwrap();
+    let result = Expression::eval(parsed, &Variables::default()).unwrap();
+    assert_eq!(expected, Expression::Value(result));
 }
 
 #[test]

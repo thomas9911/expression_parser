@@ -42,7 +42,10 @@ func = ${ func_name ~ "(" ~  spaces ~ any_arguments ~ spaces ~ ")" }
 
 list = { "[" ~ any_arguments ~ "]"}
 
-term = _{ num | "(" ~ expr ~ ")" | string | func | var | list}
+map = !{ "{" ~ map_item ~ (COMMA ~ map_item)* ~ "}" }
+    map_item = _{ string ~ ":" ~ expr }
+
+term = _{ num | "(" ~ expr ~ ")" | string | func | var | list | map }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 spaces = _{ WHITESPACE* }

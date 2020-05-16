@@ -1,10 +1,11 @@
 use pest::error::{Error as PestError, ErrorVariant};
 use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
+use std::collections::HashMap;
 
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
-use crate::{Error, ExpressionValue, Function, Variables};
+use crate::{Error, ExpressionMap, ExpressionValue, Function, Variables};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -17,28 +18,7 @@ fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
 
     PREC_CLIMBER.climb(
         expression,
-        |pair: Pair<Rule>| match pair.as_rule() {
-            Rule::num => Ok(Value(pair.as_str().parse::<f64>().unwrap().into())),
-            Rule::string => Ok(Value(ExpressionValue::String(
-                pair.as_str().trim_matches('"').to_string(),
-            ))),
-            Rule::list => {
-                let arguments: Vec<Expression> =
-                    pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
-                        let p = parse_expression(x.into_inner())?;
-                        acc.push(p);
-                        Ok(acc)
-                    })?;
-                Ok(Value(ExpressionValue::List(arguments)))
-            }
-            Rule::expr => parse_expression(pair.into_inner()),
-            Rule::var => Ok(Var(pair.as_str().trim().to_string())),
-            Rule::func => make_function(pair),
-            rule => {
-                println!("{:?}", rule);
-                unreachable!()
-            }
-        },
+        parse_single_pair,
         |lhs: ParseResult, op: Pair<Rule>, rhs: ParseResult| {
             let lhs = lhs?;
             let rhs = rhs?;
@@ -62,6 +42,48 @@ fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
             }
         },
     )
+}
+
+fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
+    use Expression::*;
+
+    match pair.as_rule() {
+        Rule::num => Ok(Value(pair.as_str().parse::<f64>().unwrap().into())),
+        Rule::string => Ok(Value(ExpressionValue::String(
+            pair.as_str().trim_matches('"').to_string(),
+        ))),
+        Rule::list => {
+            let arguments: Vec<Expression> =
+                pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
+                    let p = parse_expression(x.into_inner())?;
+                    acc.push(p);
+                    Ok(acc)
+                })?;
+            Ok(Value(ExpressionValue::List(arguments)))
+        }
+        Rule::map => {
+            let iter: Vec<_> = pair.into_inner().collect();
+            let mut data = HashMap::new();
+            for p in iter.chunks(2) {
+                if let Expression::Value(ExpressionValue::String(key)) =
+                    parse_expression(Pairs::single(p[0].clone()))?
+                {
+                    let val = parse_expression(Pairs::single(p[1].clone()))?;
+                    data.insert(key, val);
+                } else {
+                    unreachable!()
+                }
+            }
+            Ok(Expression::Value(ExpressionValue::Map(ExpressionMap(data))))
+        }
+        Rule::expr => parse_expression(pair.into_inner()),
+        Rule::var => Ok(Var(pair.as_str().trim().to_string())),
+        Rule::func => make_function(pair),
+        rule => {
+            println!("{:?}", rule);
+            unreachable!()
+        }
+    }
 }
 
 fn make_function(pair: Pair<Rule>) -> ParseResult {
@@ -236,6 +258,15 @@ impl Expression {
                         Ok(acc)
                     })?,
                 )),
+                ExpressionValue::Map(ExpressionMap(map)) => {
+                    Ok(ExpressionValue::Map(ExpressionMap({
+                        map.into_iter()
+                            .try_fold(HashMap::new(), |mut acc, (k, v)| {
+                                acc.insert(k, Expression::Value(Expression::eval(v, vars)?));
+                                Ok(acc)
+                            })?
+                    })))
+                }
                 x => Ok(x),
             },
             // Expression::Var(s) => vars.get(&s).clone(),

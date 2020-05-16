@@ -113,7 +113,7 @@ pub mod string_expression;
 pub mod variables;
 
 pub use error::Error;
-pub use expression_value::ExpressionValue;
+pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use function::Function;
 pub use string_expression::Expression;
 pub use variables::Variables;

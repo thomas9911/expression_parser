@@ -3,16 +3,17 @@ calculation = _{ SOI ~ expr ~ EOI }
 num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
     int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 
-var = { (ASCII_ALPHANUMERIC | ":" | "_" )+ }
+var = @{ ('a'..'z' | 'A'..'Z' | '0'..'9'  | ":" | "_")+ }
 
-// string  = @{ "\"" ~ inner ~ "\"" }
-//     inner   = { (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner)? }
-//     escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
-//     unicode = { "u" ~ ASCII_HEX_DIGIT{4} }
+string  = @{ "\"" ~ inner ~ "\"" }
+    inner   = { (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner)? }
+    escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t") }
+    // escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
+    // unicode = { "u" ~ ASCII_HEX_DIGIT{4} }
 
-string  = @{ "\"" ~ letters ~ "\"" }
-    letters = @{ (!("\"" | "\\") ~ char)* }
-    char = _{ PUNCTUATION | LETTER | NUMBER | WHITESPACE }
+// string  = @{ "\"" ~ letters ~ "\"" }
+//     letters = @{ (!("\"" | "\\") ~ char)* }
+//     char = _{ PUNCTUATION | LETTER | NUMBER | WHITESPACE }
 
 operation = _{ string_operation | binary_operation | number_operation}
 

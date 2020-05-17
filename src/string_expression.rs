@@ -323,3 +323,15 @@ impl Expression {
         }
     }
 }
+
+impl From<ExpressionValue> for Expression {
+    fn from(input: ExpressionValue) -> Expression {
+        Expression::Value(input)
+    }
+}
+
+impl From<ExpressionMap> for Expression {
+    fn from(input: ExpressionMap) -> Expression {
+        Expression::Value(ExpressionValue::Map(input))
+    }
+}

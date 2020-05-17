@@ -446,6 +446,14 @@ fn combine_functions() {
 }
 
 #[test]
+fn parse_variable_correctly() {
+    let parsed = Expression::parse("true and false").unwrap();
+    let result = Expression::eval(parsed, &Variables::default());
+
+    assert_eq!(Ok(false.into()), result);
+}
+
+#[test]
 fn compile_simple() {
     let parsed = Expression::parse(r#"trim("..test...............", ".")"#).unwrap();
     let compiled = Expression::compile(parsed);

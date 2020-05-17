@@ -10,6 +10,7 @@ pub enum ExpressionValue {
     Number(f64),
     List(Vec<Expression>),
     Map(ExpressionMap),
+    Null,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -18,7 +19,7 @@ pub struct ExpressionMap(pub HashMap<String, Expression>);
 
 impl std::fmt::Display for ExpressionValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use ExpressionValue::{Bool, List, Number};
+        use ExpressionValue::{Bool, List, Null, Number};
 
         match self {
             ExpressionValue::String(x) => write!(f, "\"{}\"", x),
@@ -26,6 +27,7 @@ impl std::fmt::Display for ExpressionValue {
             Number(x) => write!(f, "{}", x),
             List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")),
             ExpressionValue::Map(map) => write!(f, "{}", map),
+            Null => write!(f, "null"),
         }
     }
 }
@@ -94,6 +96,12 @@ where
 {
     fn from(input: HashMap<String, T>) -> ExpressionValue {
         ExpressionValue::Map(ExpressionMap::from(input))
+    }
+}
+
+impl From<ExpressionMap> for ExpressionValue {
+    fn from(input: ExpressionMap) -> ExpressionValue {
+        ExpressionValue::Map(input)
     }
 }
 
@@ -237,6 +245,7 @@ impl ExpressionValue {
             Number(float) => nearly_zero(float),
             List(list) => list.is_empty(),
             Map(map) => map.0.is_empty(),
+            Null => true,
         }
     }
 
@@ -272,6 +281,10 @@ fn nearly_zero(number: &f64) -> bool {
 }
 
 impl ExpressionMap {
+    pub fn new() -> ExpressionMap {
+        ExpressionMap(HashMap::new())
+    }
+
     pub fn insert<T: Into<ExpressionValue>>(&mut self, k: &str, v: T) -> Option<Expression> {
         self.0.insert(String::from(k), Expression::Value(v.into()))
     }

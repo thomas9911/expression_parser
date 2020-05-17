@@ -8,6 +8,9 @@ lazy_static! {
         let mut m = HashMap::new();
         m.insert(String::from("true"), ExpressionValue::Bool(true));
         m.insert(String::from("false"), ExpressionValue::Bool(false));
+        m.insert(String::from("null"), ExpressionValue::Null);
+        m.insert(String::from("none"), ExpressionValue::Null);
+        m.insert(String::from("nil"), ExpressionValue::Null);
         m.insert(
             String::from("e"),
             ExpressionValue::Number(std::f64::consts::E),

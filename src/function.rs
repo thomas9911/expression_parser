@@ -30,6 +30,7 @@ pub enum Function {
     Sin(Expression),
     Tan(Expression),
     Random(Expression, Expression),
+    Now(),
 }
 
 impl std::fmt::Display for Function {
@@ -59,6 +60,7 @@ impl std::fmt::Display for Function {
             Sin(lhs) => write!(f, "sin({})", lhs),
             Tan(lhs) => write!(f, "tan({})", lhs),
             Random(lhs, rhs) => write!(f, "random({}, {})", lhs, rhs),
+            Now() => write!(f, "now()"),
         }
     }
 }
@@ -91,6 +93,7 @@ impl Function {
             Sin(lhs) => functions::sin(lhs, vars),
             Tan(lhs) => functions::tan(lhs, vars),
             Random(lhs, rhs) => functions::random(lhs, rhs, vars),
+            Now() => functions::now(vars),
         }
     }
 
@@ -124,6 +127,7 @@ impl Function {
                 Sin(lhs) => Sin(E::compile(lhs)?),
                 Tan(lhs) => Tan(E::compile(lhs)?),
                 Random(lhs, rhs) => Random(lhs, rhs),
+                Now() => Now(),
             };
 
             Ok(Expr(Box::new(funcs)))
@@ -141,7 +145,7 @@ impl Function {
 
     fn cannot_be_pre_evaluated(&self) -> bool {
         match self {
-            Function::Random(_, _) => true,
+            Function::Random(_, _) | Function::Now() => true,
             _ => false,
         }
     }
@@ -180,6 +184,8 @@ impl Function {
             Concat(list) | Product(list) | Sum(list) | All(list) | Any(list) => {
                 Box::new(list.iter().flat_map(|x| x.iter_variables()))
             }
+
+            Now() => Box::new(std::iter::empty::<String>()),
         }
     }
 

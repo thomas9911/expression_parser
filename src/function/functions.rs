@@ -22,6 +22,16 @@ pub fn if_function(lhs: Input, mdl: Input, rhs: Input, vars: &Vars) -> Output {
     }
 }
 
+pub fn now(_vars: &Vars) -> Output {
+    use std::time::SystemTime;
+
+    let now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap();
+
+    Ok(now.as_secs_f64().into())
+}
+
 pub fn random(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     use rand::distributions::IndependentSample;
 

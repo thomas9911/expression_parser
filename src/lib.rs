@@ -104,16 +104,20 @@ extern crate pest_derive;
 #[macro_use]
 extern crate lazy_static;
 
+pub mod assignment;
 pub mod error;
 pub mod expression_value;
+pub mod file;
 pub mod function;
 pub mod grammar;
 pub mod statics;
 pub mod string_expression;
 pub mod variables;
 
+pub use assignment::Assignment;
 pub use error::Error;
 pub use expression_value::{ExpressionMap, ExpressionValue};
+pub use file::ExpressionFile;
 pub use function::Function;
 pub use string_expression::Expression;
 pub use variables::Variables;

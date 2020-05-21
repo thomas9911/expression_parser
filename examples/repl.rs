@@ -1,4 +1,4 @@
-use expression_parser::{Expression, Variables};
+use expression_parser::{ExpressionValue, Variables, ExpressionFile};
 use std::io::{self, Error, StdoutLock, Write};
 
 const HELP_TEXT: &'static str = "Expression interactive example
@@ -58,8 +58,8 @@ fn main() -> Result<(), Error> {
         if ["quit", "exit"].contains(&buffer.as_ref()) {
             break;
         }
-        if !print_help(&buffer) && assignment(&buffer, &mut vars).is_none() {
-            do_expression(buffer, &vars, is_debug);
+        if !print_help(&buffer) {
+            do_expression(buffer, &mut vars, is_debug);
         }
 
         buffer = String::new();
@@ -90,34 +90,21 @@ fn print_help(first_arg: &str) -> bool {
     }
 }
 
-fn do_expression(buffer: String, vars: &Variables, is_debug: bool) {
-    let parsed = match Expression::parse(buffer.as_ref()) {
+fn do_expression(buffer: String, vars: &mut Variables, is_debug: bool) {
+    let parsed = match ExpressionFile::parse(buffer.as_ref()) {
         Ok(x) => x,
         Err(e) => return println!("Invalid expression{}", e),
     };
     if is_debug {
         println!("{:?}", parsed); // 'ast'
     }
-    match Expression::eval(parsed, vars) {
-        Ok(x) => println!("{}", x), // evaluated expression
+    match ExpressionFile::eval(parsed, vars) {
+        Ok(x) => {
+            match x {
+                ExpressionValue::Null => (),
+                _ => println!("{}", x), // evaluated expression
+            }
+        }
         Err(e) => println!("{}", e),
-    }
-}
-
-fn assignment(buffer: &str, vars: &mut Variables) -> Option<()> {
-    let a: Vec<&str> = buffer.split('=').map(|x| x.trim()).collect();
-    if a.len() == 2 {
-        let parsed = match Expression::parse(a[1].as_ref()) {
-            Ok(x) => match Expression::eval(x, vars) {
-                Ok(z) => z,
-                Err(e) => return Some(println!("{}", e)),
-            },
-            Err(e) => return Some(println!("Invalid expression{}", e)),
-        };
-
-        vars.insert(a[0], parsed);
-        Some(())
-    } else {
-        None
     }
 }

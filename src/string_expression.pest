@@ -1,3 +1,14 @@
+file = _{SOI ~ (line ~ (seperator ~ line)* ~ seperator?) ~ EOI}
+line = _{assign | expr}
+seperator = _{";"+}
+
+// // Assignment
+assignment = _{ SOI ~ assign ~ EOI }
+
+assign = {var ~ "=" ~ expr}
+
+// // Expression
+
 calculation = _{ SOI ~ expr ~ EOI }
 
 num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }

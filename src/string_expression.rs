@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 pub type EvalResult = Result<ExpressionValue, Error>;
 pub type ParseResult = Result<Expression, PestError<Rule>>;
 
-fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
+pub fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
     use Expression::*;
 
     PREC_CLIMBER.climb(

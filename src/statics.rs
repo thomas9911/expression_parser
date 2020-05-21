@@ -32,10 +32,8 @@ lazy_static! {
 
         PrecClimber::new(vec![
             Operator::new(concat_op, Left),
-            Operator::new(equal, Right),
-            Operator::new(not_equal, Right),
-            Operator::new(and, Left),
-            Operator::new(or, Left),
+            Operator::new(equal, Right) | Operator::new(not_equal, Right),
+            Operator::new(and, Left) | Operator::new(or, Left),
             Operator::new(add, Left) | Operator::new(subtract, Left),
             Operator::new(multiply, Left) | Operator::new(divide, Left),
             Operator::new(power, Right),

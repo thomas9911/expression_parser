@@ -1,4 +1,4 @@
-use expression_parser::{ExpressionValue, Variables, ExpressionFile};
+use expression_parser::{ExpressionFile, ExpressionValue, Variables};
 use std::io::{self, Error, StdoutLock, Write};
 
 const HELP_TEXT: &'static str = "Expression interactive example

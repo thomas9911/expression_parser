@@ -7,6 +7,16 @@ Take a look at the calculator example:
 cargo run --example calculator 1 + 12
 ```
 
+Or the expression example:
+```sh
+cargo run --example calculator 1 + 12
+```
+
+Or even better use the REPL:
+```sh
+cargo run --example repl
+```
+
 #### library usage
 
 Simple example
@@ -72,5 +82,24 @@ let result = Expression::eval(parsed, &Variables::default());
 
 assert_eq!(Ok(ExpressionValue::from("1234")), result);
 assert_eq!("\"1234\"", result.unwrap().to_string());
+```
+
+Multi-line example with variable assigment
+```rust
+use expression_parser::{ExpressionFile, Variables, ExpressionValue};
+
+let input = r#"
+    a = [1, 2, 3];
+    b = [3, 2, 1];
+    c = concat(a, b);
+    d = concat(b, a);
+    concat(c, [4,4], d);
+"#;
+let file = ExpressionFile::parse(input)?;
+let evaluated = ExpressionFile::eval(file, &mut Variables::default());
+assert_eq!(
+    ExpressionValue::from(vec![1, 2, 3, 3, 2, 1, 4, 4, 3, 2, 1, 1, 2, 3]),
+    evaluated.unwrap()
+);
 ```
 

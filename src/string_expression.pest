@@ -18,9 +18,9 @@ var = @{ ('a'..'z' | 'A'..'Z' | '0'..'9'  | ":" | "_")+ }
 
 string  = @{ "\"" ~ inner ~ "\"" }
     inner   = { (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner)? }
-    escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t") }
-    // escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
-    // unicode = { "u" ~ ASCII_HEX_DIGIT{4} }
+    // escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t") }
+    escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
+    unicode = { "u" ~ "{" ~ ASCII_HEX_DIGIT{2,6}~ "}" }
 
 // string  = @{ "\"" ~ letters ~ "\"" }
 //     letters = @{ (!("\"" | "\\") ~ char)* }

@@ -49,9 +49,15 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
 
     match pair.as_rule() {
         Rule::num => Ok(Value(pair.as_str().parse::<f64>().unwrap().into())),
-        Rule::string => Ok(Value(ExpressionValue::String(
-            pair.as_str().trim_matches('"').to_string(),
-        ))),
+        // Rule::string => Ok(Value(ExpressionValue::String(
+        //     pair.as_str().trim_matches('"').to_string(),
+        // ))),
+        Rule::string => {
+            match snailquote::unescape(pair.as_str()) {
+                Ok(x) => Ok(Value(ExpressionValue::String(x))),
+                Err(e) => Err(make_pest_error(pair.as_span(), e.to_string())),
+            }
+        }
         Rule::list => {
             let arguments: Vec<Expression> =
                 pair.into_inner().try_fold(Vec::new(), |mut acc, x| {

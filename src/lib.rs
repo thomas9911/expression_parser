@@ -157,4 +157,4 @@ pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;
 pub use function::Function;
 pub use string_expression::Expression;
-pub use variables::{Variables, VariableMap};
+pub use variables::{VariableMap, Variables};

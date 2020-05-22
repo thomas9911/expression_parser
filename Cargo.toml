@@ -13,6 +13,7 @@ lazy_static = "1.4"
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true }
 rand  = "0.4"
+snailquote = "0.3.0"
 
 [features]
 serde_example = ["serde", "serde_json"]

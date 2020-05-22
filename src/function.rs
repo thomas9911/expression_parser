@@ -1,6 +1,6 @@
 use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
-use crate::{Error, Expression, Variables, VariableMap};
+use crate::{Error, Expression, VariableMap, Variables};
 
 mod functions;
 
@@ -176,12 +176,7 @@ impl Function {
             | Pow(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
-            Lower(lhs) 
-            | Upper(lhs) 
-            | Cos(lhs) 
-            | Sin(lhs) 
-            | Tan(lhs) 
-            | Print(lhs) => {
+            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) => {
                 Box::new(lhs.iter_variables())
             }
 

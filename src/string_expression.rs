@@ -52,12 +52,10 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
         // Rule::string => Ok(Value(ExpressionValue::String(
         //     pair.as_str().trim_matches('"').to_string(),
         // ))),
-        Rule::string => {
-            match snailquote::unescape(pair.as_str()) {
-                Ok(x) => Ok(Value(ExpressionValue::String(x))),
-                Err(e) => Err(make_pest_error(pair.as_span(), e.to_string())),
-            }
-        }
+        Rule::string => match snailquote::unescape(&make_string(pair.clone().into_inner())) {
+            Ok(x) => Ok(Value(ExpressionValue::String(x))),
+            Err(e) => Err(make_pest_error(pair.as_span(), e.to_string())),
+        },
         Rule::list => {
             let arguments: Vec<Expression> =
                 pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
@@ -90,6 +88,18 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
             unreachable!()
         }
     }
+}
+
+fn make_string(string: Pairs<Rule>) -> String {
+    let mut buffer = String::from("\"");
+    for pair in string {
+        match pair.as_rule() {
+            Rule::unicode_code => buffer.push_str(&format!(r"\u{{{}}}", pair.as_str())),
+            _ => buffer.push_str(pair.as_str()),
+        }
+    }
+    buffer.push('"');
+    buffer
 }
 
 fn make_function(pair: Pair<Rule>) -> ParseResult {
@@ -348,4 +358,24 @@ impl From<ExpressionMap> for Expression {
     fn from(input: ExpressionMap) -> Expression {
         Expression::Value(ExpressionValue::Map(input))
     }
+}
+
+#[test]
+fn unicode_json() {
+    use crate::Variables;
+
+    let parsed = Expression::parse(r#""testing \u1F996""#).unwrap();
+    let evaluated = Expression::eval(parsed, &Variables::default()).unwrap();
+
+    assert_eq!(r#""testing 🦖""#, evaluated.to_string());
+}
+
+#[test]
+fn unicode_rust() {
+    use crate::Variables;
+
+    let parsed = Expression::parse(r#""testing \u{1F980}""#).unwrap();
+    let evaluated = Expression::eval(parsed, &Variables::default()).unwrap();
+
+    assert_eq!(r#""testing 🦀""#, evaluated.to_string());
 }

@@ -16,11 +16,15 @@ num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
 
 var = @{ ('a'..'z' | 'A'..'Z' | '0'..'9'  | ":" | "_")+ }
 
-string  = @{ "\"" ~ inner ~ "\"" }
-    inner   = { (!("\"" | "\\") ~ ANY)* ~ (escape ~ inner)? }
+string  = ${ "\"" ~ inner ~ "\"" }
+    inner   = _{ char ~ (escape ~ inner)? }
     // escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t") }
-    escape  = { "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
-    unicode = { "u" ~ "{" ~ ASCII_HEX_DIGIT{2,6}~ "}" }
+    escape  = _{ "\\" ~ ("\"" | "\\" | "/" | "b" | "f" | "n" | "r" | "t" | unicode) }
+    unicode = _{ rust_unicode | json_unicode }
+    rust_unicode = _{ "u" ~ "{" ~  unicode_code ~ "}" }
+    json_unicode = _{ "u" ~ unicode_code }
+        unicode_code = {ASCII_HEX_DIGIT{2,6}}
+        char = {(!("\"" | "\\") ~ ANY)*}
 
 // string  = @{ "\"" ~ letters ~ "\"" }
 //     letters = @{ (!("\"" | "\\") ~ char)* }

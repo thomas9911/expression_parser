@@ -4,12 +4,12 @@
 //! ```sh
 //! cargo run --example calculator 1 + 12
 //! ```
-//! 
+//!
 //! Or the expression example:
 //! ```sh
 //! cargo run --example calculator 1 + 12
 //! ```
-//! 
+//!
 //! Or even better use the REPL:
 //! ```sh
 //! cargo run --example repl
@@ -65,7 +65,7 @@
 //! Use your own variables
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{Expression, Variables};
+//! use expression_parser::{Expression, Variables, VariableMap};
 //! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
@@ -76,7 +76,7 @@
 //! vars.insert(String::from("y"), 3.0.into());
 //! vars.insert(String::from("z"), 10.0.into());
 //!
-//! let result = Expression::eval(parsed.clone(), &vars.into());
+//! let result = Expression::eval(parsed.clone(), &Variables::from(vars));
 //!
 //! assert_eq!(Ok(16.0.into()), result);
 //!
@@ -85,7 +85,7 @@
 //! vars.insert("y", 3.0);
 //! vars.insert("z", 10.0);
 //!
-//! let result = Expression::eval(parsed, &vars);
+//! let result = Expression::eval(parsed, &Variables::from(vars));
 //! assert_eq!(Ok(16.0.into()), result);
 //! # Ok(())
 //! # }
@@ -106,13 +106,13 @@
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 //! Multi-line example with variable assigment
 //! ```
 //! # use pest::error::Error;
 //! use expression_parser::{ExpressionFile, Variables, ExpressionValue};
 //! # use expression_parser::grammar::Rule;
-//! 
+//!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let input = r#"
 //!     a = [1, 2, 3];
@@ -124,7 +124,10 @@
 //! let file = ExpressionFile::parse(input)?;
 //! let evaluated = ExpressionFile::eval(file, &mut Variables::default());
 //! assert_eq!(
-//!     ExpressionValue::from(vec![1, 2, 3, 3, 2, 1, 4, 4, 3, 2, 1, 1, 2, 3]),
+//!     ExpressionValue::from(vec![
+//!         1, 2, 3, 3, 2, 1, 4,
+//!         4, 3, 2, 1, 1, 2, 3
+//!     ]),
 //!     evaluated.unwrap()
 //! );
 //! # Ok(())
@@ -154,4 +157,4 @@ pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;
 pub use function::Function;
 pub use string_expression::Expression;
-pub use variables::Variables;
+pub use variables::{Variables, VariableMap};

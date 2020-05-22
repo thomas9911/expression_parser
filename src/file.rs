@@ -5,7 +5,7 @@ use pest::Parser;
 use crate::assignment::parse_assignment;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Assignment, Error, Expression, ExpressionValue, Variables};
+use crate::{Assignment, Error, Expression, ExpressionValue, VariableMap};
 
 pub type ParseResult = Result<ExpressionFile, PestError<Rule>>;
 pub type EvalResult = Result<ExpressionValue, Error>;
@@ -23,8 +23,19 @@ pub enum ExpressionLine {
     Assignment(Assignment),
 }
 
+impl std::fmt::Display for ExpressionLine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use ExpressionLine::*;
+
+        match self {
+            Expression(x) => write!(f, "{}", x),
+            Assignment(x) => write!(f, "{}", x),
+        }
+    }
+}
+
 impl ExpressionLine {
-    pub fn eval(line: Self, vars: &mut Variables) -> EvalResult {
+    pub fn eval<V: VariableMap>(line: Self, vars: &mut V) -> EvalResult {
         match line {
             ExpressionLine::Expression(ex) => Expression::eval(ex, vars),
             ExpressionLine::Assignment(ass) => {
@@ -52,13 +63,20 @@ fn parse_file(expression: Pairs<Rule>) -> ParseResult {
     Ok(ExpressionFile { lines: lines })
 }
 
+impl std::fmt::Display for ExpressionFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let a: Vec<String> = self.lines.iter().map(|x| x.to_string()).collect();
+        write!(f, "{}", a.join("; "))
+    }
+}
+
 impl ExpressionFile {
     /// Takes input and returns a syntax tree
     pub fn parse(input: &str) -> ParseResult {
         parse_file(ExpressionessionParser::parse(Rule::file, input)?)
     }
 
-    pub fn eval(file: Self, vars: &mut Variables) -> EvalResult {
+    pub fn eval<V: VariableMap>(file: Self, vars: &mut V) -> EvalResult {
         let mut last = ExpressionValue::Null;
         for line in file.lines {
             last = ExpressionLine::eval(line, vars)?;
@@ -76,7 +94,17 @@ fn last_seperator_is_optional() {
 }
 
 #[test]
+fn print_expression_file() {
+    let expected = "a = (e + pi); a = (a + 12); ((a - e) - pi)";
+    let file = ExpressionFile::parse("a = e + pi; a = a + 12; a - e - pi").unwrap();
+    assert_eq!(expected, file.to_string());
+    let file = ExpressionFile::parse(&file.to_string()).unwrap();
+    assert_eq!(expected, file.to_string());
+}
+
+#[test]
 fn simple() {
+    use crate::Variables;
     let file = ExpressionFile::parse("a = 1 + 2; a = a + 12 + 123; a - 1").unwrap();
     let evaluated = ExpressionFile::eval(file, &mut Variables::default());
     assert_eq!(Ok(137.into()), evaluated);
@@ -84,6 +112,7 @@ fn simple() {
 
 #[test]
 fn simple_with_default_variables() {
+    use crate::Variables;
     let file = ExpressionFile::parse("a = e + pi; a = a + 12; a - e - pi").unwrap();
     let evaluated = ExpressionFile::eval(file, &mut Variables::default());
     assert_eq!(Ok(12.into()), evaluated);
@@ -91,6 +120,7 @@ fn simple_with_default_variables() {
 
 #[test]
 fn medium() {
+    use crate::Variables;
     let input = r#"
         a = [1, 2, 3];
         b = [3, 2, 1];

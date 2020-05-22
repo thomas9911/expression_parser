@@ -4,7 +4,7 @@ use pest::Parser;
 
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Error, Expression, Variables};
+use crate::{Error, Expression, VariableMap};
 
 pub type ParseResult = Result<Assignment, PestError<Rule>>;
 pub type EvalResult = Result<(), Error>;
@@ -51,7 +51,7 @@ impl Assignment {
         )
     }
 
-    pub fn eval(assigning: Self, vars: &mut Variables) -> EvalResult {
+    pub fn eval<V: VariableMap>(assigning: Self, vars: &mut V) -> EvalResult {
         let tmp = Expression::eval(assigning.expression, vars)?;
         vars.insert(&assigning.variable, tmp);
         Ok(())
@@ -79,7 +79,7 @@ fn assignment_parse() {
 
 #[test]
 fn assignment_add_to_variables() {
-    use crate::{Expression, Function};
+    use crate::{Expression, Function, Variables};
 
     let a = Assignment {
         variable: "a".to_string(),

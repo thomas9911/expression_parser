@@ -51,7 +51,7 @@ assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 
 Use your own variables
 ```rust
-use expression_parser::{Expression, Variables};
+use expression_parser::{Expression, Variables, VariableMap};
 
 let parsed = Expression::parse("x + y + z")?;
 
@@ -60,7 +60,7 @@ vars.insert(String::from("x"), 3.0.into());
 vars.insert(String::from("y"), 3.0.into());
 vars.insert(String::from("z"), 10.0.into());
 
-let result = Expression::eval(parsed.clone(), &vars.into());
+let result = Expression::eval(parsed.clone(), &Variables::from(vars));
 
 assert_eq!(Ok(16.0.into()), result);
 
@@ -69,7 +69,7 @@ vars.insert("x", 3.0);
 vars.insert("y", 3.0);
 vars.insert("z", 10.0);
 
-let result = Expression::eval(parsed, &vars);
+let result = Expression::eval(parsed, &Variables::from(vars));
 assert_eq!(Ok(16.0.into()), result);
 ```
 
@@ -98,7 +98,10 @@ let input = r#"
 let file = ExpressionFile::parse(input)?;
 let evaluated = ExpressionFile::eval(file, &mut Variables::default());
 assert_eq!(
-    ExpressionValue::from(vec![1, 2, 3, 3, 2, 1, 4, 4, 3, 2, 1, 1, 2, 3]),
+    ExpressionValue::from(vec![
+        1, 2, 3, 3, 2, 1, 4,
+        4, 3, 2, 1, 1, 2, 3
+    ]),
     evaluated.unwrap()
 );
 ```

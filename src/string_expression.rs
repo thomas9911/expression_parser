@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
-use crate::{Error, ExpressionMap, ExpressionValue, Function, Variables};
+use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -107,6 +107,10 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         "lower" => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Lower(arguments[0].clone())))
+        }
+        "print" => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Function::Print(arguments[0].clone())))
         }
         "cos" => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
@@ -252,7 +256,7 @@ impl std::fmt::Display for Expression {
 
 impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
-    pub fn eval(expression: Expression, vars: &Variables) -> EvalResult {
+    pub fn eval<V: VariableMap>(expression: Expression, vars: &V) -> EvalResult {
         match expression {
             Expression::Expr(op) => Function::eval(*op, vars),
             Expression::Value(value) => match value {

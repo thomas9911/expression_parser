@@ -1,3 +1,5 @@
+use expression_parser::VariableMap;
+
 mod iter_variables {
     use expression_parser::Expression;
 

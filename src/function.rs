@@ -1,6 +1,6 @@
-use crate::statics::{DEFAULT_STRING_VARIABLES, DEFAULT_VARIABLES};
+use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
-use crate::{Error, Expression, Variables};
+use crate::{Error, Expression, Variables, VariableMap};
 
 mod functions;
 
@@ -31,6 +31,7 @@ pub enum Function {
     Tan(Expression),
     Random(Expression, Expression),
     Now(),
+    Print(Expression),
 }
 
 impl std::fmt::Display for Function {
@@ -61,12 +62,13 @@ impl std::fmt::Display for Function {
             Tan(lhs) => write!(f, "tan({})", lhs),
             Random(lhs, rhs) => write!(f, "random({}, {})", lhs, rhs),
             Now() => write!(f, "now()"),
+            Print(lhs) => write!(f, "print({})", lhs),
         }
     }
 }
 
 impl Function {
-    pub fn eval(operator: Function, vars: &Variables) -> EvalResult {
+    pub fn eval<V: VariableMap>(operator: Function, vars: &V) -> EvalResult {
         use Function::*;
 
         match operator {
@@ -94,6 +96,7 @@ impl Function {
             Tan(lhs) => functions::tan(lhs, vars),
             Random(lhs, rhs) => functions::random(lhs, rhs, vars),
             Now() => functions::now(vars),
+            Print(lhs) => functions::print(lhs, vars),
         }
     }
 
@@ -126,13 +129,14 @@ impl Function {
                 Cos(lhs) => Cos(E::compile(lhs)?),
                 Sin(lhs) => Sin(E::compile(lhs)?),
                 Tan(lhs) => Tan(E::compile(lhs)?),
-                Random(lhs, rhs) => Random(lhs, rhs),
+                Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
                 Now() => Now(),
+                Print(lhs) => Print(E::compile(lhs)?),
             };
 
             Ok(Expr(Box::new(funcs)))
         } else {
-            Ok(Value(Function::eval(operator, &DEFAULT_STRING_VARIABLES)?))
+            Ok(Value(Function::eval(operator, &Variables::default())?))
         }
     }
 
@@ -144,8 +148,9 @@ impl Function {
     }
 
     fn cannot_be_pre_evaluated(&self) -> bool {
+        use Function::*;
         match self {
-            Function::Random(_, _) | Function::Now() => true,
+            Random(_, _) | Now() | Print(_) => true,
             _ => false,
         }
     }
@@ -171,7 +176,12 @@ impl Function {
             | Pow(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
-            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) => {
+            Lower(lhs) 
+            | Upper(lhs) 
+            | Cos(lhs) 
+            | Sin(lhs) 
+            | Tan(lhs) 
+            | Print(lhs) => {
                 Box::new(lhs.iter_variables())
             }
 

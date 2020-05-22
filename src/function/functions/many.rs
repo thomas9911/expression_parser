@@ -1,8 +1,8 @@
 use super::{as_string, evaluate_inputs, ok_string};
-use super::{Input, Output, Vars};
-use crate::{Error, ExpressionValue};
+use super::{Input, Output};
+use crate::{Error, ExpressionValue, VariableMap};
 
-pub fn sum(inputs: Vec<Input>, vars: &Vars) -> Output {
+pub fn sum(inputs: Vec<Input>, vars: &impl VariableMap) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
         Ok(evaluated_inputs
@@ -15,7 +15,7 @@ pub fn sum(inputs: Vec<Input>, vars: &Vars) -> Output {
     }
 }
 
-pub fn product(inputs: Vec<Input>, vars: &Vars) -> Output {
+pub fn product(inputs: Vec<Input>, vars: &impl VariableMap) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
         Ok(evaluated_inputs
@@ -28,17 +28,17 @@ pub fn product(inputs: Vec<Input>, vars: &Vars) -> Output {
     }
 }
 
-pub fn all(inputs: Vec<Input>, vars: &Vars) -> Output {
+pub fn all(inputs: Vec<Input>, vars: &impl VariableMap) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
     Ok(evaluated_inputs.iter().all(|x| x.is_truthy()).into())
 }
 
-pub fn any(inputs: Vec<Input>, vars: &Vars) -> Output {
+pub fn any(inputs: Vec<Input>, vars: &impl VariableMap) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
     Ok(evaluated_inputs.iter().any(|x| x.is_truthy()).into())
 }
 
-pub fn concat(inputs: Vec<Input>, vars: &Vars) -> Output {
+pub fn concat(inputs: Vec<Input>, vars: &impl VariableMap) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
 
     if evaluated_inputs.iter().all(|x| x.is_list()) {

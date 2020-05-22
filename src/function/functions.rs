@@ -1,8 +1,6 @@
-
 use crate::{Error, Expression, ExpressionValue, VariableMap};
 
 pub type Input = Expression;
-// pub type Vars = impl VariableMap;
 pub type Output = Result<ExpressionValue, Error>;
 
 mod binary;
@@ -14,7 +12,7 @@ pub use many::*;
 pub use number::*;
 pub use string::*;
 
-pub fn if_function(lhs: Input, mdl: Input, rhs: Input, vars: &impl VariableMap) -> Output {
+pub fn if_function<Vars: VariableMap>(lhs: Input, mdl: Input, rhs: Input, vars: &Vars) -> Output {
     let condition = Expression::eval(lhs, vars)?;
     if condition.is_truthy() {
         Expression::eval(mdl, vars)
@@ -23,7 +21,7 @@ pub fn if_function(lhs: Input, mdl: Input, rhs: Input, vars: &impl VariableMap) 
     }
 }
 
-pub fn now(_vars: &impl VariableMap) -> Output {
+pub fn now<Vars: VariableMap>(_vars: &Vars) -> Output {
     use std::time::SystemTime;
 
     let now = SystemTime::now()
@@ -33,7 +31,7 @@ pub fn now(_vars: &impl VariableMap) -> Output {
     Ok(now.as_secs_f64().into())
 }
 
-pub fn random(lhs: Input, rhs: Input, vars: &impl VariableMap) -> Output {
+pub fn random<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     use rand::distributions::IndependentSample;
 
     let a = into_number(lhs, vars)?;
@@ -51,7 +49,7 @@ pub fn random(lhs: Input, rhs: Input, vars: &impl VariableMap) -> Output {
     ok_number(value)
 }
 
-pub fn print(lhs: Input, vars: &impl VariableMap) -> Output {
+pub fn print<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
     let value = Expression::eval(lhs, vars)?;
     println!("{}", value);
     Ok(value)
@@ -73,15 +71,15 @@ pub(crate) fn ok_number(number: f64) -> Output {
     Ok(ExpressionValue::Number(number))
 }
 
-pub(crate) fn into_number(input: Input, vars: &impl VariableMap) -> Result<f64, Error> {
+pub(crate) fn into_number<Vars: VariableMap>(input: Input, vars: &Vars) -> Result<f64, Error> {
     Expression::eval(input, vars)?
         .as_number()
         .ok_or(Error::new_static("input should be a number"))
 }
 
-pub(crate) fn evaluate_inputs(
+pub(crate) fn evaluate_inputs<Vars: VariableMap>(
     inputs: Vec<Input>,
-    vars: &impl VariableMap,
+    vars: &Vars,
 ) -> Result<Vec<ExpressionValue>, Error> {
     inputs.into_iter().try_fold(Vec::new(), |mut acc, x| {
         acc.push(Expression::eval(x, vars)?);

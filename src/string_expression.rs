@@ -253,6 +253,7 @@ fn make_pest_error(span: Span, message: String) -> PestError<Rule> {
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Expression {
     Value(ExpressionValue),
     Expr(Box<Function>),

@@ -2,8 +2,12 @@ use crate::Expression;
 use std::collections::{BinaryHeap, HashMap};
 use std::iter::FromIterator;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum ExpressionValue {
     String(String),
     Bool(bool),

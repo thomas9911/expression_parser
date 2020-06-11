@@ -7,6 +7,9 @@ use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
 use crate::{Assignment, Error, Expression, ExpressionValue, VariableMap};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 pub type ParseResult = Result<ExpressionFile, PestError<Rule>>;
 pub type EvalResult = Result<ExpressionValue, Error>;
 

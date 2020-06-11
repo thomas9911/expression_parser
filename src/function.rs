@@ -2,6 +2,9 @@ use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
 use crate::{Error, Expression, VariableMap, Variables};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 mod functions;
 
 #[derive(Debug, Clone, PartialEq)]

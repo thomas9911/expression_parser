@@ -109,7 +109,7 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
     let mut inner_pairs = pair.into_inner();
     let function_name = inner_pairs.next().expect("function always has a name");
 
-    let arguments: Vec<Expression> = inner_pairs.try_fold(Vec::new(), |mut acc, x| {
+    let mut arguments: Vec<Expression> = inner_pairs.try_fold(Vec::new(), |mut acc, x| {
         acc.push(parse_expression(x.into_inner())?);
         Ok(acc)
     })?;
@@ -127,6 +127,11 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         "print" => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Print(arguments[0].clone())))
+        }
+        "help" => {
+            check_arguments(func_name, pair_span, 0, Some(1), &arguments)?;
+            let argument = arguments.pop().unwrap_or_default();
+            Expr(Box::new(Function::Help(argument)))
         }
         "cos" => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
@@ -153,6 +158,13 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         "contains" => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Contains(
+                arguments[0].clone(),
+                arguments[1].clone(),
+            )))
+        }
+        "join" => {
+            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            Expr(Box::new(Function::Join(
                 arguments[0].clone(),
                 arguments[1].clone(),
             )))
@@ -268,6 +280,12 @@ impl std::fmt::Display for Expression {
             Var(val) => write!(f, "{}", val),
             Expr(val) => write!(f, "{}", val),
         }
+    }
+}
+
+impl Default for Expression {
+    fn default() -> Self {
+        Expression::Value(Default::default())
     }
 }
 

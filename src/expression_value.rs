@@ -124,6 +124,12 @@ impl_from_integers!(i32);
 impl_from_integers!(i64);
 impl_from_integers!(isize);
 
+impl Default for ExpressionValue {
+    fn default() -> Self {
+        ExpressionValue::Null
+    }
+}
+
 impl ExpressionValue {
     /// casts value as a number
     pub fn as_number(&self) -> Option<f64> {

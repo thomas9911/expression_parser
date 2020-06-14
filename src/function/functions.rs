@@ -1,13 +1,16 @@
-use crate::{Error, Expression, ExpressionValue, VariableMap};
+use crate::{Error, Expression, ExpressionValue, Function, VariableMap};
+use super::FunctionName;
 
 pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
 
 mod binary;
+mod list;
 mod many;
 mod number;
 mod string;
 pub use binary::*;
+pub use list::*;
 pub use many::*;
 pub use number::*;
 pub use string::*;
@@ -55,12 +58,52 @@ pub fn print<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
     Ok(value)
 }
 
+pub fn help<Vars: VariableMap>(lhs: Input, _vars: &Vars) -> Output {
+    match &lhs {
+        x if x == &Expression::default() => ok_string(Function::help()),
+        _ => normal_help(lhs),
+    }
+}
+
+fn normal_help(lhs: Input) -> Output {
+    use std::str::FromStr;
+    use strum::{EnumMessage, IntoEnumIterator};
+
+    // let value = match Expression::eval(lhs.clone(), vars){
+    //     Ok(x) => Expression::Value(x),
+    //     Err(_e) => lhs,
+    // };
+
+    let value = as_variable_or_string(lhs)?;
+    match value.as_ref() {
+        "functions" => {
+            let d: Vec<_> = Function::iter().map(|x| {
+                Expression::Value(ExpressionValue::String(FunctionName::from(x).to_string()))
+            }).collect();
+            return Ok(ExpressionValue::List(d))
+        },
+        _ => ()
+    };
+    match Function::from_str(&value) {
+        Err(_e) => return Err(Error::new(format!("'{}' is not a function", value))),
+        Ok(x) => ok_string(x.get_message().unwrap_or_default().to_string()),
+    }
+}
+
 // fn into_value(result: Result<String, Error>) -> Output {
 //     ok_string(result?)
 // }
 
 pub(crate) fn as_string(val: ExpressionValue) -> String {
     val.to_string().trim_matches('"').to_string()
+}
+
+pub(crate) fn as_variable_or_string(expr: Expression) -> Result<String, Error> {
+    match expr {
+        Expression::Value(x) => Ok(as_string(x)),
+        Expression::Var(x) => Ok(x),
+        _ => Err(Error::new(format!("cannot call help on '{}'", expr))),
+    }
 }
 
 pub(crate) fn ok_string(string: String) -> Output {

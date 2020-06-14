@@ -7,65 +7,111 @@ use serde::{Deserialize, Serialize};
 
 mod functions;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, EnumString, EnumMessage, EnumIter, EnumDiscriminants)]
+#[strum(serialize_all = "snake_case")]
+#[strum_discriminants(derive(EnumString))]
+#[strum_discriminants(
+    name(FunctionName),
+    strum(serialize_all = "snake_case"),
+    derive(Display, IntoStaticStr)
+)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Function {
+    #[strum(message = "Combines two or more lists into one")]
     Concat(Vec<Expression>),
+    #[strum(message = "Sums up the arguments")]
     Sum(Vec<Expression>),
+    #[strum(message = "Calculates the product of the arguments")]
     Product(Vec<Expression>),
+    #[strum(message = "Checks if all arguments are truthy")]
     All(Vec<Expression>),
+    #[strum(message = "Checks if any arguments are truthy")]
     Any(Vec<Expression>),
+    #[strum(message = "Compares if the two arguments are equal")]
     Equal(Expression, Expression),
+    #[strum(message = "Compares if the two arguments are not equal")]
     NotEqual(Expression, Expression),
+    #[strum(
+        message = "If the first argument is truthy returns the second argument, otherwise returns the first argument"
+    )]
     And(Expression, Expression),
+    #[strum(
+        message = "If the first argument is truthy returns the first argument, otherwise returns the second argument"
+    )]
     Or(Expression, Expression),
+    #[strum(
+        message = "Removes the characters at the start and end of the first argument, second argument is an optional argument that contains the character to remove, defaults to ' '"
+    )]
     Trim(Expression, Expression),
+    #[strum(message = "Checks if the seconds arguement is in the first argument")]
     Contains(Expression, Expression),
+    #[strum(message = "Combine the first argument into a string with the second argument as is seperator")]
+    Join(Expression, Expression),
+    #[strum(
+        message = "If the first argument is truthy returns the second argument, otherwise returns the third argument"
+    )]
     If(Expression, Expression, Expression),
+    #[strum(message = "Converts input to uppercase")]
     Upper(Expression),
+    #[strum(message = "Converts input to lowercase")]
     Lower(Expression),
+    #[strum(message = "Adds the two arguments together")]
     Add(Expression, Expression),
+    #[strum(message = "Subtracts the second argument from the first argument")]
     Sub(Expression, Expression),
+    #[strum(message = "Multiplies the two arguments together")]
     Mul(Expression, Expression),
+    #[strum(message = "Divides the second argument from the first argument")]
     Div(Expression, Expression),
+    #[strum(message = "Raises the first argument to the second argument")]
     Pow(Expression, Expression),
+    #[strum(message = "Calculates the cosine of the number")]
     Cos(Expression),
+    #[strum(message = "Calculates the sine of the number")]
     Sin(Expression),
+    #[strum(message = "Calculates the tangent of the number")]
     Tan(Expression),
+    #[strum(
+        message = "Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument"
+    )]
     Random(Expression, Expression),
+    #[strum(message = "Returns the unix timestamp of the current time")]
     Now(),
+    #[strum(message = "Prints value")]
     Print(Expression),
+    #[strum(message = "Prints help message")]
+    Help(Expression),
 }
 
 impl std::fmt::Display for Function {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Function::*;
+
+        let func_name = FunctionName::from(self);
         match self {
-            Concat(list) => write!(f, "concat({})", list_to_string(list).join(", ")),
-            Sum(list) => write!(f, "sum({})", list_to_string(list).join(", ")),
-            Product(list) => write!(f, "product({})", list_to_string(list).join(", ")),
-            All(list) => write!(f, "all({})", list_to_string(list).join(", ")),
-            Any(list) => write!(f, "any({})", list_to_string(list).join(", ")),
-            Trim(lhs, rhs) => write!(f, "trim({}, {})", lhs, rhs),
+            // functions
+            Concat(list) | Sum(list) | Product(list) | All(list) | Any(list) => {
+                write!(f, "{}({})", func_name, list_to_string(list).join(", "))
+            }
+            If(lhs, mdl, rhs) => write!(f, "{}({}, {}, {})", func_name, lhs, mdl, rhs),
+            Trim(lhs, rhs) | Contains(lhs, rhs) | Join(lhs, rhs) | Random(lhs, rhs) => {
+                write!(f, "{}({}, {})", func_name, lhs, rhs)
+            }
+            Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
+                write!(f, "{}({})", func_name, lhs)
+            }
+            Now() => write!(f, "{}()", func_name),
+
+            // infixes
             Equal(lhs, rhs) => write!(f, "({} == {})", lhs, rhs),
             NotEqual(lhs, rhs) => write!(f, "({} != {})", lhs, rhs),
             And(lhs, rhs) => write!(f, "({} and {})", lhs, rhs),
             Or(lhs, rhs) => write!(f, "({} or {})", lhs, rhs),
-            Contains(lhs, rhs) => write!(f, "contains({}, {})", lhs, rhs),
-            If(lhs, mdl, rhs) => write!(f, "if({}, {}, {})", lhs, mdl, rhs),
-            Upper(lhs) => write!(f, "upper({})", lhs),
-            Lower(lhs) => write!(f, "lower({})", lhs),
             Add(lhs, rhs) => write!(f, "({} + {})", lhs, rhs),
             Sub(lhs, rhs) => write!(f, "({} - {})", lhs, rhs),
             Mul(lhs, rhs) => write!(f, "({} * {})", lhs, rhs),
             Div(lhs, rhs) => write!(f, "({} / {})", lhs, rhs),
             Pow(lhs, rhs) => write!(f, "({} ^ {})", lhs, rhs),
-            Cos(lhs) => write!(f, "cos({})", lhs),
-            Sin(lhs) => write!(f, "sin({})", lhs),
-            Tan(lhs) => write!(f, "tan({})", lhs),
-            Random(lhs, rhs) => write!(f, "random({}, {})", lhs, rhs),
-            Now() => write!(f, "now()"),
-            Print(lhs) => write!(f, "print({})", lhs),
         }
     }
 }
@@ -86,6 +132,7 @@ impl Function {
             And(lhs, rhs) => functions::and(lhs, rhs, vars),
             Or(lhs, rhs) => functions::or(lhs, rhs, vars),
             Contains(lhs, rhs) => functions::contains(lhs, rhs, vars),
+            Join(lhs, rhs) => functions::join(lhs, rhs, vars),
             If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, vars),
             Upper(lhs) => functions::upper(lhs, vars),
             Lower(lhs) => functions::lower(lhs, vars),
@@ -100,6 +147,7 @@ impl Function {
             Random(lhs, rhs) => functions::random(lhs, rhs, vars),
             Now() => functions::now(vars),
             Print(lhs) => functions::print(lhs, vars),
+            Help(lhs) => functions::help(lhs, vars),
         }
     }
 
@@ -121,6 +169,7 @@ impl Function {
                 And(lhs, rhs) => And(E::compile(lhs)?, E::compile(rhs)?),
                 Or(lhs, rhs) => Or(E::compile(lhs)?, E::compile(rhs)?),
                 Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
+                Join(lhs, rhs) => Join(E::compile(lhs)?, E::compile(rhs)?),
                 If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
                 Upper(lhs) => Upper(E::compile(lhs)?),
                 Lower(lhs) => Lower(E::compile(lhs)?),
@@ -135,6 +184,7 @@ impl Function {
                 Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
                 Now() => Now(),
                 Print(lhs) => Print(E::compile(lhs)?),
+                Help(lhs) => Help(E::compile(lhs)?),
             };
 
             Ok(Expr(Box::new(funcs)))
@@ -172,6 +222,7 @@ impl Function {
             | And(lhs, rhs)
             | Or(lhs, rhs)
             | Contains(lhs, rhs)
+            | Join(lhs, rhs)
             | Add(lhs, rhs)
             | Sub(lhs, rhs)
             | Mul(lhs, rhs)
@@ -179,7 +230,7 @@ impl Function {
             | Pow(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
-            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) => {
+            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
                 Box::new(lhs.iter_variables())
             }
 
@@ -203,8 +254,72 @@ impl Function {
                 .filter(|x| !DEFAULT_VARIABLES.contains_key(x)),
         )
     }
+
+    pub fn is_infix(&self) -> bool {
+        self.inflix_symbol().is_some()
+    }
+
+    pub fn inflix_symbol(&self) -> Option<&'static str> {
+        use FunctionName::*;
+        match FunctionName::from(self) {
+            Equal => Some("=="),
+            NotEqual => Some("!="),
+            And => Some("and"),
+            Or => Some("or"),
+            Add => Some("+"),
+            Sub => Some("-"),
+            Mul => Some("*"),
+            Div => Some("/"),
+            Pow => Some("^"),
+            _ => None,
+        }
+    }
+
+    pub fn help() -> String {
+        use strum::{EnumMessage, IntoEnumIterator};
+
+        Function::iter().fold(String::from("\n"), |mut acc, item| {
+            let func_name = item
+                .inflix_symbol()
+                .unwrap_or(FunctionName::from(&item).into());
+            acc.push_str(&format!(
+                "{}:\n\t{}\n",
+                func_name,
+                item.get_message().unwrap_or_default()
+            ));
+            acc
+        })
+    }
 }
 
 fn list_to_string(input: &Vec<Expression>) -> Vec<String> {
     input.iter().map(|x| format!("{}", x)).collect()
+}
+
+#[test]
+fn function_names_test() {
+    use std::str::FromStr;
+
+    let t = FunctionName::from_str("now").unwrap();
+    let r = Function::Now();
+    let p = FunctionName::from(&r);
+
+    assert_eq!(t, p);
+
+    assert_eq!("now", p.to_string());
+    assert_eq!("now()", r.to_string());
+}
+
+#[test]
+fn xd() {
+    use std::str::FromStr;
+    use strum::EnumMessage;
+
+    let t = Function::from_str("now").unwrap();
+    let r = Function::Now();
+    let p = FunctionName::from(&r);
+
+    println!("{:?}", t.get_message());
+
+    assert!(false)
 }

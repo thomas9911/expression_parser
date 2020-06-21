@@ -2,10 +2,10 @@ use pest::error::Error as PestError;
 use pest::iterators::Pairs;
 use pest::Parser;
 
-use crate::assignment::parse_assignment;
+use crate::assignment::{parse_assignment, parse_unassignment};
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Assignment, Error, Expression, ExpressionValue, VariableMap};
+use crate::{Assignment, Error, Expression, ExpressionValue, Unassignment, VariableMap};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -24,6 +24,7 @@ pub struct ExpressionFile {
 pub enum ExpressionLine {
     Expression(Expression),
     Assignment(Assignment),
+    Unassignment(Unassignment),
 }
 
 impl std::fmt::Display for ExpressionLine {
@@ -33,6 +34,7 @@ impl std::fmt::Display for ExpressionLine {
         match self {
             Expression(x) => write!(f, "{}", x),
             Assignment(x) => write!(f, "{}", x),
+            Unassignment(x) => write!(f, "{}", x),
         }
     }
 }
@@ -45,6 +47,10 @@ impl ExpressionLine {
                 Assignment::eval(ass, vars)?;
                 Ok(ExpressionValue::Null)
             }
+            ExpressionLine::Unassignment(un) => {
+                Unassignment::eval(un, vars)?;
+                Ok(ExpressionValue::Null)
+            }
         }
     }
 }
@@ -55,6 +61,7 @@ fn parse_file(expression: Pairs<Rule>) -> ParseResult {
         let line = match pair.as_rule() {
             Rule::expr => ExpressionLine::Expression(parse_expression(pair.into_inner())?),
             Rule::assign => ExpressionLine::Assignment(parse_assignment(pair.into_inner())?),
+            Rule::unassign => ExpressionLine::Unassignment(parse_unassignment(pair.into_inner())?),
             Rule::EOI => continue,
             rule => {
                 println!("{:?}", rule);
@@ -137,4 +144,18 @@ fn medium() {
         ExpressionValue::from(vec![1, 2, 3, 3, 2, 1, 4, 4, 3, 2, 1, 1, 2, 3]),
         evaluated
     );
+}
+
+#[test]
+fn unassign() {
+    use crate::Variables;
+    let file = ExpressionFile::parse("a = 1 + 2").unwrap();
+    let mut variables = Variables::default();
+    let _evaluated = ExpressionFile::eval(file, &mut variables);
+
+    assert_eq!(Some(&3.0.into()), variables.get("a"));
+
+    let file = ExpressionFile::parse("unset a").unwrap();
+    let _evaluated = ExpressionFile::eval(file, &mut variables);
+    assert_eq!(None, variables.get("a"));
 }

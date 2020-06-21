@@ -6,6 +6,10 @@ use std::collections::{BTreeMap, HashMap};
 pub trait VariableMap {
     fn get(&self, key: &str) -> Option<&ExpressionValue>;
     fn insert<V: Into<ExpressionValue>>(&mut self, key: &str, value: V) -> Option<ExpressionValue>;
+    fn remove(&mut self, _key: &str) -> Option<ExpressionValue> {
+        None
+    }
+    fn clear(&mut self) {}
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +27,14 @@ impl VariableMap for Variables {
         V: Into<ExpressionValue>,
     {
         self.state.insert(String::from(key), value.into())
+    }
+
+    fn remove(&mut self, key: &str) -> Option<ExpressionValue> {
+        self.state.remove(key)
+    }
+
+    fn clear(&mut self) {
+        self.state.clear()
     }
 }
 
@@ -83,6 +95,14 @@ impl VariableMap for ScopedVariables {
         V: Into<ExpressionValue>,
     {
         self.local.insert(String::from(key), value.into())
+    }
+
+    fn remove(&mut self, key: &str) -> Option<ExpressionValue> {
+        self.local.remove(key)
+    }
+
+    fn clear(&mut self) {
+        self.local.clear()
     }
 }
 

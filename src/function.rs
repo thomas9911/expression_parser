@@ -45,7 +45,9 @@ pub enum Function {
     Trim(Expression, Expression),
     #[strum(message = "Checks if the seconds arguement is in the first argument")]
     Contains(Expression, Expression),
-    #[strum(message = "Combine the first argument into a string with the second argument as is seperator")]
+    #[strum(
+        message = "Combine the first argument into a string with the second argument as is seperator"
+    )]
     Join(Expression, Expression),
     #[strum(
         message = "If the first argument is truthy returns the second argument, otherwise returns the third argument"
@@ -290,6 +292,182 @@ impl Function {
             acc
         })
     }
+
+    pub fn get_usage(&self) -> &'static str {
+        use FunctionName::*;
+        match FunctionName::from(self) {
+            Equal => {
+                r#"
+    first = 1 == 1; 
+    second = [1,2,3] == [1,2,3]; 
+    third = {"test": true} == {"test": true}; 
+    first and second and third"#
+            }
+            NotEqual => {
+                r#"
+    first = 1 != 2; 
+    second = [1,2,3] != [3,2,1]; 
+    third = {"test": true} != {"test": false}; 
+    first and second and third"#
+            }
+            And => {
+                r#"
+    first = true and true;
+    second = 1 and true;
+    third = [1,2,3] and true;
+    fourth = 0 and 1234 == 0;
+    first and second and third and fourth"#
+            }
+            Or => {
+                r#"
+    first = false or true;
+    second = 0.0 or true;
+    third = [] or true;
+    first and second and third"#
+            }
+            All => {
+                r#"
+    first = all([1, true, [1,2,3], {"test": true}]);
+    first"#
+            }
+            Any => {
+                r#"
+    first = any([1, false, [1,2,3], {"test": true}]);
+    second = any([0.0, true, [], {}]);
+    first and second"#
+            }
+            Add => {
+                r#"
+    first = 1 + 1 == 2;
+    second = 123 + 321 == 444;
+    third = -321 + 321 == 0;
+    first and second and third"#
+            }
+            Sub => {
+                r#"
+    first = 1 - 1 == 0;
+    second = 421 - 321 == 100;
+    third = -123 - 321 == -444;
+    first and second and third"#
+            }
+            Mul => {
+                r#"
+    first = 1 * 1 == 1;
+    second = 150 * 0 == 0;
+    third = -5 * -5 == 25;
+    first and second and third"#
+            }
+            Div => {
+                r#"
+    first = 1 / 5 == 0.2;
+    second = 50 / 50 == 1;
+    third = 150 / 6 == 25;
+    first and second and third"#
+            }
+            Pow => {
+                r#"
+    first = 1 ** 1 == 1;
+    second = 2 ^ 3 == 8;
+    third = 16 ** 0.5 == 4;
+    first and second and third"#
+            }
+            Trim => {
+                r#"
+    first = trim("__Testing_Test__", "_") == "Testing_Test";
+    second = trim("A sentence.\n\n\n\n\n", "\n") == "A sentence.";
+    first and second"#
+            }
+            Join => {
+                r#"
+    first = join(["1", "2", "3"], ", ") == "1, 2, 3";
+    second = join(["test", "testing", "test"], "-") == "test-testing-test";
+    first and second"#
+            }
+            If => {
+                r#"
+    first = if(1 == 1, "success", "failed") == "success";
+    
+    one = "1";
+    two = "2";
+    some_test = e != pi;
+    second = if(some_test, one, two) == one;
+    first and second"#
+            }
+            Random => {
+                r#"
+    // random() returns a random number between 0 and 1
+    first = random() != random();
+    second = random(-1, 1) != random(2, 5);
+    third = random(-5) != random(5);
+    first and second and third"#
+            }
+            Concat => {
+                r#"
+    first = concat([1,2], [3,4], [5,6]) == [1,2,3,4,5,6];
+    second = concat("test", "-", "test") == "test-test";
+    first and second"#
+            }
+            Sum => {
+                r#"
+    first = sum(1,2,3,4,5) == 15;
+    first"#
+            }
+            Product => {
+                r#"
+    first = product(1,2,3,4,5) == 120;
+    first"#
+            }
+            Lower => {
+                r#"
+    first = lower("TESTING") == "testing";
+    first"#
+            }
+            Upper => {
+                r#"
+    first = upper("testing") == "TESTING";
+    first"#
+            }
+            Contains => {
+                r#"
+    first = contains("testing", "test");
+    second = contains([1,2,3,4], 3);
+    first and second"#
+            }
+            Sin => {
+                r#"
+    first = sin(0) == 0;
+    first"#
+            }
+            Cos => {
+                r#"
+    first = cos(0) == 1;
+    first"#
+            }
+            Tan => {
+                r#"
+    first = tan(0) == 0;
+    first"#
+            }
+            Help => {
+                r#"
+    // prints general help
+    help();
+
+    // prints help for specific function
+    help(contains);
+
+    // print all the functions
+    help(functions);
+    true"#
+            }
+            Now => {
+                r#"
+    now();
+    true"#
+            }
+            Print => "true",
+        }
+    }
 }
 
 fn list_to_string(input: &Vec<Expression>) -> Vec<String> {
@@ -310,16 +488,35 @@ fn function_names_test() {
     assert_eq!("now()", r.to_string());
 }
 
+// #[test]
+// fn xd() {
+//     use std::str::FromStr;
+//     use strum::EnumMessage;
+
+//     let t = Function::from_str("now").unwrap();
+//     let r = Function::Now();
+//     let p = FunctionName::from(&r);
+
+//     println!("{:?}", t.get_message());
+
+//     assert!(false)
+// }
+
 #[test]
-fn xd() {
-    use std::str::FromStr;
-    use strum::EnumMessage;
+fn function_doc_tests() {
+    use crate::{ExpressionFile, ExpressionValue};
+    use strum::IntoEnumIterator;
 
-    let t = Function::from_str("now").unwrap();
-    let r = Function::Now();
-    let p = FunctionName::from(&r);
+    for function in Function::iter() {
+        let val = ExpressionFile::eval(
+            ExpressionFile::parse(function.get_usage()).unwrap(),
+            &mut Variables::default(),
+        )
+        .unwrap();
 
-    println!("{:?}", t.get_message());
-
-    assert!(false)
+        // assert_eq!(val, ExpressionValue::Bool(true))
+        if val != ExpressionValue::Bool(true) {
+            panic!("usage test for \"{}\" fails", FunctionName::from(function))
+        }
+    }
 }

@@ -24,7 +24,7 @@ pub fn product<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
             .product::<f64>()
             .into())
     } else {
-        Err(Error::new_static("sum contains non number inputs"))
+        Err(Error::new_static("product contains non number inputs"))
     }
 }
 

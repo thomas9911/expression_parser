@@ -9,10 +9,11 @@ use crate::{Error, Expression, VariableMap};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-pub type ParseResult = Result<Assignment, PestError<Rule>>;
+pub type AssignmentParseResult = Result<Assignment, PestError<Rule>>;
+pub type UnassignmentParseResult = Result<Unassignment, PestError<Rule>>;
 pub type EvalResult = Result<(), Error>;
 
-pub fn parse_assignment(mut assignment: Pairs<Rule>) -> ParseResult {
+pub fn parse_assignment(mut assignment: Pairs<Rule>) -> AssignmentParseResult {
     let var = assignment
         .next()
         .expect("grammar of assignment is incorrect")
@@ -27,6 +28,17 @@ pub fn parse_assignment(mut assignment: Pairs<Rule>) -> ParseResult {
     Ok(Assignment {
         variable: String::from(var),
         expression: expression,
+    })
+}
+
+pub fn parse_unassignment(mut assignment: Pairs<Rule>) -> UnassignmentParseResult {
+    let var = assignment
+        .next()
+        .expect("grammar of unassignment is incorrect")
+        .as_str();
+
+    Ok(Unassignment {
+        variable: String::from(var),
     })
 }
 
@@ -45,7 +57,7 @@ impl std::fmt::Display for Assignment {
 
 impl Assignment {
     /// Takes input and returns a syntax tree
-    pub fn parse(input: &str) -> ParseResult {
+    pub fn parse(input: &str) -> AssignmentParseResult {
         parse_assignment(
             ExpressionessionParser::parse(Rule::assignment, input)?
                 .next()
@@ -57,6 +69,35 @@ impl Assignment {
     pub fn eval<V: VariableMap>(assigning: Self, vars: &mut V) -> EvalResult {
         let tmp = Expression::eval(assigning.expression, vars)?;
         vars.insert(&assigning.variable, tmp);
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Unassignment {
+    variable: String,
+}
+
+impl std::fmt::Display for Unassignment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "unset {}", self.variable)
+    }
+}
+
+impl Unassignment {
+    /// Takes input and returns a syntax tree
+    pub fn parse(input: &str) -> UnassignmentParseResult {
+        parse_unassignment(
+            ExpressionessionParser::parse(Rule::assignment, input)?
+                .next()
+                .expect("grammar is invalid")
+                .into_inner(),
+        )
+    }
+
+    pub fn eval<V: VariableMap>(assigning: Self, vars: &mut V) -> EvalResult {
+        vars.remove(&assigning.variable);
         Ok(())
     }
 }
@@ -96,4 +137,17 @@ fn assignment_add_to_variables() {
     Assignment::eval(a, &mut vars).unwrap();
 
     assert_eq!(Some(&180.into()), vars.get("a"));
+}
+
+#[test]
+fn unassignment_parse() {
+    let a = Unassignment::parse("unset a").unwrap();
+
+    assert_eq!("unset a", a.to_string());
+
+    let expected = Unassignment {
+        variable: "a".to_string(),
+    };
+
+    assert_eq!(expected, a);
 }

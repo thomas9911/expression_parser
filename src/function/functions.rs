@@ -1,5 +1,5 @@
-use crate::{Error, Expression, ExpressionValue, Function, VariableMap};
 use super::FunctionName;
+use crate::{Error, Expression, ExpressionValue, Function, VariableMap};
 
 pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
@@ -67,7 +67,7 @@ pub fn help<Vars: VariableMap>(lhs: Input, _vars: &Vars) -> Output {
 
 fn normal_help(lhs: Input) -> Output {
     use std::str::FromStr;
-    use strum::{EnumMessage, IntoEnumIterator};
+    use strum::IntoEnumIterator;
 
     // let value = match Expression::eval(lhs.clone(), vars){
     //     Ok(x) => Expression::Value(x),
@@ -77,17 +77,35 @@ fn normal_help(lhs: Input) -> Output {
     let value = as_variable_or_string(lhs)?;
     match value.as_ref() {
         "functions" => {
-            let d: Vec<_> = Function::iter().map(|x| {
-                Expression::Value(ExpressionValue::String(FunctionName::from(x).to_string()))
-            }).collect();
-            return Ok(ExpressionValue::List(d))
-        },
-        _ => ()
+            let d: Vec<_> = Function::iter()
+                .map(|x| {
+                    Expression::Value(ExpressionValue::String(FunctionName::from(x).to_string()))
+                })
+                .collect();
+            return Ok(ExpressionValue::List(d));
+        }
+        _ => (),
     };
     match Function::from_str(&value) {
         Err(_e) => return Err(Error::new(format!("'{}' is not a function", value))),
-        Ok(x) => ok_string(x.get_message().unwrap_or_default().to_string()),
+        Ok(x) => ok_string(print_function_help(x)),
     }
+}
+
+fn print_function_help(func: Function) -> String {
+    use strum::EnumMessage;
+    let help_text = func.get_message().unwrap_or_default();
+    let mut usage_lines = func.get_usage().lines();
+    usage_lines.next_back();
+    let usage_text: String = usage_lines
+        .map(|x| {
+            let mut x = String::from(x);
+            x.push_str("\n");
+            x
+        })
+        .collect();
+
+    format!("{}\nUsage:\n{}", help_text, usage_text)
 }
 
 // fn into_value(result: Result<String, Error>) -> Output {

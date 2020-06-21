@@ -1,10 +1,11 @@
 file = _{SOI ~ (line ~ (seperator ~ line)* ~ seperator?) ~ EOI}
-line = _{assign | expr}
+line = _{unassign | assign | expr}
 seperator = _{";"+}
 
 // // Assignment
-assignment = _{ SOI ~ assign ~ EOI }
+assignment = _{ SOI ~ (unassign | assign) ~ EOI }
 
+unassign = {"unset" ~ var }
 assign = {var ~ "=" ~ expr}
 
 // // Expression
@@ -59,7 +60,7 @@ func = ${ func_name ~ "(" ~  spaces ~ any_arguments ~ spaces ~ ")" }
 
 list = { "[" ~ any_arguments ~ "]"}
 
-map = !{ "{" ~ map_item ~ (COMMA ~ map_item)* ~ "}" }
+map = !{ ("{" ~ map_item ~ (COMMA ~ map_item)* ~ "}") | ("{" ~ "}") }
     map_item = _{ string ~ ":" ~ expr }
 
 term = _{ num | "(" ~ expr ~ ")" | string | func | var | list | map }
@@ -67,3 +68,7 @@ term = _{ num | "(" ~ expr ~ ")" | string | func | var | list | map }
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 spaces = _{ WHITESPACE* }
 COMMA = _{","}
+
+COMMENT =  _{ one_line_comment | multi_line_comment }
+one_line_comment =  _{ ("//" | "#") ~ (!"\n" ~ ANY)* }
+multi_line_comment = _{"/*" ~ (!"*/" ~ ANY)* ~ "*/"}

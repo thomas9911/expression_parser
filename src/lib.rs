@@ -154,7 +154,7 @@ pub mod statics;
 pub mod string_expression;
 pub mod variables;
 
-pub use assignment::Assignment;
+pub use assignment::{Assignment, Unassignment};
 pub use error::Error;
 pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;

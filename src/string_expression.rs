@@ -3,6 +3,7 @@ use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
 use std::collections::HashMap;
 
+use crate::function::FunctionName;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
 use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap};
@@ -103,7 +104,9 @@ fn make_string(string: Pairs<Rule>) -> String {
 }
 
 fn make_function(pair: Pair<Rule>) -> ParseResult {
+    use std::str::FromStr;
     use Expression::Expr;
+    use FunctionName::*;
 
     let pair_span = pair.as_span();
     let mut inner_pairs = pair.into_inner();
@@ -113,39 +116,47 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         acc.push(parse_expression(x.into_inner())?);
         Ok(acc)
     })?;
-    let func_name = function_name.as_str();
+    let func_name = match FunctionName::from_str(function_name.as_str()) {
+        Ok(x) => x,
+        _ => {
+            return Err(make_pest_error(
+                pair_span,
+                format!("function {:?} is not defined", function_name.as_str()),
+            ))
+        }
+    };
 
     Ok(match func_name {
-        "upper" => {
+        Upper => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Upper(arguments[0].clone())))
         }
-        "lower" => {
+        Lower => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Lower(arguments[0].clone())))
         }
-        "print" => {
+        Print => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Print(arguments[0].clone())))
         }
-        "help" => {
+        Help => {
             check_arguments(func_name, pair_span, 0, Some(1), &arguments)?;
             let argument = arguments.pop().unwrap_or_default();
             Expr(Box::new(Function::Help(argument)))
         }
-        "cos" => {
+        Cos => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Cos(arguments[0].clone())))
         }
-        "sin" => {
+        Sin => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Sin(arguments[0].clone())))
         }
-        "tan" => {
+        Tan => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
             Expr(Box::new(Function::Tan(arguments[0].clone())))
         }
-        "trim" => {
+        Trim => {
             check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
             Expr(Box::new(Function::Trim(
                 arguments[0].clone(),
@@ -155,21 +166,42 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
                     .clone(),
             )))
         }
-        "contains" => {
+        Contains => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Contains(
                 arguments[0].clone(),
                 arguments[1].clone(),
             )))
         }
-        "join" => {
+        Join => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Join(
                 arguments[0].clone(),
                 arguments[1].clone(),
             )))
         }
-        "if" => {
+        Get => {
+            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            Expr(Box::new(Function::Get(
+                arguments[0].clone(),
+                arguments[1].clone(),
+            )))
+        }
+        Push => {
+            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            Expr(Box::new(Function::Push(
+                arguments[0].clone(),
+                arguments[1].clone(),
+            )))
+        }
+        Remove => {
+            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            Expr(Box::new(Function::Remove(
+                arguments[0].clone(),
+                arguments[1].clone(),
+            )))
+        }
+        If => {
             check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
             Expr(Box::new(Function::If(
                 arguments[0].clone(),
@@ -177,27 +209,27 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
                 arguments[2].clone(),
             )))
         }
-        "concat" => {
+        Concat => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Function::Concat(arguments)))
         }
-        "sum" => {
+        Sum => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Function::Sum(arguments)))
         }
-        "product" => {
+        Product => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Function::Product(arguments)))
         }
-        "all" => {
+        All => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Function::All(arguments)))
         }
-        "any" => {
+        Any => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Function::Any(arguments)))
         }
-        "random" | "rnd" => {
+        Random => {
             check_arguments(func_name, pair_span, 0, Some(2), &arguments)?;
 
             let default_a = &Expression::Value(0.0.into());
@@ -213,21 +245,23 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
 
             Expr(Box::new(Function::Random(a.to_owned(), b.to_owned())))
         }
-        "now" => {
+        Now => {
             check_arguments(func_name, pair_span, 0, Some(0), &arguments)?;
             Expr(Box::new(Function::Now()))
         }
-        _ => {
+
+        // infix functions
+        Equal | NotEqual | Add | Sub | Mul | Div | Pow | And | Or => {
             return Err(make_pest_error(
                 pair_span,
-                format!("function {:?} is not defined", func_name),
-            ));
+                format!("function {:?} is not defined", function_name.as_str()),
+            ))
         }
     })
 }
 
 fn check_arguments(
-    function_name: &str,
+    function_name: FunctionName,
     span: Span,
     min_args: usize,
     max_args: Option<usize>,

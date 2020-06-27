@@ -73,6 +73,12 @@ pub enum Function {
     Sin(Expression),
     #[strum(message = "Calculates the tangent of the number")]
     Tan(Expression),
+    #[strum(message = "Gets the value from the list")]
+    Get(Expression, Expression),
+    #[strum(message = "Push value to the list")]
+    Push(Expression, Expression),
+    #[strum(message = "Remove value to the list")]
+    Remove(Expression, Expression),
     #[strum(
         message = "Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument"
     )]
@@ -96,9 +102,13 @@ impl std::fmt::Display for Function {
                 write!(f, "{}({})", func_name, list_to_string(list).join(", "))
             }
             If(lhs, mdl, rhs) => write!(f, "{}({}, {}, {})", func_name, lhs, mdl, rhs),
-            Trim(lhs, rhs) | Contains(lhs, rhs) | Join(lhs, rhs) | Random(lhs, rhs) => {
-                write!(f, "{}({}, {})", func_name, lhs, rhs)
-            }
+            Trim(lhs, rhs)
+            | Contains(lhs, rhs)
+            | Join(lhs, rhs)
+            | Random(lhs, rhs)
+            | Get(lhs, rhs)
+            | Push(lhs, rhs)
+            | Remove(lhs, rhs) => write!(f, "{}({}, {})", func_name, lhs, rhs),
             Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
                 write!(f, "{}({})", func_name, lhs)
             }
@@ -146,6 +156,9 @@ impl Function {
             Cos(lhs) => functions::cos(lhs, vars),
             Sin(lhs) => functions::sin(lhs, vars),
             Tan(lhs) => functions::tan(lhs, vars),
+            Get(lhs, rhs) => functions::get(lhs, rhs, vars),
+            Push(lhs, rhs) => functions::push(lhs, rhs, vars),
+            Remove(lhs, rhs) => functions::remove(lhs, rhs, vars),
             Random(lhs, rhs) => functions::random(lhs, rhs, vars),
             Now() => functions::now(vars),
             Print(lhs) => functions::print(lhs, vars),
@@ -183,6 +196,9 @@ impl Function {
                 Cos(lhs) => Cos(E::compile(lhs)?),
                 Sin(lhs) => Sin(E::compile(lhs)?),
                 Tan(lhs) => Tan(E::compile(lhs)?),
+                Get(lhs, rhs) => Get(E::compile(lhs)?, E::compile(rhs)?),
+                Push(lhs, rhs) => Push(E::compile(lhs)?, E::compile(rhs)?),
+                Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
                 Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
                 Now() => Now(),
                 Print(lhs) => Print(E::compile(lhs)?),
@@ -230,6 +246,9 @@ impl Function {
             | Mul(lhs, rhs)
             | Div(lhs, rhs)
             | Pow(lhs, rhs)
+            | Get(lhs, rhs)
+            | Push(lhs, rhs)
+            | Remove(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
             Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
@@ -448,6 +467,27 @@ impl Function {
     first = tan(0) == 0;
     first"#
             }
+            Get => {
+                r#"
+    first = get([1, 2, 3], 1) == 2;
+    // throws error:
+    // get([1, 2, 3], -1.23) != 2;
+
+    second = get([1, 2, 3], 1.5 - 0.5) == 2;
+    first and second"#
+            }
+            Push => {
+                r#"
+    first = push([1, 2, 3], 1) == [1,2,3,1];
+    second = push([1, 2, 3], [1, 2, 3]) == [1,2,3,[1,2,3]];
+    first and second"#
+            }
+            Remove => {
+                r#"
+    first = remove([1, 2, 3], 1) == [1, 3];
+    second = remove([1, 2, 3], -1) == [1, 2];
+    first and second"#
+            }
             Help => {
                 r#"
     // prints general help
@@ -508,15 +548,17 @@ fn function_doc_tests() {
     use strum::IntoEnumIterator;
 
     for function in Function::iter() {
-        let val = ExpressionFile::eval(
-            ExpressionFile::parse(function.get_usage()).unwrap(),
-            &mut Variables::default(),
-        )
-        .unwrap();
+        let expr = match ExpressionFile::parse(function.get_usage()) {
+            Ok(x) => x,
+            _ => panic!(
+                "usage test for \"{}\" fails, syntax error",
+                FunctionName::from(function)
+            ),
+        };
 
-        // assert_eq!(val, ExpressionValue::Bool(true))
-        if val != ExpressionValue::Bool(true) {
-            panic!("usage test for \"{}\" fails", FunctionName::from(function))
+        match ExpressionFile::eval(expr, &mut Variables::default()) {
+            Ok(ExpressionValue::Bool(true)) => (),
+            _ => panic!("usage test for \"{}\" fails", FunctionName::from(function)),
         }
     }
 }

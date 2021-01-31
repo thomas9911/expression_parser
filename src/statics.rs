@@ -25,7 +25,7 @@ lazy_static! {
         );
         m
     };
-    pub(crate) static ref DEFAULT_STRING_VARIABLES: Variables = { Variables::default() };
+    pub(crate) static ref DEFAULT_STRING_VARIABLES: Variables = Variables::default();
     pub(crate) static ref PREC_CLIMBER: PrecClimber<Rule> = {
         use Assoc::*;
         use Rule::*;

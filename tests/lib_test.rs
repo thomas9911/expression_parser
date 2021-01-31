@@ -530,7 +530,7 @@ fn compile_calculation() {
     );
     let compiled = Expression::compile(parsed).unwrap();
     assert_eq!(
-        "(((17.38905609893065 + (abc * 8)) - 11.57034631638963) - abc)",
+        "(((17.38905609893065 + (abc * 8)) - 11.570346316389632) - abc)",
         compiled.to_string()
     );
 }

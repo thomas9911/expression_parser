@@ -43,7 +43,7 @@ pub enum Function {
         message = "Removes the characters at the start and end of the first argument, second argument is an optional argument that contains the character to remove, defaults to ' '"
     )]
     Trim(Expression, Expression),
-    #[strum(message = "Checks if the seconds arguement is in the first argument")]
+    #[strum(message = "Checks if the seconds argument is in the first argument")]
     Contains(Expression, Expression),
     #[strum(
         message = "Combine the first argument into a string with the second argument as is seperator"
@@ -347,13 +347,15 @@ impl Function {
             All => {
                 r#"
     first = all([1, true, [1,2,3], {"test": true}]);
-    first"#
+    second = all([1, false, [1,2,3], {"test": true}]) == false;
+    first and second"#
             }
             Any => {
                 r#"
     first = any([1, false, [1,2,3], {"test": true}]);
     second = any([0.0, true, [], {}]);
-    first and second"#
+    third = any([0.0, false, [], {}]) == false;
+    first and second and third"#
             }
             Add => {
                 r#"
@@ -392,9 +394,10 @@ impl Function {
             }
             Trim => {
                 r#"
-    first = trim("__Testing_Test__", "_") == "Testing_Test";
-    second = trim("A sentence.\n\n\n\n\n", "\n") == "A sentence.";
-    first and second"#
+    first = trim("   test    ") == "test";
+    second = trim("__Testing_Test__", "_") == "Testing_Test";
+    third = trim("A sentence.\n\n\n\n\n", "\n") == "A sentence.";
+    first and second and third"#
             }
             Join => {
                 r#"
@@ -429,12 +432,14 @@ impl Function {
             Sum => {
                 r#"
     first = sum(1,2,3,4,5) == 15;
-    first"#
+    second = sum([1,2,3,4,5]) == 15;
+    first and second"#
             }
             Product => {
                 r#"
     first = product(1,2,3,4,5) == 120;
-    first"#
+    second = product([1,2,3,4,5]) == 120;
+    first and second"#
             }
             Lower => {
                 r#"
@@ -527,20 +532,6 @@ fn function_names_test() {
     assert_eq!("now", p.to_string());
     assert_eq!("now()", r.to_string());
 }
-
-// #[test]
-// fn xd() {
-//     use std::str::FromStr;
-//     use strum::EnumMessage;
-
-//     let t = Function::from_str("now").unwrap();
-//     let r = Function::Now();
-//     let p = FunctionName::from(&r);
-
-//     println!("{:?}", t.get_message());
-
-//     assert!(false)
-// }
 
 #[test]
 fn function_doc_tests() {

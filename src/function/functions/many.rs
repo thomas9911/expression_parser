@@ -5,36 +5,54 @@ use crate::{Error, ExpressionValue};
 pub fn sum<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
-        Ok(evaluated_inputs
+        return Ok(evaluated_inputs
             .iter()
             .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
             .sum::<f64>()
-            .into())
-    } else {
-        Err(Error::new_static("sum contains non number inputs"))
+            .into());
     }
+    if evaluated_inputs.len() == 1 {
+        if let Some(list) = evaluated_inputs[0].as_list() {
+            return sum(list, vars);
+        }
+    }
+    Err(Error::new_static("sum contains non number inputs"))
 }
 
 pub fn product<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
-        Ok(evaluated_inputs
+        return Ok(evaluated_inputs
             .iter()
             .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
             .product::<f64>()
-            .into())
-    } else {
-        Err(Error::new_static("product contains non number inputs"))
+            .into());
     }
+    if evaluated_inputs.len() == 1 {
+        if let Some(list) = evaluated_inputs[0].as_list() {
+            return product(list, vars);
+        }
+    }
+    Err(Error::new_static("product contains non number inputs"))
 }
 
 pub fn all<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+    if evaluated_inputs.len() == 1 {
+        if let Some(list) = evaluated_inputs[0].as_list() {
+            return all(list, vars);
+        }
+    }
     Ok(evaluated_inputs.iter().all(|x| x.is_truthy()).into())
 }
 
 pub fn any<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+    if evaluated_inputs.len() == 1 {
+        if let Some(list) = evaluated_inputs[0].as_list() {
+            return any(list, vars);
+        }
+    }
     Ok(evaluated_inputs.iter().any(|x| x.is_truthy()).into())
 }
 

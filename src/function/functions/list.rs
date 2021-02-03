@@ -20,8 +20,7 @@ pub fn join<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     ok_string(string_list.join(&join_with))
 }
 
-pub fn get<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let list = eval_to_list(lhs, vars)?;
+pub fn get_list<Vars: VariableMap>(list: Vec<Input>, rhs: Input, vars: &Vars) -> Output {
     match Expression::eval(rhs, vars)? {
         ExpressionValue::Number(x) => get_f64(list, x, vars),
         _ => Err(Error::new_static(
@@ -38,10 +37,9 @@ pub fn push<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     Ok(ExpressionValue::List(list))
 }
 
-pub fn remove<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let list = eval_to_list(lhs, vars)?;
+pub fn remove_list<Vars: VariableMap>(lhs: Vec<Input>, rhs: Input, vars: &Vars) -> Output {
     match Expression::eval(rhs, vars)? {
-        ExpressionValue::Number(x) => remove_f64(list, x),
+        ExpressionValue::Number(x) => remove_f64(lhs, x),
         _ => Err(Error::new_static(
             "second argument is not a valid index value",
         )),

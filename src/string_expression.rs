@@ -201,6 +201,14 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
                 arguments[1].clone(),
             )))
         }
+        Put => {
+            check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
+            Expr(Box::new(Function::Put(
+                arguments[0].clone(),
+                arguments[1].clone(),
+                arguments[2].clone(),
+            )))
+        }
         If => {
             check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
             Expr(Box::new(Function::If(

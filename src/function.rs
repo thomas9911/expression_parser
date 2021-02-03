@@ -73,12 +73,14 @@ pub enum Function {
     Sin(Expression),
     #[strum(message = "Calculates the tangent of the number")]
     Tan(Expression),
-    #[strum(message = "Gets the value from the list")]
+    #[strum(message = "Gets the value from a list or a map")]
     Get(Expression, Expression),
     #[strum(message = "Push value to the list")]
     Push(Expression, Expression),
-    #[strum(message = "Remove value to the list")]
+    #[strum(message = "Removes index from the list or key from the map")]
     Remove(Expression, Expression),
+    #[strum(message = "Put third argument into the map under the second argument")]
+    Put(Expression, Expression, Expression),
     #[strum(
         message = "Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument"
     )]
@@ -101,7 +103,9 @@ impl std::fmt::Display for Function {
             Concat(list) | Sum(list) | Product(list) | All(list) | Any(list) => {
                 write!(f, "{}({})", func_name, list_to_string(list).join(", "))
             }
-            If(lhs, mdl, rhs) => write!(f, "{}({}, {}, {})", func_name, lhs, mdl, rhs),
+            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) => {
+                write!(f, "{}({}, {}, {})", func_name, lhs, mdl, rhs)
+            }
             Trim(lhs, rhs)
             | Contains(lhs, rhs)
             | Join(lhs, rhs)
@@ -159,6 +163,7 @@ impl Function {
             Get(lhs, rhs) => functions::get(lhs, rhs, vars),
             Push(lhs, rhs) => functions::push(lhs, rhs, vars),
             Remove(lhs, rhs) => functions::remove(lhs, rhs, vars),
+            Put(lhs, mdl, rhs) => functions::put(lhs, mdl, rhs, vars),
             Random(lhs, rhs) => functions::random(lhs, rhs, vars),
             Now() => functions::now(vars),
             Print(lhs) => functions::print(lhs, vars),
@@ -186,6 +191,7 @@ impl Function {
                 Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
                 Join(lhs, rhs) => Join(E::compile(lhs)?, E::compile(rhs)?),
                 If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
+                Put(lhs, mdl, rhs) => Put(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
                 Upper(lhs) => Upper(E::compile(lhs)?),
                 Lower(lhs) => Lower(E::compile(lhs)?),
                 Add(lhs, rhs) => Add(E::compile(lhs)?, E::compile(rhs)?),
@@ -255,7 +261,7 @@ impl Function {
                 Box::new(lhs.iter_variables())
             }
 
-            If(lhs, mdl, rhs) => Box::new(
+            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) => Box::new(
                 lhs.iter_variables()
                     .chain(mdl.iter_variables())
                     .chain(rhs.iter_variables()),
@@ -479,7 +485,11 @@ impl Function {
     // get([1, 2, 3], -1.23) != 2;
 
     second = get([1, 2, 3], 1.5 - 0.5) == 2;
-    first and second"#
+    third = get({"test": 12, "another": -1}, "test") == 12;
+    // throws error:
+    // get({"test": 1}, "another")
+
+    first and second and third"#
             }
             Push => {
                 r#"
@@ -489,9 +499,22 @@ impl Function {
             }
             Remove => {
                 r#"
+    // for lists
     first = remove([1, 2, 3], 1) == [1, 3];
     second = remove([1, 2, 3], -1) == [1, 2];
-    first and second"#
+    // for maps
+    third = remove({"test": 1}, "test") == {};
+    four = remove({"test": 1}, "another") == {"test": 1};
+    five = remove({"test": 1, "another": 123}, "another") == {"test": 1};
+    first and second and third and four and five"#
+            }
+            Put => {
+                r#"
+    first = put({}, "test", 123) == {"test": 123};
+    // overwrites existing key
+    second = put({"test": 23}, "test", 5) == {"test": 5};
+    third =  put({"test": 23}, "test", put({"nested": 23}, "nested", 5)) == {"test": {"nested": 5}};
+    first and second and third"#
             }
             Help => {
                 r#"

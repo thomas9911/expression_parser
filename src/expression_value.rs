@@ -184,11 +184,11 @@ impl ExpressionValue {
     }
 
     /// casts value as a map
-    pub fn as_map(&self) -> Option<HashMap<String, Expression>> {
+    pub fn as_map(self) -> Option<ExpressionMap> {
         use ExpressionValue::*;
 
         match self {
-            Map(x) => Some(x.0.to_owned()),
+            Map(x) => Some(x),
             _ => None,
         }
     }
@@ -293,6 +293,14 @@ fn nearly_zero(number: &f64) -> bool {
 impl ExpressionMap {
     pub fn new() -> ExpressionMap {
         ExpressionMap(HashMap::new())
+    }
+
+    pub fn get(&self, key: &str) -> Option<Expression> {
+        self.0.get(key).cloned()
+    }
+
+    pub fn remove(&mut self, key: &str) -> Option<Expression> {
+        self.0.remove(key)
     }
 
     pub fn insert<T: Into<ExpressionValue>>(&mut self, k: &str, v: T) -> Option<Expression> {

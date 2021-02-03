@@ -7,11 +7,13 @@ pub type Output = Result<ExpressionValue, Error>;
 mod binary;
 mod list;
 mod many;
+mod map;
 mod number;
 mod string;
 pub use binary::*;
 pub use list::*;
 pub use many::*;
+pub use map::*;
 pub use number::*;
 pub use string::*;
 
@@ -62,6 +64,26 @@ pub fn help<Vars: VariableMap>(lhs: Input, _vars: &Vars) -> Output {
     match &lhs {
         x if x == &Expression::default() => ok_string(Function::help()),
         _ => normal_help(lhs),
+    }
+}
+
+/// overload get function for list and map
+pub fn get<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+    let value = Expression::eval(lhs, vars)?;
+    match value {
+        ExpressionValue::List(val) => get_list(val, rhs, vars),
+        ExpressionValue::Map(val) => get_map(val, rhs, vars),
+        _ => Err(Error::new_static("first argument is not a list or a map")),
+    }
+}
+
+/// overload remove function for list and map
+pub fn remove<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+    let value = Expression::eval(lhs, vars)?;
+    match value {
+        ExpressionValue::List(val) => remove_list(val, rhs, vars),
+        ExpressionValue::Map(val) => remove_map(val, rhs, vars),
+        _ => Err(Error::new_static("first argument is not a list or a map")),
     }
 }
 

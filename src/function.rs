@@ -87,6 +87,8 @@ pub enum Function {
     Random(Expression, Expression),
     #[strum(message = "Returns the unix timestamp of the current time")]
     Now(),
+    #[strum(message = "Tries the first argument, if that fails returns the second argument")]
+    Try(Expression, Expression),
     #[strum(message = "Prints value")]
     Print(Expression),
     #[strum(message = "Prints help message")]
@@ -112,6 +114,7 @@ impl std::fmt::Display for Function {
             | Random(lhs, rhs)
             | Get(lhs, rhs)
             | Push(lhs, rhs)
+            | Try(lhs, rhs)
             | Remove(lhs, rhs) => write!(f, "{}({}, {})", func_name, lhs, rhs),
             Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
                 write!(f, "{}({})", func_name, lhs)
@@ -167,6 +170,7 @@ impl Function {
             Random(lhs, rhs) => functions::random(lhs, rhs, vars),
             Now() => functions::now(vars),
             Print(lhs) => functions::print(lhs, vars),
+            Try(lhs, rhs) => functions::try_function(lhs, rhs, vars),
             Help(lhs) => functions::help(lhs, vars),
         }
     }
@@ -207,6 +211,7 @@ impl Function {
                 Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
                 Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
                 Now() => Now(),
+                Try(lhs, rhs) => Try(E::compile(lhs)?, E::compile(rhs)?),
                 Print(lhs) => Print(E::compile(lhs)?),
                 Help(lhs) => Help(E::compile(lhs)?),
             };
@@ -255,6 +260,7 @@ impl Function {
             | Get(lhs, rhs)
             | Push(lhs, rhs)
             | Remove(lhs, rhs)
+            | Try(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
             Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
@@ -514,6 +520,18 @@ impl Function {
     // overwrites existing key
     second = put({"test": 23}, "test", 5) == {"test": 5};
     third =  put({"test": 23}, "test", put({"nested": 23}, "nested", 5)) == {"test": {"nested": 5}};
+    first and second and third"#
+            }
+            Try => {
+                r#"
+    // will just return the get function
+    first = try(get({"test": 10}, "test"), 123) == 10;
+    // get function will raise because "test" is not found
+    second = try(get({}, "test"), 123) == 123;
+
+    map = {"test": 15};
+    invalid_key = 1;
+    third = try(put(map, invalid_key, 123), map) == map;
     first and second and third"#
             }
             Help => {

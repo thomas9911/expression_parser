@@ -60,6 +60,13 @@ pub fn print<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
     Ok(value)
 }
 
+pub fn try_function<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+    match Expression::eval(lhs, vars) {
+        Ok(x) => Ok(x),
+        Err(_) => Expression::eval(rhs, vars),
+    }
+}
+
 pub fn help<Vars: VariableMap>(lhs: Input, _vars: &Vars) -> Output {
     match &lhs {
         x if x == &Expression::default() => ok_string(Function::help()),

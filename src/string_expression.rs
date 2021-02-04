@@ -253,6 +253,13 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
 
             Expr(Box::new(Function::Random(a.to_owned(), b.to_owned())))
         }
+        Try => {
+            check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
+            Expr(Box::new(Function::Try(
+                arguments[0].clone(),
+                arguments[1].clone(),
+            )))
+        }
         Now => {
             check_arguments(func_name, pair_span, 0, Some(0), &arguments)?;
             Expr(Box::new(Function::Now()))

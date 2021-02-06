@@ -1,6 +1,11 @@
-file = _{SOI ~ (line ~ (seperator ~ line)* ~ seperator?) ~ EOI}
-line = _{unassign | assign | expr}
+file = _{SOI ~ file_inner ~ EOI}
+file_inner = _{ (line ~ (seperator ~ line)* ~ seperator?) }
+line = _{ unassign | assign | expr }
 seperator = _{";"+}
+
+// // Function
+function = { "{" ~ function_variables ~ "=>" ~ file_inner ~ "}" }
+function_variables = { (var ~ ("," ~ var)*)? }
 
 // // Assignment
 assignment = _{ SOI ~ (unassign | assign) ~ EOI }
@@ -63,7 +68,7 @@ list = { "[" ~ any_arguments ~ "]"}
 map = !{ ("{" ~ map_item ~ (COMMA ~ map_item)* ~ "}") | ("{" ~ "}") }
     map_item = _{ string ~ ":" ~ expr }
 
-term = _{ num | "(" ~ expr ~ ")" | string | func | var | list | map }
+term = _{ num | "(" ~ expr ~ ")" | string | func | var | list | map | function }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 spaces = _{ WHITESPACE* }

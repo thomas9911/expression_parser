@@ -1,6 +1,6 @@
-use expression_parser::{Expression, Variables};
+use expression_parser::{ExpressionFile, Variables};
 
-const HELP_TEXT: &'static str = "Expression example
+const HELP_TEXT: &'static str = "ExpressionFile example
 Usage: expression [OPTIONS] [ARGS ..]
 
 OPTIONS:
@@ -22,14 +22,14 @@ fn main() {
         true => return,
     };
 
-    let parsed = match Expression::parse(args.join(" ").as_ref()) {
+    let parsed = match ExpressionFile::parse(args.join(" ").as_ref()) {
         Ok(x) => x,
         Err(e) => return println!("Invalid expression{}", e),
     };
     if parse_debug_env_var() {
         println!("{:?}", parsed); // 'ast'
     }
-    match Expression::eval(parsed, &Variables::default()) {
+    match ExpressionFile::eval(parsed, &mut Variables::default()) {
         Ok(x) => println!("{}", x), // evaluated expression
         Err(e) => println!("{}", e),
     }

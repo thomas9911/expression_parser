@@ -1,3 +1,4 @@
+use crate::user_function::UserFunction;
 use crate::Expression;
 use std::collections::{BinaryHeap, HashMap};
 use std::iter::FromIterator;
@@ -14,6 +15,7 @@ pub enum ExpressionValue {
     Number(f64),
     List(Vec<Expression>),
     Map(ExpressionMap),
+    Function(UserFunction),
     Null,
 }
 
@@ -23,7 +25,7 @@ pub struct ExpressionMap(pub HashMap<String, Expression>);
 
 impl std::fmt::Display for ExpressionValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use ExpressionValue::{Bool, List, Null, Number};
+        use ExpressionValue::{Bool, Function, List, Null, Number};
 
         match self {
             ExpressionValue::String(x) => write!(f, "\"{}\"", x),
@@ -31,6 +33,7 @@ impl std::fmt::Display for ExpressionValue {
             Number(x) => write!(f, "{}", x),
             List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")),
             ExpressionValue::Map(map) => write!(f, "{}", map),
+            Function(func) => write!(f, "{}", func),
             Null => write!(f, "null"),
         }
     }
@@ -255,6 +258,7 @@ impl ExpressionValue {
             Number(float) => nearly_zero(float),
             List(list) => list.is_empty(),
             Map(map) => map.0.is_empty(),
+            Function(_) => false,
             Null => true,
         }
     }

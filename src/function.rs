@@ -93,6 +93,8 @@ pub enum Function {
     Print(Expression),
     #[strum(message = "Prints help message")]
     Help(Expression),
+    // #[strum(message = "xzd")]
+    // UserDefined(Vec<String>, ExpressionFile)
 }
 
 impl std::fmt::Display for Function {

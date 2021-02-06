@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use crate::function::FunctionName;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
+use crate::user_function::{parse_user_function, UserFunction};
 use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap};
 
 #[cfg(feature = "serde")]
@@ -84,6 +85,7 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
         Rule::expr => parse_expression(pair.into_inner()),
         Rule::var => Ok(Var(pair.as_str().trim().to_string())),
         Rule::func => make_function(pair),
+        Rule::function => Ok(UserFunction(parse_user_function(pair.into_inner())?)),
         rule => {
             println!("{:?}", rule);
             unreachable!()
@@ -319,6 +321,7 @@ pub enum Expression {
     Value(ExpressionValue),
     Expr(Box<Function>),
     Var(String),
+    UserFunction(UserFunction),
 }
 
 impl std::fmt::Display for Expression {
@@ -328,6 +331,7 @@ impl std::fmt::Display for Expression {
             Value(val) => write!(f, "{}", val),
             Var(val) => write!(f, "{}", val),
             Expr(val) => write!(f, "{}", val),
+            UserFunction(val) => write!(f, "{}", val),
         }
     }
 }
@@ -366,6 +370,7 @@ impl Expression {
                 Some(x) => Ok(x.clone()),
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
+            Expression::UserFunction(function) => Ok(ExpressionValue::Function(function)),
         }
     }
 
@@ -396,6 +401,7 @@ impl Expression {
             Expression::Value(_) => Box::new(std::iter::empty::<String>()),
             Expression::Var(x) => Box::new(std::iter::once(x.to_owned())),
             Expression::Expr(f) => f.iter_variables(),
+            Expression::UserFunction(func) => func.expression.iter_variables(),
         }
     }
 

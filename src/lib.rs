@@ -152,6 +152,7 @@ pub mod function;
 pub mod grammar;
 pub mod statics;
 pub mod string_expression;
+pub mod user_function;
 pub mod variables;
 
 pub use assignment::{Assignment, Unassignment};
@@ -160,4 +161,5 @@ pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;
 pub use function::Function;
 pub use string_expression::Expression;
+pub use user_function::UserFunction;
 pub use variables::{VariableMap, Variables};

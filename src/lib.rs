@@ -81,9 +81,9 @@
 //! assert_eq!(Ok(16.0.into()), result);
 //!
 //! let mut vars = Variables::default();
-//! vars.insert("x", 3.0);
-//! vars.insert("y", 3.0);
-//! vars.insert("z", 10.0);
+//! vars.insert("x", 3.0.into());
+//! vars.insert("y", 3.0.into());
+//! vars.insert("z", 10.0.into());
 //!
 //! let result = Expression::eval(parsed, &Variables::from(vars));
 //! assert_eq!(Ok(16.0.into()), result);
@@ -134,7 +134,7 @@
 //! # }
 //! ```
 //!
-#![recursion_limit = "1024"]
+// #![recursion_limit = "1024"]
 
 #[macro_use]
 extern crate pest_derive;

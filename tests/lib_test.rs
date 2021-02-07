@@ -335,9 +335,9 @@ fn concat_function_variables() {
     let parsed = Expression::parse(r#"concat(test, "-", other, third, "!!")"#).unwrap();
 
     let mut vars = Variables::default();
-    vars.insert("test", "1");
-    vars.insert("other", "test");
-    vars.insert("third", "3456");
+    vars.insert("test", "1".into());
+    vars.insert("other", "test".into());
+    vars.insert("third", "3456".into());
 
     let result = Expression::eval(parsed, &vars);
     assert_eq!(Ok("1-test3456!!".into()), result);
@@ -533,4 +533,14 @@ fn compile_calculation() {
         "(((17.38905609893065 + (abc * 8)) - 11.570346316389632) - abc)",
         compiled.to_string()
     );
+}
+
+#[test]
+fn call_test() {
+    let script = "call({x => x + 1}, 2)";
+    let parsed = Expression::parse(script).unwrap();
+
+    let result = Expression::eval(parsed, &Variables::default());
+
+    assert_eq!(result, Ok(3.into()))
 }

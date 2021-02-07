@@ -93,8 +93,8 @@ pub enum Function {
     Print(Expression),
     #[strum(message = "Prints help message")]
     Help(Expression),
-    // #[strum(message = "xzd")]
-    // UserDefined(Vec<String>, ExpressionFile)
+    #[strum(message = "xzd")]
+    Call(Expression, Vec<Expression>),
 }
 
 impl std::fmt::Display for Function {
@@ -118,6 +118,13 @@ impl std::fmt::Display for Function {
             | Push(lhs, rhs)
             | Try(lhs, rhs)
             | Remove(lhs, rhs) => write!(f, "{}({}, {})", func_name, lhs, rhs),
+            Call(function, list) => write!(
+                f,
+                "{}({}, {})",
+                func_name,
+                function,
+                list_to_string(list).join(", ")
+            ),
             Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
                 write!(f, "{}({})", func_name, lhs)
             }
@@ -173,6 +180,7 @@ impl Function {
             Now() => functions::now(vars),
             Print(lhs) => functions::print(lhs, vars),
             Try(lhs, rhs) => functions::try_function(lhs, rhs, vars),
+            Call(func, list) => functions::call(func, list, vars),
             Help(lhs) => functions::help(lhs, vars),
         }
     }
@@ -214,6 +222,7 @@ impl Function {
                 Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
                 Now() => Now(),
                 Try(lhs, rhs) => Try(E::compile(lhs)?, E::compile(rhs)?),
+                Call(func, list) => Call(E::compile(func)?, Function::compile_list(list)?),
                 Print(lhs) => Print(E::compile(lhs)?),
                 Help(lhs) => Help(E::compile(lhs)?),
             };
@@ -278,6 +287,12 @@ impl Function {
             Concat(list) | Product(list) | Sum(list) | All(list) | Any(list) => {
                 Box::new(list.iter().flat_map(|x| x.iter_variables()))
             }
+
+            Call(func, list) => Box::new(
+                list.iter()
+                    .flat_map(|x| x.iter_variables())
+                    .chain(func.iter_variables()),
+            ),
 
             Now() => Box::new(std::iter::empty::<String>()),
         }
@@ -553,6 +568,7 @@ impl Function {
     now();
     true"#
             }
+            Call => "true",
             Print => "true",
         }
     }

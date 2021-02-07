@@ -196,6 +196,16 @@ impl ExpressionValue {
         }
     }
 
+    /// casts value as a function
+    pub fn as_function(self) -> Option<UserFunction> {
+        use ExpressionValue::*;
+
+        match self {
+            Function(x) => Some(x),
+            _ => None,
+        }
+    }
+
     pub fn is_number(&self) -> bool {
         use ExpressionValue::*;
 
@@ -246,6 +256,15 @@ impl ExpressionValue {
 
         match self {
             Map(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_function(self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            Function(_) => true,
             _ => false,
         }
     }

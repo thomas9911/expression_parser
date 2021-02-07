@@ -1,5 +1,6 @@
 use super::FunctionName;
-use crate::{Error, Expression, ExpressionValue, Function, VariableMap};
+use crate::variables::ScopedVariables;
+use crate::{Error, Expression, ExpressionFile, ExpressionValue, Function, VariableMap};
 
 pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
@@ -72,6 +73,24 @@ pub fn help<Vars: VariableMap>(lhs: Input, _vars: &Vars) -> Output {
         x if x == &Expression::default() => ok_string(Function::help()),
         _ => normal_help(lhs),
     }
+}
+
+pub fn call<'a, Vars: VariableMap>(func: Input, list: Vec<Input>, vars: &'a Vars) -> Output {
+    // pub fn call<'a, Vars: VariableMap>(func: Input, list: Vec<Input>, vars: &'a Vars)  -> Output where &'a Vars: VariableMap {
+    let function = Expression::eval(func, vars)?
+        .as_function()
+        .ok_or(Error::new_static("input should be a number"))?;
+
+    let list = evaluate_inputs(list, vars)?;
+
+    let mut context = ScopedVariables::new(Box::new(vars));
+    for (key, value) in function.arguments.iter().zip(list) {
+        context.insert(key, value);
+    }
+
+    let result = ExpressionFile::eval(function.expression, &mut context)?;
+
+    Ok(result)
 }
 
 /// overload get function for list and map

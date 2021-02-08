@@ -350,7 +350,9 @@ impl Default for Expression {
 
 impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
-    pub fn eval<V: VariableMap>(expression: Expression, vars: &V) -> EvalResult {
+    pub fn eval<V: VariableMap + std::fmt::Debug>(expression: Expression, vars: &V) -> EvalResult {
+        // println!("expr: {:?}", vars);
+
         match expression {
             Expression::Expr(op) => Function::eval(*op, vars),
             Expression::Value(value) => match value {
@@ -372,11 +374,22 @@ impl Expression {
                 x => Ok(x),
             },
             // Expression::Var(s) => vars.get(&s).clone(),
-            Expression::Var(s) => match vars.get(&s) {
-                Some(x) => Ok(x.clone()),
-                None => Err(Error::new(format!("Variable {} not found", &s))),
-            },
-            Expression::UserFunction(function) => Ok(ExpressionValue::Function(function)),
+            Expression::Var(s) => {
+                match vars.get(&s) {
+                    Some(x) => Ok(x.clone()),
+                    None => Err(Error::new(format!("Variable {} not found", &s))),
+                }
+            }
+            Expression::UserFunction(function) => {
+                let mut compiled = ExpressionMap::new();
+                for item in function.iter_variables() {
+                    if let Some(val) = vars.get(&item) {
+                        compiled.insert(&item, val.to_owned());
+                    }
+                }
+
+                Ok(ExpressionValue::Function(function, compiled))
+            }
         }
     }
 

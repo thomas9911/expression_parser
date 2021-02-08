@@ -45,6 +45,16 @@ impl std::fmt::Display for UserFunction {
     }
 }
 
+impl UserFunction {
+    pub fn iter_variables<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
+        Box::new(
+            self.expression
+                .iter_variables()
+                .filter(move |x| !self.arguments.contains(x)),
+        )
+    }
+}
+
 #[test]
 fn function_parse() {
     use crate::file::ExpressionLine;

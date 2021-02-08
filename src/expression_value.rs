@@ -15,7 +15,7 @@ pub enum ExpressionValue {
     Number(f64),
     List(Vec<Expression>),
     Map(ExpressionMap),
-    Function(UserFunction),
+    Function(UserFunction, ExpressionMap),
     Null,
 }
 
@@ -33,7 +33,7 @@ impl std::fmt::Display for ExpressionValue {
             Number(x) => write!(f, "{}", x),
             List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")),
             ExpressionValue::Map(map) => write!(f, "{}", map),
-            Function(func) => write!(f, "{}", func),
+            Function(func, _) => write!(f, "{}", func),
             Null => write!(f, "null"),
         }
     }
@@ -197,11 +197,11 @@ impl ExpressionValue {
     }
 
     /// casts value as a function
-    pub fn as_function(self) -> Option<UserFunction> {
+    pub fn as_function(self) -> Option<(UserFunction, ExpressionMap)> {
         use ExpressionValue::*;
 
         match self {
-            Function(x) => Some(x),
+            Function(x, y) => Some((x, y)),
             _ => None,
         }
     }
@@ -264,7 +264,7 @@ impl ExpressionValue {
         use ExpressionValue::*;
 
         match self {
-            Function(_) => true,
+            Function(_, _) => true,
             _ => false,
         }
     }
@@ -277,7 +277,7 @@ impl ExpressionValue {
             Number(float) => nearly_zero(float),
             List(list) => list.is_empty(),
             Map(map) => map.0.is_empty(),
-            Function(_) => false,
+            Function(_, _) => false,
             Null => true,
         }
     }

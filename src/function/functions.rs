@@ -76,14 +76,18 @@ pub fn help<Vars: VariableMap>(lhs: Input, _vars: &Vars) -> Output {
 }
 
 pub fn call<'a, Vars: VariableMap>(func: Input, list: Vec<Input>, vars: &'a Vars) -> Output {
-    // pub fn call<'a, Vars: VariableMap>(func: Input, list: Vec<Input>, vars: &'a Vars)  -> Output where &'a Vars: VariableMap {
-    let function = Expression::eval(func, vars)?
+    let (function, compiled_vars) = Expression::eval(func, vars)?
         .as_function()
         .ok_or(Error::new_static("input should be a number"))?;
 
     let list = evaluate_inputs(list, vars)?;
 
     let mut context = ScopedVariables::new(Box::new(vars));
+    
+    for (key, value) in compiled_vars.0 {
+        context.insert(&key, Expression::eval(value, vars)?);
+    }
+
     for (key, value) in function.arguments.iter().zip(list) {
         context.insert(key, value);
     }

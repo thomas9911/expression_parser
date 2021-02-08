@@ -535,12 +535,120 @@ fn compile_calculation() {
     );
 }
 
-#[test]
-fn call_test() {
-    let script = "call({x => x + 1}, 2)";
-    let parsed = Expression::parse(script).unwrap();
+mod function {
+    use expression_parser::{Expression, ExpressionFile, Variables};
 
-    let result = Expression::eval(parsed, &Variables::default());
+    #[test]
+    fn simple() {
+        let script = "call({x => x + 1}, 2)";
+        let parsed = Expression::parse(script).unwrap();
 
-    assert_eq!(result, Ok(3.into()))
+        let result = Expression::eval(parsed, &Variables::default());
+
+        assert_eq!(result, Ok(3.into()))
+    }
+
+    #[test]
+    fn two_args() {
+        let script = "call({x, y => x + y + 1}, 2, 4)";
+        let parsed = Expression::parse(script).unwrap();
+
+        let result = Expression::eval(parsed, &Variables::default());
+
+        assert_eq!(result, Ok(7.into()))
+    }
+
+    #[test]
+    fn nested() {
+        let script = "call({x, y => 
+            call({s => 
+                s * 2
+            }, x + y)
+        }, 2, 4)";
+
+        let parsed = Expression::parse(script).unwrap();
+
+        let result = Expression::eval(parsed, &Variables::default());
+
+        assert_eq!(result, Ok(12.into()))
+    }
+
+    #[test]
+    fn nested_script() {
+        let script = r#"
+        func = {x, y, z => 
+            (x + y) * z
+        };
+        t = 5;
+        r = 4;
+        t = call(func, t, r, 12);
+        t + 1
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(109.into()))
+    }
+
+    #[test]
+    fn string() {
+        let script = r#"call({x => join([ x, x ], ",")}, "test")"#;
+        let parsed = Expression::parse(script).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
+        assert_eq!(result, Ok("test,test".into()))
+    }
+
+    #[test]
+    fn context() {
+        let script = r#"
+        x = 5;
+        y = 4;
+
+        func = {z =>
+            # x and y are available because they are defined before 
+            (x + y) * z
+        };
+
+        call(func, 12)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+        assert_eq!(result, Ok(108.into()))
+    }
+
+    #[test]
+    fn currying() {
+        let script = r#"
+        factory = { x => 
+            { y => x * y }
+        };
+
+        times_two = call(factory, 2);
+        times_three = call(factory, 3);
+
+        answer1 = call(times_two, 5);
+        answer2 = call(times_three, 5);
+
+        answer1 + answer2
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+        assert_eq!(result, Ok(25.into()))
+    }
+
+    #[test]
+    fn nested_currying() {
+        let script = r#"
+        call(call(call({ x => 
+            { => { => x } }
+        }, 2)))
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+        assert_eq!(result, Ok(2.into()))
+    }
 }

@@ -3,7 +3,7 @@ use crate::ExpressionValue;
 use std::collections::{BTreeMap, HashMap};
 
 /// Trait for defining where variables are stored
-pub trait VariableMap {
+pub trait VariableMap: std::fmt::Debug {
     fn get(&self, key: &str) -> Option<&ExpressionValue>;
     fn insert(&mut self, key: &str, value: ExpressionValue) -> Option<ExpressionValue>;
     fn remove(&mut self, _key: &str) -> Option<ExpressionValue> {
@@ -126,6 +126,7 @@ impl From<BTreeMap<String, ExpressionValue>> for Variables {
 
 /// Creates a variable map that has two stores.
 /// One can only be changed on creation and the other one on runtime.
+#[derive(Debug)]
 pub struct ScopedVariables<'a> {
     local: HashMap<String, ExpressionValue>,
     // global: HashMap<String, ExpressionValue>,

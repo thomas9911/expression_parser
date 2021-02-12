@@ -7,7 +7,7 @@ use crate::function::FunctionName;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
 use crate::user_function::{parse_user_function, UserFunction};
-use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap};
+use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap, Variables};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -374,20 +374,16 @@ impl Expression {
                 x => Ok(x),
             },
             // Expression::Var(s) => vars.get(&s).clone(),
-            Expression::Var(s) => {
-                match vars.get(&s) {
-                    Some(x) => Ok(x.clone()),
-                    None => Err(Error::new(format!("Variable {} not found", &s))),
-                }
-            }
+            Expression::Var(s) => match vars.get(&s) {
+                Some(x) => Ok(x.clone()),
+                None => Err(Error::new(format!("Variable {} not found", &s))),
+            },
             Expression::UserFunction(function) => {
-                let mut compiled = ExpressionMap::new();
-                for item in function.iter_variables() {
-                    if let Some(val) = vars.get(&item) {
-                        compiled.insert(&item, val.to_owned());
-                    }
-                }
-
+                let compiled = if let Some(compiled) = vars.local() {
+                    compiled
+                } else {
+                    Variables::new()
+                };
                 Ok(ExpressionValue::Function(function, compiled))
             }
         }

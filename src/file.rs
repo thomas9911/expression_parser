@@ -44,6 +44,17 @@ impl ExpressionLine {
         // vars.check_recursion_limit()?;
 
         match line {
+            ExpressionLine::Expression(Expression::UserFunction(function)) => {
+                for item in function.iter_variables() {
+                    let val = if let Some(val) = vars.get(&item) {
+                        val.to_owned()
+                    } else {
+                        continue;
+                    };
+                    vars.insert(&item, val);
+                }
+                Expression::eval(Expression::UserFunction(function), vars)
+            }
             ExpressionLine::Expression(ex) => Expression::eval(ex, vars),
             ExpressionLine::Assignment(ass) => {
                 Assignment::eval(ass, vars)?;

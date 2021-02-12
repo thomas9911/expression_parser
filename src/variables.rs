@@ -9,6 +9,9 @@ pub trait VariableMap: std::fmt::Debug {
     fn remove(&mut self, _key: &str) -> Option<ExpressionValue> {
         None
     }
+    fn local(&self) -> Option<Variables> {
+        None
+    }
     fn clear(&mut self) {}
 }
 
@@ -72,7 +75,7 @@ impl VariableMap for HashMap<String, ExpressionValue> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Variables {
     state: HashMap<String, ExpressionValue>,
 }
@@ -96,11 +99,29 @@ impl VariableMap for Variables {
 }
 
 impl Variables {
+    pub fn new() -> Variables {
+        Variables {
+            state: HashMap::new(),
+        }
+    }
     pub fn from_iter<T: IntoIterator<Item = (String, ExpressionValue)>>(iter: T) -> Variables {
         let mut variables = DEFAULT_VARIABLES.to_owned();
         variables.extend(iter);
 
         Variables { state: variables }
+    }
+
+    pub fn iter(&self) -> std::collections::hash_map::Iter<String, ExpressionValue> {
+        self.state.iter()
+    }
+}
+
+impl IntoIterator for Variables {
+    type Item = (String, ExpressionValue);
+    type IntoIter = std::collections::hash_map::IntoIter<String, ExpressionValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.state.into_iter()
     }
 }
 
@@ -140,6 +161,17 @@ impl<'a> VariableMap for ScopedVariables<'a> {
             x => x,
         }
     }
+
+    fn local(&self) -> Option<Variables> {
+        Some(Variables::from_iter(self.local.clone()))
+    }
+
+    // fn get_mut(&mut self, key: &str) -> Option<&mut ExpressionValue> {
+    //     match self.local.get_mut(key) {
+    //         None => self.global.get_mut(key),
+    //         x => x,
+    //     }
+    // }
 
     fn insert(&mut self, key: &str, value: ExpressionValue) -> Option<ExpressionValue> {
         self.local.insert(String::from(key), value.into())

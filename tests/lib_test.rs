@@ -641,6 +641,8 @@ mod function {
 
     #[test]
     fn nested_currying() {
+        use expression_parser::VariableMap;
+
         let script = r#"
         call(call(call({ x => 
             { => { => x } }
@@ -648,7 +650,83 @@ mod function {
         "#;
 
         let parsed = ExpressionFile::parse(script).unwrap();
-        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+        println!("{:?}", parsed);
+        let mut vars = Variables::new();
+        vars.insert("top", 1.into());
+        let result = ExpressionFile::eval(parsed, &mut vars);
         assert_eq!(result, Ok(2.into()))
+    }
+}
+
+mod closure {
+    use expression_parser::{
+        Closure, Error, ExpressionFile, ExpressionValue, VariableMap, Variables,
+    };
+    use std::sync::Arc;
+
+    #[test]
+    fn simple_test() {
+        let mut vars = Variables::new();
+        let closure = Closure::new(
+            vec!["x".to_string(), "y".to_string()],
+            Arc::new(Box::new(|vars, _| {
+                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                    x.ok_or(Error::new_static("missing arguments"))?
+                        .as_number()
+                        .ok_or(Error::new_static("argument not a number"))
+                }
+
+                let x = unwrap_number(vars.get(0))?;
+                let y = unwrap_number(vars.get(1))?;
+                let result = x * y;
+
+                Ok(result.into())
+            })),
+        );
+        vars.insert("external_func", closure.into());
+
+        let script = r#"
+        call(external_func, 6, 2)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(12.into()))
+    }
+
+    #[test]
+    fn with_context_test() {
+        let mut vars = Variables::new();
+        let closure = Closure::new(
+            vec!["y".to_string()],
+            Arc::new(Box::new(|vars, context| {
+                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                    x.ok_or(Error::new_static("missing arguments"))?
+                        .as_number()
+                        .ok_or(Error::new_static("argument not a number"))
+                }
+                let cfg = context
+                    .get("MY_CONFIG")
+                    .unwrap_or(&ExpressionValue::from("default"))
+                    .as_string()
+                    .unwrap_or(String::from("default"));
+                let x = unwrap_number(context.get("x"))?;
+                let y = unwrap_number(vars.get(0))?;
+                let result = format!("{}{}", cfg, x * y);
+
+                Ok(result.into())
+            })),
+        );
+        vars.insert("external_func", closure.into());
+
+        let script = r#"
+        MY_CONFIG="testing-test-testing";
+        x = 123;
+        call(external_func, 2)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok("testing-test-testing246".into()))
     }
 }

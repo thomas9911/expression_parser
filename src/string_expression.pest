@@ -4,8 +4,8 @@ line = _{ unassign | assign | expr }
 seperator = _{";"+}
 
 // // Function
-function = { "{" ~ function_variables ~ "=>" ~ file_inner ~ "}" }
-function_variables = { (var ~ ("," ~ var)*)? }
+function = !{ "{" ~ function_variables ~ "=>" ~ file_inner ~ "}" }
+function_variables = !{ (var ~ ("," ~ var)*)? }
 
 // // Assignment
 assignment = _{ SOI ~ (unassign | assign) ~ EOI }
@@ -55,6 +55,10 @@ number_operation = _{ power | add | subtract | multiply | divide }
     divide   = { "/" }
     power    = { "^" | "**" }
 
+dot_function = ${ var_or_func ~ dot_operator ~ "(" ~ spaces ~ any_arguments ~ spaces  ~ ")"}
+    var_or_func = _{ var | function }
+    dot_operator = { "." }
+
 expr = !{ term ~ (operation ~ term)* }
 
 func = ${ func_name ~ "(" ~  spaces ~ any_arguments ~ spaces ~ ")" }
@@ -68,7 +72,7 @@ list = { "[" ~ any_arguments ~ "]"}
 map = !{ ("{" ~ map_item ~ (COMMA ~ map_item)* ~ "}") | ("{" ~ "}") }
     map_item = _{ string ~ ":" ~ expr }
 
-term = _{ num | "(" ~ expr ~ ")" | string | func | var | list | map | function }
+term = _{ dot_function | num | "(" ~ expr ~ ")" | string | func | var | list | map | function }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 spaces = _{ WHITESPACE* }

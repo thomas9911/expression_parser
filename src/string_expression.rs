@@ -36,9 +36,11 @@ pub fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
                 Rule::multiply => Ok(Expr(Box::new(Function::Mul(lhs, rhs)))),
                 Rule::divide => Ok(Expr(Box::new(Function::Div(lhs, rhs)))),
                 Rule::power => Ok(Expr(Box::new(Function::Pow(lhs, rhs)))),
+                // Rule::dot_function => Ok(Expr(Box::new(Function::Call(lhs, vec![rhs])))),
                 // _ => unreachable!(),
                 rule => {
                     println!("{:?}", rule);
+                    println!("{:?}, {:?}", lhs, rhs);
                     unreachable!()
                 }
             }
@@ -83,14 +85,38 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
             Ok(Expression::Value(ExpressionValue::Map(ExpressionMap(data))))
         }
         Rule::expr => parse_expression(pair.into_inner()),
-        Rule::var => Ok(Var(pair.as_str().trim().to_string())),
+        Rule::var => Ok(make_var(pair)),
         Rule::func => make_function(pair),
         Rule::function => Ok(UserFunction(parse_user_function(pair.into_inner())?)),
+        Rule::dot_function => make_dot_function(pair.into_inner()),
         rule => {
             println!("{:?}", rule);
             unreachable!()
         }
     }
+}
+
+fn make_dot_function(mut pairs: Pairs<Rule>) -> ParseResult {
+    let first_pair = pairs.next().expect("invalid dot function grammar");
+
+    let lhs = match first_pair.as_rule() {
+        Rule::function => Expression::UserFunction(parse_user_function(first_pair.into_inner())?),
+        Rule::var => make_var(first_pair),
+        _ => panic!("ivalid dot function grammar"),
+    };
+
+    let _dot_operator = pairs.next().expect("invalid dot function grammar");
+
+    let mut arguments = Vec::new();
+    for pair in pairs {
+        arguments.push(parse_single_pair(pair)?)
+    }
+
+    Ok(Expression::Expr(Box::new(Function::Call(lhs, arguments))))
+}
+
+fn make_var(pair: Pair<Rule>) -> Expression {
+    Expression::Var(pair.as_str().trim().to_string())
 }
 
 fn make_string(string: Pairs<Rule>) -> String {

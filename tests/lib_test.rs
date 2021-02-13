@@ -549,6 +549,45 @@ mod function {
     }
 
     #[test]
+    fn dot_operator_function() {
+        let script = "{x, y => x + y + 1}.(2, 3)";
+        let parsed = match ExpressionFile::parse(script) {
+            Ok(x) => x,
+            Err(r) => panic!("{}", r),
+        };
+
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(6.into()))
+    }
+
+    #[test]
+    fn dot_operator_variable() {
+        let script = "a = {x, y => x + y + 1}; a.(2, 3)";
+        let parsed = ExpressionFile::parse(script).unwrap();
+
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(6.into()))
+    }
+
+    #[test]
+    fn invalid_operator_variable() {
+        let script = "(2 + 1).(2, 3)";
+        assert!(ExpressionFile::parse(script).is_err())
+    }
+
+    #[test]
+    fn dot_operator_complex_arguments() {
+        let script = "a = {x, y => x + y + 1}; a.((2 * 3), 5 - 9)";
+        let parsed = ExpressionFile::parse(script).unwrap();
+
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(3.into()))
+    }
+
+    #[test]
     fn two_args() {
         let script = "call({x, y => x + y + 1}, 2, 4)";
         let parsed = Expression::parse(script).unwrap();

@@ -1,18 +1,30 @@
 # expression_parser
 
-### A sort of calculator in Rust using Pest.
+TODO: think of a new name.
+
+### Why
+
+- Library first
+- JSON support (copy paste your json, should be valid code)
+- Immutable
+- Compiled code externaly saveable (using serde)
+- No external calls build-in (you can add those yourself if you want)
+  - Currently `print` is implemented using `println!`, this should change in the future.
 
 Take a look at the calculator example:
+
 ```sh
 cargo run --example calculator 1 + 12
 ```
 
 Or the expression example:
+
 ```sh
 cargo run --example calculator 1 + 12
 ```
 
 Or even better use the REPL:
+
 ```sh
 cargo run --example repl
 ```
@@ -20,6 +32,7 @@ cargo run --example repl
 #### library usage
 
 Simple example
+
 ```rust
 use expression_parser::{Expression, Variables};
 
@@ -30,6 +43,7 @@ assert_eq!(Ok(4.0.into()), result);
 ```
 
 Another example
+
 ```rust
 use expression_parser::{Expression, Variables};
 
@@ -40,6 +54,7 @@ assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 ```
 
 Use build-in variables and functions
+
 ```rust
 use expression_parser::{Expression, Variables};
 
@@ -50,6 +65,7 @@ assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 ```
 
 Use your own variables
+
 ```rust
 use expression_parser::{Expression, Variables, VariableMap};
 
@@ -65,15 +81,16 @@ let result = Expression::eval(parsed.clone(), &Variables::from(vars));
 assert_eq!(Ok(16.0.into()), result);
 
 let mut vars = Variables::default();
-vars.insert("x", 3.0);
-vars.insert("y", 3.0);
-vars.insert("z", 10.0);
+vars.insert("x", 3.0.into());
+vars.insert("y", 3.0.into());
+vars.insert("z", 10.0.into());
 
 let result = Expression::eval(parsed, &Variables::from(vars));
 assert_eq!(Ok(16.0.into()), result);
 ```
 
 Simple String example
+
 ```rust
 use expression_parser::{Expression, Variables, ExpressionValue};
 
@@ -85,6 +102,7 @@ assert_eq!("\"1234\"", result.unwrap().to_string());
 ```
 
 Multi-line example with variable assigment
+
 ```rust
 use expression_parser::{ExpressionFile, Variables, ExpressionValue};
 
@@ -105,4 +123,3 @@ assert_eq!(
     evaluated.unwrap()
 );
 ```
-

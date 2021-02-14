@@ -42,7 +42,6 @@ impl std::fmt::Display for ExpressionLine {
 impl ExpressionLine {
     pub fn eval<V: VariableMap>(line: Self, vars: &mut V) -> EvalResult {
         // vars.check_recursion_limit()?;
-
         match line {
             ExpressionLine::Expression(Expression::UserFunction(function)) => {
                 for item in function.iter_variables() {

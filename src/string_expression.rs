@@ -405,11 +405,18 @@ impl Expression {
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
             Expression::UserFunction(function) => {
-                let compiled = if let Some(compiled) = vars.local() {
+                let mut compiled = if let Some(compiled) = vars.local() {
                     compiled
                 } else {
                     Variables::new()
                 };
+
+                for local_var in function.iter_variables() {
+                    if let Some(var) = vars.get(&local_var) {
+                        compiled.insert(&local_var, var.to_owned());
+                    }
+                }
+
                 Ok(ExpressionValue::Function(function, compiled))
             }
         }

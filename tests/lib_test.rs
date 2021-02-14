@@ -688,12 +688,52 @@ mod function {
         }, 2)))
         "#;
 
-        let parsed = ExpressionFile::parse(script).unwrap();
-        println!("{:?}", parsed);
         let mut vars = Variables::new();
         vars.insert("top", 1.into());
+
+        let parsed = ExpressionFile::parse(script).unwrap();
         let result = ExpressionFile::eval(parsed, &mut vars);
         assert_eq!(result, Ok(2.into()))
+    }
+
+    #[test]
+    fn variable_scoping() {
+        let script = r#"
+        x = 123;
+        
+        func = { => 
+            x
+        };
+
+        x = 5;
+
+        # should be 123
+        func.()
+        "#;
+
+        let mut vars = Variables::default();
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(123.into()))
+    }
+
+    #[test]
+    fn local_overrides_global() {
+        let script = r#"
+        x = 123;
+        
+        func = {x =>  x};
+
+        # should be 5
+        func.(5)
+        "#;
+
+        let mut vars = Variables::default();
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(5.into()))
     }
 }
 

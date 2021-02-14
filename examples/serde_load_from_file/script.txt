@@ -1,0 +1,10 @@
+join_by_word = {join_word => 
+    join_word = if(type(join_word) == "string", join_word, "default");
+    {list => 
+        r = concat(list, ["d"]);
+        join(r, join_word)
+    }
+};
+
+joiner = join_by_word.("<>");
+joiner.(["a", "b", "c"])

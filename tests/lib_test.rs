@@ -1,4 +1,5 @@
-use expression_parser::VariableMap;
+use expression_parser::{Expression, ExpressionMap, ExpressionValue, VariableMap, Variables};
+use std::collections::HashMap;
 
 mod iter_variables {
     use expression_parser::Expression;
@@ -270,9 +271,6 @@ mod number {
         assert_eq!(20.0, result.round());
     }
 }
-
-use expression_parser::{Expression, ExpressionMap, ExpressionValue, Variables};
-use std::collections::HashMap;
 
 #[test]
 fn equal_operator_true() {
@@ -807,5 +805,37 @@ mod closure {
         let parsed = ExpressionFile::parse(script).unwrap();
         let result = ExpressionFile::eval(parsed, &mut vars);
         assert_eq!(result, Ok("testing-test-testing246".into()))
+    }
+}
+
+#[cfg(feature = "serde_example")]
+mod serde_tests {
+    use expression_parser::{ExpressionFile, Variables};
+
+    #[test]
+    fn loading_script_from_json() {
+        let script = r#"
+        join_by_word = {join_word => 
+            join_word = if(type(join_word) == "string", join_word, "default");
+            {list => 
+                r = concat(list, ["d"]);
+                join(r, join_word)
+            }
+        };
+        
+        joiner = join_by_word.("<>");
+        joiner.(["a", "b", "c"])
+        "#;
+
+        let parsed = ExpressionFile::parse(&script).unwrap();
+        let json = serde_json::to_string(&parsed).unwrap();
+
+        let direct_output = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        let loaded: ExpressionFile = serde_json::from_str(&json).unwrap();
+
+        let loaded_output = ExpressionFile::eval(loaded, &mut Variables::default());
+        assert_eq!(Ok("a<>b<>c<>d".into()), direct_output);
+        assert_eq!(direct_output, loaded_output);
     }
 }

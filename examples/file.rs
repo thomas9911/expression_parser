@@ -1,4 +1,3 @@
-// use std::env::args;
 use expression_parser::{ExpressionFile, Variables};
 
 fn print_help() {
@@ -11,9 +10,7 @@ fn print_help() {
 }
 
 fn main() {
-    let mut args = std::env::args();
-
-    let _program = args.next().unwrap();
+    let mut args = std::env::args().skip(1);
 
     let filename = match args.next() {
         Some(x)

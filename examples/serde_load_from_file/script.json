@@ -1,0 +1,146 @@
+{
+  "lines": [
+    {
+      "Assignment": {
+        "variable": "join_by_word",
+        "expression": {
+          "UserFunction": {
+            "arguments": [
+              "join_word"
+            ],
+            "expression": {
+              "lines": [
+                {
+                  "Assignment": {
+                    "variable": "join_word",
+                    "expression": {
+                      "Expr": {
+                        "If": [
+                          {
+                            "Expr": {
+                              "Equal": [
+                                {
+                                  "Expr": {
+                                    "Type": {
+                                      "Var": "join_word"
+                                    }
+                                  }
+                                },
+                                {
+                                  "Value": "string"
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "Var": "join_word"
+                          },
+                          {
+                            "Value": "default"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "Expression": {
+                    "UserFunction": {
+                      "arguments": [
+                        "list"
+                      ],
+                      "expression": {
+                        "lines": [
+                          {
+                            "Assignment": {
+                              "variable": "r",
+                              "expression": {
+                                "Expr": {
+                                  "Concat": [
+                                    {
+                                      "Var": "list"
+                                    },
+                                    {
+                                      "Value": [
+                                        {
+                                          "Value": "d"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "Expression": {
+                              "Expr": {
+                                "Join": [
+                                  {
+                                    "Var": "r"
+                                  },
+                                  {
+                                    "Var": "join_word"
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "Assignment": {
+        "variable": "joiner",
+        "expression": {
+          "Expr": {
+            "Call": [
+              {
+                "Var": "join_by_word"
+              },
+              [
+                {
+                  "Value": "<>"
+                }
+              ]
+            ]
+          }
+        }
+      }
+    },
+    {
+      "Expression": {
+        "Expr": {
+          "Call": [
+            {
+              "Var": "joiner"
+            },
+            [
+              {
+                "Value": [
+                  {
+                    "Value": "a"
+                  },
+                  {
+                    "Value": "b"
+                  },
+                  {
+                    "Value": "c"
+                  }
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

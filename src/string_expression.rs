@@ -300,7 +300,10 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
             check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
             Expr(Box::new(Function::Assert(
                 arguments[0].clone(),
-                arguments.get(1).cloned().unwrap_or(Expression::Value("assertion failed".into()))
+                arguments
+                    .get(1)
+                    .cloned()
+                    .unwrap_or(Expression::Value("assertion failed".into())),
             )))
         }
         Now => {
@@ -363,7 +366,6 @@ fn make_pest_error(span: Span, message: String) -> PestError<Rule> {
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Expression {
     Value(ExpressionValue),
     Expr(Box<Function>),

@@ -10,12 +10,13 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum ExpressionValue {
+    Function(UserFunction, Variables),
     String(String),
     Bool(bool),
     Number(f64),
     List(Vec<Expression>),
     Map(ExpressionMap),
-    Function(UserFunction, Variables),
+    #[cfg_attr(feature = "serde", serde(skip))]
     ExternalFunction(Closure),
     Null,
 }

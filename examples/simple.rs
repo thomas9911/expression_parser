@@ -1,5 +1,4 @@
 use expression_parser::{Expression, Variables};
-// use std::collections::HashMap;
 
 fn main() {
     let parsed = Expression::parse("1 + 5 - 2").unwrap();

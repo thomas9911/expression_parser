@@ -26,3 +26,7 @@ serde_example = ["serde", "serde_json"]
 [[example]]
 name = "serde"
 required-features = ["serde_example"]
+
+[[example]]
+name = "serde_load_from_file"
+required-features = ["serde_example"]

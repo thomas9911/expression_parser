@@ -1,6 +1,6 @@
+use colored::*;
 use expression_parser::{ExpressionFile, ExpressionValue, Variables};
 use std::io::{self, Error, StdoutLock, Write};
-use colored::*;
 
 const HELP_TEXT: &'static str = "Expression interactive example
 Usage: repl [OPTIONS] [ARGS ..]

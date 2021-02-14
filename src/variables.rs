@@ -2,6 +2,9 @@ use crate::statics::DEFAULT_VARIABLES;
 use crate::ExpressionValue;
 use std::collections::{BTreeMap, HashMap};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Trait for defining where variables are stored
 pub trait VariableMap: std::fmt::Debug {
     fn get(&self, key: &str) -> Option<&ExpressionValue>;
@@ -76,6 +79,7 @@ impl VariableMap for HashMap<String, ExpressionValue> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Variables {
     state: HashMap<String, ExpressionValue>,
 }

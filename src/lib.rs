@@ -1,6 +1,6 @@
-//! 
+//!
 //! TODO: think of a new name.
-//! 
+//!
 //! ## Why
 //! - Library first
 //! - JSON support (copy paste your json, should be valid code)
@@ -9,7 +9,7 @@
 //! - No external calls build-in (you can add those yourself if you want)
 //!   - Currently `print` is implemented using `println!`, this should change in the future.
 //!
-//! 
+//!
 //! Take a look at the calculator example:
 //! ```sh
 //! cargo run --example calculator 1 + 12

@@ -1,3 +1,6 @@
+use crate::grammar::Rule;
+use pest::error::Error as PestError;
+
 #[derive(Debug, PartialEq)]
 pub struct Error {
     pub static_info: Option<&'static str>,
@@ -36,5 +39,11 @@ impl Error {
             info: None,
             static_info: None,
         }
+    }
+}
+
+impl From<PestError<Rule>> for Error {
+    fn from(error: PestError<Rule>) -> Error {
+        Error::new(format!("{}", error))
     }
 }

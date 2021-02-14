@@ -400,18 +400,23 @@ impl Expression {
             Expression::Expr(op) => Function::eval(*op, vars),
             Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(ExpressionValue::List(
-                    list.into_iter().try_fold(Vec::new(), |mut acc, x| {
-                        acc.push(Expression::Value(Expression::eval(x, vars)?));
-                        Ok(acc)
-                    })?,
+                    list.into_iter().try_fold::<_, _, Result<_, Error>>(
+                        Vec::new(),
+                        |mut acc, x| {
+                            acc.push(Expression::Value(Expression::eval(x, vars)?));
+                            Ok(acc)
+                        },
+                    )?,
                 )),
                 ExpressionValue::Map(ExpressionMap(map)) => {
                     Ok(ExpressionValue::Map(ExpressionMap({
-                        map.into_iter()
-                            .try_fold(HashMap::new(), |mut acc, (k, v)| {
+                        map.into_iter().try_fold::<_, _, Result<_, Error>>(
+                            HashMap::new(),
+                            |mut acc, (k, v)| {
                                 acc.insert(k, Expression::Value(Expression::eval(v, vars)?));
                                 Ok(acc)
-                            })?
+                            },
+                        )?
                     })))
                 }
                 x => Ok(x),
@@ -448,10 +453,11 @@ impl Expression {
         match expression {
             Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(Expression::Value(ExpressionValue::List(
-                    list.iter().try_fold(Vec::new(), |mut acc, x| {
-                        acc.push(Expression::compile(x.clone())?);
-                        Ok(acc)
-                    })?,
+                    list.iter()
+                        .try_fold::<_, _, Result<_, Error>>(Vec::new(), |mut acc, x| {
+                            acc.push(Expression::compile(x.clone())?);
+                            Ok(acc)
+                        })?,
                 ))),
                 x => Ok(Expression::Value(x)),
             },

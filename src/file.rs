@@ -124,6 +124,11 @@ impl ExpressionFile {
 
         Ok(last)
     }
+
+    pub fn run<V: VariableMap>(input: &str, vars: &mut V) -> EvalResult {
+        let file = Self::parse(input)?;
+        Self::eval(file, vars)
+    }
 }
 
 #[test]

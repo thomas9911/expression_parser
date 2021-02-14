@@ -1,4 +1,5 @@
-use crate::Expression;
+use crate::user_function::UserFunction;
+use crate::{Closure, Expression, Variables};
 use std::collections::{BinaryHeap, HashMap};
 use std::iter::FromIterator;
 
@@ -14,6 +15,8 @@ pub enum ExpressionValue {
     Number(f64),
     List(Vec<Expression>),
     Map(ExpressionMap),
+    Function(UserFunction, Variables),
+    ExternalFunction(Closure),
     Null,
 }
 
@@ -23,7 +26,7 @@ pub struct ExpressionMap(pub HashMap<String, Expression>);
 
 impl std::fmt::Display for ExpressionValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use ExpressionValue::{Bool, List, Null, Number};
+        use ExpressionValue::{Bool, ExternalFunction, Function, List, Null, Number};
 
         match self {
             ExpressionValue::String(x) => write!(f, "\"{}\"", x),
@@ -31,6 +34,8 @@ impl std::fmt::Display for ExpressionValue {
             Number(x) => write!(f, "{}", x),
             List(list) => write!(f, "[ {} ]", list_to_string(list).join(", ")),
             ExpressionValue::Map(map) => write!(f, "{}", map),
+            Function(func, _) => write!(f, "{}", func),
+            ExternalFunction(func) => write!(f, "{}", func),
             Null => write!(f, "null"),
         }
     }
@@ -106,6 +111,12 @@ where
 impl From<ExpressionMap> for ExpressionValue {
     fn from(input: ExpressionMap) -> ExpressionValue {
         ExpressionValue::Map(input)
+    }
+}
+
+impl From<Closure> for ExpressionValue {
+    fn from(input: Closure) -> ExpressionValue {
+        ExpressionValue::ExternalFunction(input)
     }
 }
 
@@ -193,6 +204,16 @@ impl ExpressionValue {
         }
     }
 
+    /// casts value as a function
+    pub fn as_function(self) -> Option<(UserFunction, Variables)> {
+        use ExpressionValue::*;
+
+        match self {
+            Function(x, y) => Some((x, y)),
+            _ => None,
+        }
+    }
+
     pub fn is_number(&self) -> bool {
         use ExpressionValue::*;
 
@@ -247,6 +268,15 @@ impl ExpressionValue {
         }
     }
 
+    pub fn is_function(self) -> bool {
+        use ExpressionValue::*;
+
+        match self {
+            Function(_, _) => true,
+            _ => false,
+        }
+    }
+
     pub fn is_falsy(&self) -> bool {
         use ExpressionValue::*;
         match self {
@@ -255,6 +285,8 @@ impl ExpressionValue {
             Number(float) => nearly_zero(float),
             List(list) => list.is_empty(),
             Map(map) => map.0.is_empty(),
+            Function(_, _) => false,
+            ExternalFunction(_) => false,
             Null => true,
         }
     }

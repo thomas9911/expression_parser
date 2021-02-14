@@ -37,6 +37,7 @@ lazy_static! {
             Operator::new(add, Left) | Operator::new(subtract, Left),
             Operator::new(multiply, Left) | Operator::new(divide, Left),
             Operator::new(power, Right),
+            Operator::new(dot_operator, Right),
         ])
     };
 }

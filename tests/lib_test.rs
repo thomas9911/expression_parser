@@ -335,9 +335,9 @@ fn concat_function_variables() {
     let parsed = Expression::parse(r#"concat(test, "-", other, third, "!!")"#).unwrap();
 
     let mut vars = Variables::default();
-    vars.insert("test", "1");
-    vars.insert("other", "test");
-    vars.insert("third", "3456");
+    vars.insert("test", "1".into());
+    vars.insert("other", "test".into());
+    vars.insert("third", "3456".into());
 
     let result = Expression::eval(parsed, &vars);
     assert_eq!(Ok("1-test3456!!".into()), result);
@@ -533,4 +533,279 @@ fn compile_calculation() {
         "(((17.38905609893065 + (abc * 8)) - 11.570346316389632) - abc)",
         compiled.to_string()
     );
+}
+
+mod function {
+    use expression_parser::{Expression, ExpressionFile, Variables};
+
+    #[test]
+    fn simple() {
+        let script = "call({x => x + 1}, 2)";
+        let parsed = Expression::parse(script).unwrap();
+
+        let result = Expression::eval(parsed, &Variables::default());
+
+        assert_eq!(result, Ok(3.into()))
+    }
+
+    #[test]
+    fn dot_operator_function() {
+        let script = "{x, y => x + y + 1}.(2, 3)";
+        let parsed = match ExpressionFile::parse(script) {
+            Ok(x) => x,
+            Err(r) => panic!("{}", r),
+        };
+
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(6.into()))
+    }
+
+    #[test]
+    fn dot_operator_variable() {
+        let script = "a = {x, y => x + y + 1}; a.(2, 3)";
+        let parsed = ExpressionFile::parse(script).unwrap();
+
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(6.into()))
+    }
+
+    #[test]
+    fn invalid_operator_variable() {
+        let script = "(2 + 1).(2, 3)";
+        assert!(ExpressionFile::parse(script).is_err())
+    }
+
+    #[test]
+    fn dot_operator_complex_arguments() {
+        let script = "a = {x, y => x + y + 1}; a.((2 * 3), 5 - 9)";
+        let parsed = ExpressionFile::parse(script).unwrap();
+
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(3.into()))
+    }
+
+    #[test]
+    fn two_args() {
+        let script = "call({x, y => x + y + 1}, 2, 4)";
+        let parsed = Expression::parse(script).unwrap();
+
+        let result = Expression::eval(parsed, &Variables::default());
+
+        assert_eq!(result, Ok(7.into()))
+    }
+
+    #[test]
+    fn nested() {
+        let script = "call({x, y => 
+            call({s => 
+                s * 2
+            }, x + y)
+        }, 2, 4)";
+
+        let parsed = Expression::parse(script).unwrap();
+
+        let result = Expression::eval(parsed, &Variables::default());
+
+        assert_eq!(result, Ok(12.into()))
+    }
+
+    #[test]
+    fn nested_script() {
+        let script = r#"
+        func = {x, y, z => 
+            (x + y) * z
+        };
+        t = 5;
+        r = 4;
+        t = call(func, t, r, 12);
+        t + 1
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+
+        assert_eq!(result, Ok(109.into()))
+    }
+
+    #[test]
+    fn string() {
+        let script = r#"call({x => join([ x, x ], ",")}, "test")"#;
+        let parsed = Expression::parse(script).unwrap();
+        let result = Expression::eval(parsed, &Variables::default());
+        assert_eq!(result, Ok("test,test".into()))
+    }
+
+    #[test]
+    fn context() {
+        let script = r#"
+        x = 5;
+        y = 4;
+
+        func = {z =>
+            # x and y are available because they are defined before 
+            (x + y) * z
+        };
+
+        call(func, 12)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+        assert_eq!(result, Ok(108.into()))
+    }
+
+    #[test]
+    fn currying() {
+        let script = r#"
+        factory = { x => 
+            { y => x * y }
+        };
+
+        times_two = call(factory, 2);
+        times_three = call(factory, 3);
+
+        answer1 = call(times_two, 5);
+        answer2 = call(times_three, 5);
+
+        answer1 + answer2
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut Variables::default());
+        assert_eq!(result, Ok(25.into()))
+    }
+
+    #[test]
+    fn nested_currying() {
+        use expression_parser::VariableMap;
+
+        let script = r#"
+        call(call(call({ x => 
+            { => { => x } }
+        }, 2)))
+        "#;
+
+        let mut vars = Variables::new();
+        vars.insert("top", 1.into());
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(2.into()))
+    }
+
+    #[test]
+    fn variable_scoping() {
+        let script = r#"
+        x = 123;
+        
+        func = { => 
+            x
+        };
+
+        x = 5;
+
+        # should be 123
+        func.()
+        "#;
+
+        let mut vars = Variables::default();
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(123.into()))
+    }
+
+    #[test]
+    fn local_overrides_global() {
+        let script = r#"
+        x = 123;
+        
+        func = {x =>  x};
+
+        # should be 5
+        func.(5)
+        "#;
+
+        let mut vars = Variables::default();
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(5.into()))
+    }
+}
+
+mod closure {
+    use expression_parser::{
+        Closure, Error, ExpressionFile, ExpressionValue, VariableMap, Variables,
+    };
+    use std::sync::Arc;
+
+    #[test]
+    fn simple_test() {
+        let mut vars = Variables::new();
+        let closure = Closure::new(
+            vec!["x".to_string(), "y".to_string()],
+            Arc::new(Box::new(|vars, _| {
+                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                    x.ok_or(Error::new_static("missing arguments"))?
+                        .as_number()
+                        .ok_or(Error::new_static("argument not a number"))
+                }
+
+                let x = unwrap_number(vars.get(0))?;
+                let y = unwrap_number(vars.get(1))?;
+                let result = x * y;
+
+                Ok(result.into())
+            })),
+        );
+        vars.insert("external_func", closure.into());
+
+        let script = r#"
+        call(external_func, 6, 2)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(12.into()))
+    }
+
+    #[test]
+    fn with_context_test() {
+        let mut vars = Variables::new();
+        let closure = Closure::new(
+            vec!["y".to_string()],
+            Arc::new(Box::new(|vars, context| {
+                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                    x.ok_or(Error::new_static("missing arguments"))?
+                        .as_number()
+                        .ok_or(Error::new_static("argument not a number"))
+                }
+                let cfg = context
+                    .get("MY_CONFIG")
+                    .unwrap_or(&ExpressionValue::from("default"))
+                    .as_string()
+                    .unwrap_or(String::from("default"));
+                let x = unwrap_number(context.get("x"))?;
+                let y = unwrap_number(vars.get(0))?;
+                let result = format!("{}{}", cfg, x * y);
+
+                Ok(result.into())
+            })),
+        );
+        vars.insert("external_func", closure.into());
+
+        let script = r#"
+        MY_CONFIG="testing-test-testing";
+        x = 123;
+        call(external_func, 2)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok("testing-test-testing246".into()))
+    }
 }

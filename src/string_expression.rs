@@ -6,7 +6,8 @@ use std::collections::HashMap;
 use crate::function::FunctionName;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
-use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap};
+use crate::user_function::{parse_user_function, UserFunction};
+use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap, Variables};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -35,9 +36,11 @@ pub fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
                 Rule::multiply => Ok(Expr(Box::new(Function::Mul(lhs, rhs)))),
                 Rule::divide => Ok(Expr(Box::new(Function::Div(lhs, rhs)))),
                 Rule::power => Ok(Expr(Box::new(Function::Pow(lhs, rhs)))),
+                // Rule::dot_function => Ok(Expr(Box::new(Function::Call(lhs, vec![rhs])))),
                 // _ => unreachable!(),
                 rule => {
                     println!("{:?}", rule);
+                    println!("{:?}, {:?}", lhs, rhs);
                     unreachable!()
                 }
             }
@@ -82,13 +85,38 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
             Ok(Expression::Value(ExpressionValue::Map(ExpressionMap(data))))
         }
         Rule::expr => parse_expression(pair.into_inner()),
-        Rule::var => Ok(Var(pair.as_str().trim().to_string())),
+        Rule::var => Ok(make_var(pair)),
         Rule::func => make_function(pair),
+        Rule::function => Ok(UserFunction(parse_user_function(pair.into_inner())?)),
+        Rule::dot_function => make_dot_function(pair.into_inner()),
         rule => {
             println!("{:?}", rule);
             unreachable!()
         }
     }
+}
+
+fn make_dot_function(mut pairs: Pairs<Rule>) -> ParseResult {
+    let first_pair = pairs.next().expect("invalid dot function grammar");
+
+    let lhs = match first_pair.as_rule() {
+        Rule::function => Expression::UserFunction(parse_user_function(first_pair.into_inner())?),
+        Rule::var => make_var(first_pair),
+        _ => panic!("ivalid dot function grammar"),
+    };
+
+    let _dot_operator = pairs.next().expect("invalid dot function grammar");
+
+    let mut arguments = Vec::new();
+    for pair in pairs {
+        arguments.push(parse_single_pair(pair)?)
+    }
+
+    Ok(Expression::Expr(Box::new(Function::Call(lhs, arguments))))
+}
+
+fn make_var(pair: Pair<Rule>) -> Expression {
+    Expression::Var(pair.as_str().trim().to_string())
 }
 
 fn make_string(string: Pairs<Rule>) -> String {
@@ -264,6 +292,12 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
             check_arguments(func_name, pair_span, 0, Some(0), &arguments)?;
             Expr(Box::new(Function::Now()))
         }
+        Call => {
+            check_arguments(func_name, pair_span, 1, None, &arguments)?;
+            let func = arguments.remove(0);
+
+            Expr(Box::new(Function::Call(func, arguments)))
+        }
 
         // infix functions
         Equal | NotEqual | Add | Sub | Mul | Div | Pow | And | Or => {
@@ -319,6 +353,7 @@ pub enum Expression {
     Value(ExpressionValue),
     Expr(Box<Function>),
     Var(String),
+    UserFunction(UserFunction),
 }
 
 impl std::fmt::Display for Expression {
@@ -328,6 +363,7 @@ impl std::fmt::Display for Expression {
             Value(val) => write!(f, "{}", val),
             Var(val) => write!(f, "{}", val),
             Expr(val) => write!(f, "{}", val),
+            UserFunction(val) => write!(f, "{}", val),
         }
     }
 }
@@ -340,7 +376,9 @@ impl Default for Expression {
 
 impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
-    pub fn eval<V: VariableMap>(expression: Expression, vars: &V) -> EvalResult {
+    pub fn eval<V: VariableMap + std::fmt::Debug>(expression: Expression, vars: &V) -> EvalResult {
+        // println!("expr: {:?}", vars);
+
         match expression {
             Expression::Expr(op) => Function::eval(*op, vars),
             Expression::Value(value) => match value {
@@ -366,6 +404,21 @@ impl Expression {
                 Some(x) => Ok(x.clone()),
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
+            Expression::UserFunction(function) => {
+                let mut compiled = if let Some(compiled) = vars.local() {
+                    compiled
+                } else {
+                    Variables::new()
+                };
+
+                for local_var in function.iter_variables() {
+                    if let Some(var) = vars.get(&local_var) {
+                        compiled.insert(&local_var, var.to_owned());
+                    }
+                }
+
+                Ok(ExpressionValue::Function(function, compiled))
+            }
         }
     }
 
@@ -396,6 +449,7 @@ impl Expression {
             Expression::Value(_) => Box::new(std::iter::empty::<String>()),
             Expression::Var(x) => Box::new(std::iter::once(x.to_owned())),
             Expression::Expr(f) => f.iter_variables(),
+            Expression::UserFunction(func) => func.expression.iter_variables(),
         }
     }
 

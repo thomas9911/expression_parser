@@ -81,9 +81,9 @@
 //! assert_eq!(Ok(16.0.into()), result);
 //!
 //! let mut vars = Variables::default();
-//! vars.insert("x", 3.0);
-//! vars.insert("y", 3.0);
-//! vars.insert("z", 10.0);
+//! vars.insert("x", 3.0.into());
+//! vars.insert("y", 3.0.into());
+//! vars.insert("z", 10.0.into());
 //!
 //! let result = Expression::eval(parsed, &Variables::from(vars));
 //! assert_eq!(Ok(16.0.into()), result);
@@ -134,7 +134,7 @@
 //! # }
 //! ```
 //!
-#![recursion_limit = "1024"]
+// #![recursion_limit = "1024"]
 
 #[macro_use]
 extern crate pest_derive;
@@ -145,6 +145,7 @@ extern crate strum;
 extern crate strum_macros;
 
 pub mod assignment;
+pub mod closure;
 pub mod error;
 pub mod expression_value;
 pub mod file;
@@ -152,12 +153,15 @@ pub mod function;
 pub mod grammar;
 pub mod statics;
 pub mod string_expression;
+pub mod user_function;
 pub mod variables;
 
 pub use assignment::{Assignment, Unassignment};
+pub use closure::Closure;
 pub use error::Error;
 pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;
 pub use function::Function;
 pub use string_expression::Expression;
-pub use variables::{VariableMap, Variables};
+pub use user_function::UserFunction;
+pub use variables::{ScopedVariables, VariableMap, Variables};

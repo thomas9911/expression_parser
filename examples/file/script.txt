@@ -1,0 +1,17 @@
+Test::new = {=> 
+    {
+        "y": [1,2,3],
+        "x": {
+            "x": 123
+        }
+    }
+};
+
+Test::get =  {map, key => 
+    inner = get(map, key);
+    get(inner, key)
+};
+
+my_map = Test::new.();
+
+Test::get.(my_map, "x")

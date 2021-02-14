@@ -1,5 +1,8 @@
 use super::FunctionName;
-use crate::{Error, Expression, ExpressionValue, Function, VariableMap};
+use crate::{
+    Closure, Error, Expression, ExpressionFile, ExpressionValue, Function, ScopedVariables,
+    UserFunction, VariableMap, Variables,
+};
 
 pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
@@ -72,6 +75,55 @@ pub fn help<Vars: VariableMap>(lhs: Input, _vars: &Vars) -> Output {
         x if x == &Expression::default() => ok_string(Function::help()),
         _ => normal_help(lhs),
     }
+}
+
+pub fn call<'a, Vars: VariableMap>(func: Input, list: Vec<Input>, vars: &'a Vars) -> Output {
+    let list = evaluate_inputs(list, vars)?;
+
+    let mut context = ScopedVariables::new(Box::new(vars));
+
+    // let (function, compiled_vars) = Expression::eval(func, &context)?
+    //     .as_function()
+    //     .ok_or(Error::new_static("input should be a function"))?;
+
+    match Expression::eval(func, &context)? {
+        ExpressionValue::ExternalFunction(closure) => {
+            call_external_function(closure, list, &mut context)
+        }
+        // ExpressionValue::Function(function, compiled_vars) => (function, compiled_vars),
+        ExpressionValue::Function(function, compiled_vars) => {
+            call_function(function, compiled_vars, list, &mut context)
+        }
+        _ => Err(Error::new_static("input should be a function")),
+    }
+}
+
+pub fn call_function<'a, Vars: VariableMap>(
+    user_func: UserFunction,
+    compiled_vars: Variables,
+    args: Vec<ExpressionValue>,
+    context: &'a mut Vars,
+) -> Output {
+    for (key, value) in compiled_vars.into_iter() {
+        context.insert(&key, value);
+    }
+
+    for (key, value) in user_func.arguments.iter().zip(args) {
+        context.insert(key, value);
+    }
+
+    let result = ExpressionFile::eval(user_func.expression, context)?;
+
+    Ok(result)
+}
+
+pub fn call_external_function<'a>(
+    closure: Closure,
+    args: Vec<ExpressionValue>,
+    context: &'a mut ScopedVariables,
+) -> Output {
+    let f = closure.function;
+    f(args, context)
 }
 
 /// overload get function for list and map

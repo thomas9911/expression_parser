@@ -16,7 +16,7 @@ pub type EvalResult = Result<ExpressionValue, Error>;
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ExpressionFile {
-    lines: Vec<ExpressionLine>,
+    pub(crate) lines: Vec<ExpressionLine>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,7 +41,19 @@ impl std::fmt::Display for ExpressionLine {
 
 impl ExpressionLine {
     pub fn eval<V: VariableMap>(line: Self, vars: &mut V) -> EvalResult {
+        // vars.check_recursion_limit()?;
         match line {
+            ExpressionLine::Expression(Expression::UserFunction(function)) => {
+                for item in function.iter_variables() {
+                    let val = if let Some(val) = vars.get(&item) {
+                        val.to_owned()
+                    } else {
+                        continue;
+                    };
+                    vars.insert(&item, val);
+                }
+                Expression::eval(Expression::UserFunction(function), vars)
+            }
             ExpressionLine::Expression(ex) => Expression::eval(ex, vars),
             ExpressionLine::Assignment(ass) => {
                 Assignment::eval(ass, vars)?;
@@ -53,9 +65,17 @@ impl ExpressionLine {
             }
         }
     }
+
+    pub fn iter_variables<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
+        use ExpressionLine::*;
+        match self {
+            Expression(ex) => ex.iter_variables(),
+            Assignment(_) | Unassignment(_) => Box::new(std::iter::empty::<String>()),
+        }
+    }
 }
 
-fn parse_file(expression: Pairs<Rule>) -> ParseResult {
+pub fn parse_file(expression: Pairs<Rule>) -> ParseResult {
     let mut lines = vec![];
     for pair in expression {
         let line = match pair.as_rule() {
@@ -80,10 +100,20 @@ impl std::fmt::Display for ExpressionFile {
     }
 }
 
+impl Default for ExpressionFile {
+    fn default() -> ExpressionFile {
+        ExpressionFile { lines: Vec::new() }
+    }
+}
+
 impl ExpressionFile {
     /// Takes input and returns a syntax tree
     pub fn parse(input: &str) -> ParseResult {
         parse_file(ExpressionessionParser::parse(Rule::file, input)?)
+    }
+
+    pub fn iter_variables<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
+        Box::new(self.lines.iter().flat_map(|x| x.iter_variables()))
     }
 
     pub fn eval<V: VariableMap>(file: Self, vars: &mut V) -> EvalResult {

@@ -87,13 +87,19 @@ pub enum Function {
     Random(Expression, Expression),
     #[strum(message = "Returns the unix timestamp of the current time")]
     Now(),
+    #[strum(message = "Returns the type of the argument")]
+    Type(Expression),
     #[strum(message = "Tries the first argument, if that fails returns the second argument")]
     Try(Expression, Expression),
     #[strum(message = "Prints value")]
     Print(Expression),
+    #[strum(message = "")]
+    Error(Expression),
+    #[strum(message = "")]
+    Assert(Expression, Expression),
     #[strum(message = "Prints help message")]
     Help(Expression),
-    #[strum(message = "xzd")]
+    #[strum(message = "Calls the function with given arguments")]
     Call(Expression, Vec<Expression>),
 }
 
@@ -117,6 +123,7 @@ impl std::fmt::Display for Function {
             | Get(lhs, rhs)
             | Push(lhs, rhs)
             | Try(lhs, rhs)
+            | Assert(lhs, rhs)
             | Remove(lhs, rhs) => write!(f, "{}({}, {})", func_name, lhs, rhs),
             Call(function, list) => write!(
                 f,
@@ -125,9 +132,8 @@ impl std::fmt::Display for Function {
                 function,
                 list_to_string(list).join(", ")
             ),
-            Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
-                write!(f, "{}({})", func_name, lhs)
-            }
+            Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
+            | Type(lhs) | Error(lhs) => write!(f, "{}({})", func_name, lhs),
             Now() => write!(f, "{}()", func_name),
 
             // infixes
@@ -178,7 +184,10 @@ impl Function {
             Put(lhs, mdl, rhs) => functions::put(lhs, mdl, rhs, vars),
             Random(lhs, rhs) => functions::random(lhs, rhs, vars),
             Now() => functions::now(vars),
+            Type(lhs) => functions::type_function(lhs, vars),
             Print(lhs) => functions::print(lhs, vars),
+            Error(lhs) => functions::error(lhs, vars),
+            Assert(lhs, rhs) => functions::assert(lhs, rhs, vars),
             Try(lhs, rhs) => functions::try_function(lhs, rhs, vars),
             Call(func, list) => functions::call(func, list, vars),
             Help(lhs) => functions::help(lhs, vars),
@@ -221,6 +230,9 @@ impl Function {
                 Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
                 Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
                 Now() => Now(),
+                Type(lhs) => Type(E::compile(lhs)?),
+                Error(lhs) => Error(E::compile(lhs)?),
+                Assert(lhs, rhs) => Assert(E::compile(lhs)?, E::compile(rhs)?),
                 Try(lhs, rhs) => Try(E::compile(lhs)?, E::compile(rhs)?),
                 Call(func, list) => Call(E::compile(func)?, Function::compile_list(list)?),
                 Print(lhs) => Print(E::compile(lhs)?),
@@ -272,11 +284,11 @@ impl Function {
             | Push(lhs, rhs)
             | Remove(lhs, rhs)
             | Try(lhs, rhs)
+            | Assert(lhs, rhs)
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
-            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs) => {
-                Box::new(lhs.iter_variables())
-            }
+            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
+            | Type(lhs) | Error(lhs) => Box::new(lhs.iter_variables()),
 
             If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) => Box::new(
                 lhs.iter_variables()
@@ -303,6 +315,24 @@ impl Function {
             self.iter_variables()
                 .filter(|x| !DEFAULT_VARIABLES.contains_key(x)),
         )
+    }
+
+    pub fn iter_without_infixes() -> Box<dyn Iterator<Item = Function>> {
+        use strum::IntoEnumIterator;
+        use Function::*;
+
+        Box::new(Function::iter().filter(|x| match x {
+            Equal(_, _)
+            | NotEqual(_, _)
+            | Add(_, _)
+            | Sub(_, _)
+            | Mul(_, _)
+            | Div(_, _)
+            | Pow(_, _)
+            | And(_, _)
+            | Or(_, _) => false,
+            _ => true,
+        }))
     }
 
     pub fn is_infix(&self) -> bool {
@@ -550,6 +580,33 @@ impl Function {
     invalid_key = 1;
     third = try(put(map, invalid_key, 123), map) == map;
     first and second and third"#
+            }
+            Type => {
+                r#"
+    one = type(1.0) == "number";
+    two = type([]) == "list";
+    three = type({}) == "map";
+    four = type("test") == "string";
+    five = type({=> x}) == "function";
+    six = type(true) == "boolean";
+    seven = type(null) == "null";
+    one and two and three and four and five and six and seven"#
+            }
+            Error => {
+                r#"
+    # an error with "something went wrong" will be catched and returns "default"
+    one = try(error("something went wrong"), "default") == "default";
+
+    one"#
+            }
+            Assert => {
+                r#"
+    one = assert(true == true);
+    two = assert([1,2,3]) == [1,2,3];
+    # with an optional error message
+    three = assert(1, "not truthy") == 1;
+    four = try(assert(1 == 0, "panic"), "default") == "default";
+    one and two and three and four"#
             }
             Help => {
                 r#"

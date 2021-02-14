@@ -1,5 +1,6 @@
 use expression_parser::{ExpressionFile, ExpressionValue, Variables};
 use std::io::{self, Error, StdoutLock, Write};
+use colored::*;
 
 const HELP_TEXT: &'static str = "Expression interactive example
 Usage: repl [OPTIONS] [ARGS ..]
@@ -65,7 +66,7 @@ fn main() -> Result<(), Error> {
         buffer = String::new();
     }
 
-    Ok(println!("\nGood bye"))
+    Ok(println!("\n{}", "Good bye".bright_green()))
 }
 
 fn print_cursor(handle: &mut StdoutLock) -> Result<(), Error> {
@@ -93,10 +94,10 @@ fn print_help(first_arg: &str) -> bool {
 fn do_expression(buffer: String, vars: &mut Variables, is_debug: bool) {
     let parsed = match ExpressionFile::parse(buffer.as_ref()) {
         Ok(x) => x,
-        Err(e) => return println!("Invalid expression{}", e),
+        Err(e) => return println!("{}: Invalid expression{}", "error".bright_red(), e),
     };
     if is_debug {
-        println!("{:?}", parsed); // 'ast'
+        println!("{}", format!("debug: {:?}", parsed).blue()); // 'ast'
     }
     match ExpressionFile::eval(parsed, vars) {
         Ok(x) => {
@@ -105,6 +106,6 @@ fn do_expression(buffer: String, vars: &mut Variables, is_debug: bool) {
                 _ => println!("{}", x), // evaluated expression
             }
         }
-        Err(e) => println!("{}", e),
+        Err(e) => println!("{}: {}", "error".bright_red(), e),
     }
 }

@@ -310,6 +310,21 @@ impl ExpressionValue {
             other
         }
     }
+
+    pub fn what_type(&self) -> &'static str {
+        use ExpressionValue::*;
+
+        match self {
+            String(_) => "string",
+            Bool(_) => "boolean",
+            Number(_) => "number",
+            List(_) => "list",
+            Map(_) => "map",
+            Function(_, _) => "function",
+            ExternalFunction(_) => "function",
+            Null => "null",
+        }
+    }
 }
 
 fn nearly_zero(number: &f64) -> bool {

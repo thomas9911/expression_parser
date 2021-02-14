@@ -288,6 +288,21 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
                 arguments[1].clone(),
             )))
         }
+        Type => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Function::Type(arguments[0].clone())))
+        }
+        Error => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Function::Error(arguments[0].clone())))
+        }
+        Assert => {
+            check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
+            Expr(Box::new(Function::Assert(
+                arguments[0].clone(),
+                arguments.get(1).cloned().unwrap_or(Expression::Value("assertion failed".into()))
+            )))
+        }
         Now => {
             check_arguments(func_name, pair_span, 0, Some(0), &arguments)?;
             Expr(Box::new(Function::Now()))

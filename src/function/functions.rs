@@ -126,6 +126,29 @@ pub fn call_external_function<'a>(
     f(args, context)
 }
 
+pub fn type_function<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
+    let value = Expression::eval(lhs, vars)?;
+    Ok(value.what_type().into())
+}
+
+pub fn error<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
+    let value = Expression::eval(lhs, vars)?;
+    Err(Error::new(value.to_string()))
+}
+
+pub fn assert<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+    let value = Expression::eval(lhs, vars)?;
+
+    if value.is_truthy() {
+        Ok(value)
+    } else {
+        let error_message = Expression::eval(rhs, vars)?
+            .as_string()
+            .ok_or(Error::new_static("error message is not a string"))?;
+        Err(Error::new(error_message))
+    }
+}
+
 /// overload get function for list and map
 pub fn get<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     let value = Expression::eval(lhs, vars)?;
@@ -148,7 +171,6 @@ pub fn remove<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output 
 
 fn normal_help(lhs: Input) -> Output {
     use std::str::FromStr;
-    use strum::IntoEnumIterator;
 
     // let value = match Expression::eval(lhs.clone(), vars){
     //     Ok(x) => Expression::Value(x),
@@ -158,7 +180,7 @@ fn normal_help(lhs: Input) -> Output {
     let value = as_variable_or_string(lhs)?;
     match value.as_ref() {
         "functions" => {
-            let d: Vec<_> = Function::iter()
+            let d: Vec<_> = Function::iter_without_infixes()
                 .map(|x| {
                     Expression::Value(ExpressionValue::String(FunctionName::from(x).to_string()))
                 })

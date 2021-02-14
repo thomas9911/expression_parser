@@ -17,6 +17,9 @@ snailquote = "0.3.0"
 strum = "0.18.0"
 strum_macros = "0.18.0"
 
+[dev-dependencies]
+colored = "2"
+
 [features]
 serde_example = ["serde", "serde_json"]
 

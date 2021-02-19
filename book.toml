@@ -9,4 +9,4 @@ title = "expression_parser"
 edition = "2018"
 
 [build]
-build-dir = "build"
+build-dir = "docs"

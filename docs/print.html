@@ -1,0 +1,720 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>expression_parser</title>
+        
+        <meta name="robots" content="noindex" />
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="favicon.png">
+        
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        
+        <link rel="stylesheet" href="css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">2.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">4.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">5.</strong> User Functions</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">expression_parser</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#expression_parser" id="expression_parser">expression_parser</a></h1>
+<p>TODO: think of a new name.</p>
+<h3><a class="header" href="#why" id="why">Why</a></h3>
+<ul>
+<li>Library first</li>
+<li>JSON support (copy paste your json, should be valid code)</li>
+<li>Immutable</li>
+<li>Compiled code externaly saveable (using serde)</li>
+<li>No external calls build-in (you can add those yourself if you want)
+<ul>
+<li>Currently <code>print</code> is implemented using <code>println!</code>, this should change in the future.</li>
+</ul>
+</li>
+</ul>
+<p>Take a look at the calculator example:</p>
+<pre><code class="language-sh">cargo run --example calculator 1 + 12
+</code></pre>
+<p>Or the expression example:</p>
+<pre><code class="language-sh">cargo run --example calculator 1 + 12
+</code></pre>
+<p>Or even better use the REPL:</p>
+<pre><code class="language-sh">cargo run --example repl
+</code></pre>
+<h4><a class="header" href="#library-usage" id="library-usage">library usage</a></h4>
+<p>Simple example</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use expression_parser::{Expression, Variables};
+
+let parsed = Expression::parse(&quot;1 + 5 - 2&quot;)?;
+let result = Expression::eval(parsed, &amp;Variables::default());
+
+assert_eq!(Ok(4.0.into()), result);
+<span class="boring">}
+</span></code></pre></pre>
+<p>Another example</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use expression_parser::{Expression, Variables};
+
+let parsed = Expression::parse(&quot;e ^ (1 + 5 - 2)&quot;)?;
+let result = Expression::eval(parsed, &amp;Variables::default());
+
+assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
+<span class="boring">}
+</span></code></pre></pre>
+<p>Use build-in variables and functions</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use expression_parser::{Expression, Variables};
+
+let parsed = Expression::parse(&quot;sin(e) + 1&quot;)?;
+let result = Expression::eval(parsed, &amp;Variables::default());
+
+assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
+<span class="boring">}
+</span></code></pre></pre>
+<p>Use your own variables</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use expression_parser::{Expression, Variables, VariableMap};
+
+let parsed = Expression::parse(&quot;x + y + z&quot;)?;
+
+let mut vars = std::collections::HashMap::new();
+vars.insert(String::from(&quot;x&quot;), 3.0.into());
+vars.insert(String::from(&quot;y&quot;), 3.0.into());
+vars.insert(String::from(&quot;z&quot;), 10.0.into());
+
+let result = Expression::eval(parsed.clone(), &amp;Variables::from(vars));
+
+assert_eq!(Ok(16.0.into()), result);
+
+let mut vars = Variables::default();
+vars.insert(&quot;x&quot;, 3.0.into());
+vars.insert(&quot;y&quot;, 3.0.into());
+vars.insert(&quot;z&quot;, 10.0.into());
+
+let result = Expression::eval(parsed, &amp;Variables::from(vars));
+assert_eq!(Ok(16.0.into()), result);
+<span class="boring">}
+</span></code></pre></pre>
+<p>Simple String example</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use expression_parser::{Expression, Variables, ExpressionValue};
+
+let parsed = Expression::parse(r#&quot;concat(&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;)&quot;#)?;
+let result = Expression::eval(parsed, &amp;Variables::default());
+
+assert_eq!(Ok(ExpressionValue::from(&quot;1234&quot;)), result);
+assert_eq!(&quot;\&quot;1234\&quot;&quot;, result.unwrap().to_string());
+<span class="boring">}
+</span></code></pre></pre>
+<p>Multi-line example with variable assigment</p>
+<pre><pre class="playground"><code class="language-rust edition2018">
+<span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use expression_parser::{ExpressionFile, Variables, ExpressionValue};
+
+let input = r#&quot;
+    a = [1, 2, 3];
+    b = [3, 2, 1];
+    c = concat(a, b);
+    d = concat(b, a);
+    concat(c, [4,4], d);
+&quot;#;
+let file = ExpressionFile::parse(input)?;
+let evaluated = ExpressionFile::eval(file, &amp;mut Variables::default());
+assert_eq!(
+    ExpressionValue::from(vec![
+        1, 2, 3, 3, 2, 1, 4,
+        4, 3, 2, 1, 1, 2, 3
+    ]),
+    evaluated.unwrap()
+);
+<span class="boring">}
+</span></code></pre></pre>
+<h1><a class="header" href="#basic-types" id="basic-types">Basic types</a></h1>
+<p>Types are nearly equal to JSON types:</p>
+<ul>
+<li>String</li>
+</ul>
+<pre><code class="language-js">&quot;Text&quot;;
+&quot;More text&quot;;
+// unicode rust
+&quot;ok\u{00e9}&quot;; // prints oké
+// also json unicode
+&quot;ok\u00e9&quot;; // prints oké as well
+&quot;prints\t\tescaped\n\&quot;characters\&quot;\\&quot;;
+// prints         escaped
+// &quot;characters&quot;\
+</code></pre>
+<ul>
+<li>Number</li>
+</ul>
+<pre><code class="language-js">123;
+12.345;
+1.23e6; // 1230000
+1.23e-3; // 0.00123
+</code></pre>
+<ul>
+<li>Boolean</li>
+</ul>
+<pre><code class="language-js">true;
+false;
+</code></pre>
+<ul>
+<li>Null</li>
+</ul>
+<pre><code class="language-js">null;
+</code></pre>
+<ul>
+<li>List</li>
+</ul>
+<pre><code class="language-js">[ 1, 2, 3 ];
+[&quot;test&quot;, &quot;test&quot;];
+// also mixed type lists
+[1, &quot;test&quot;, false];
+</code></pre>
+<ul>
+<li>Map</li>
+</ul>
+<pre><code class="language-js">// just your regular json
+{
+    &quot;test&quot;: 123,
+    &quot;list&quot;: [1,2,3],
+    &quot;map&quot;: {
+        &quot;nested&quot;: true
+    }
+}
+</code></pre>
+<p>Extra Types:</p>
+<ul>
+<li>Function</li>
+</ul>
+<pre><code class="language-js">// simple example
+{x =&gt; x + x}
+</code></pre>
+<h1><a class="header" href="#variables" id="variables">Variables</a></h1>
+<p>Creating new variables can be done just by using the <code>=</code> symbol.</p>
+<p>Example:</p>
+<pre><code class="language-js">a = 1;
+b = 2;
+c = a + b;
+</code></pre>
+<p>Currently there is no garbage collection, but if you want you can manually delete variables with:</p>
+<pre><code class="language-js">a = 1;
+unset a;
+</code></pre>
+<h1><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h1>
+<h2><a class="header" href="#add" id="add">add</a></h2>
+<p>Adds the two arguments together</p>
+<p>Usage:</p>
+<pre><code>    first = 1 + 1 == 2;
+    second = 123 + 321 == 444;
+    third = -321 + 321 == 0;
+</code></pre>
+<h2><a class="header" href="#all" id="all">all</a></h2>
+<p>Checks if all arguments are truthy</p>
+<p>Usage:</p>
+<pre><code>    first = all([1, true, [1,2,3], {&quot;test&quot;: true}]);
+    second = all([1, false, [1,2,3], {&quot;test&quot;: true}]) == false;
+</code></pre>
+<h2><a class="header" href="#and" id="and">and</a></h2>
+<p>If the first argument is truthy returns the second argument, otherwise returns the first argument</p>
+<p>Usage:</p>
+<pre><code>    first = true and true;
+    second = 1 and true;
+    third = [1,2,3] and true;
+    fourth = 0 and 1234 == 0;
+</code></pre>
+<h2><a class="header" href="#any" id="any">any</a></h2>
+<p>Checks if any arguments are truthy</p>
+<p>Usage:</p>
+<pre><code>    first = any([1, false, [1,2,3], {&quot;test&quot;: true}]);
+    second = any([0.0, true, [], {}]);
+    third = any([0.0, false, [], {}]) == false;
+</code></pre>
+<h2><a class="header" href="#assert" id="assert">assert</a></h2>
+<p>Usage:</p>
+<pre><code>    one = assert(true == true);
+    two = assert([1,2,3]) == [1,2,3];
+    # with an optional error message
+    three = assert(1, &quot;not truthy&quot;) == 1;
+    four = try(assert(1 == 0, &quot;panic&quot;), &quot;default&quot;) == &quot;default&quot;;
+</code></pre>
+<h2><a class="header" href="#call" id="call">call</a></h2>
+<p>Calls the function with given arguments</p>
+<p>Usage:</p>
+<pre><code>
+</code></pre>
+<h2><a class="header" href="#concat" id="concat">concat</a></h2>
+<p>Combines two or more lists into one</p>
+<p>Usage:</p>
+<pre><code>    first = concat([1,2], [3,4], [5,6]) == [1,2,3,4,5,6];
+    second = concat(&quot;test&quot;, &quot;-&quot;, &quot;test&quot;) == &quot;test-test&quot;;
+</code></pre>
+<h2><a class="header" href="#contains" id="contains">contains</a></h2>
+<p>Checks if the seconds argument is in the first argument</p>
+<p>Usage:</p>
+<pre><code>    first = contains(&quot;testing&quot;, &quot;test&quot;);
+    second = contains([1,2,3,4], 3);
+</code></pre>
+<h2><a class="header" href="#cos" id="cos">cos</a></h2>
+<p>Calculates the cosine of the number</p>
+<p>Usage:</p>
+<pre><code>    first = cos(0) == 1;
+</code></pre>
+<h2><a class="header" href="#div" id="div">div</a></h2>
+<p>Divides the second argument from the first argument</p>
+<p>Usage:</p>
+<pre><code>    first = 1 / 5 == 0.2;
+    second = 50 / 50 == 1;
+    third = 150 / 6 == 25;
+</code></pre>
+<h2><a class="header" href="#equal" id="equal">equal</a></h2>
+<p>Compares if the two arguments are equal</p>
+<p>Usage:</p>
+<pre><code>    first = 1 == 1; 
+    second = [1,2,3] == [1,2,3]; 
+    third = {&quot;test&quot;: true} == {&quot;test&quot;: true}; 
+</code></pre>
+<h2><a class="header" href="#error" id="error">error</a></h2>
+<p>Usage:</p>
+<pre><code>    # an error with &quot;something went wrong&quot; will be catched and returns &quot;default&quot;
+    one = try(error(&quot;something went wrong&quot;), &quot;default&quot;) == &quot;default&quot;;
+
+</code></pre>
+<h2><a class="header" href="#get" id="get">get</a></h2>
+<p>Gets the value from a list or a map</p>
+<p>Usage:</p>
+<pre><code>    first = get([1, 2, 3], 1) == 2;
+    // throws error:
+    // get([1, 2, 3], -1.23) != 2;
+
+    second = get([1, 2, 3], 1.5 - 0.5) == 2;
+    third = get({&quot;test&quot;: 12, &quot;another&quot;: -1}, &quot;test&quot;) == 12;
+    // throws error:
+    // get({&quot;test&quot;: 1}, &quot;another&quot;)
+
+</code></pre>
+<h2><a class="header" href="#help" id="help">help</a></h2>
+<p>Prints help message</p>
+<p>Usage:</p>
+<pre><code>    // prints general help
+    help();
+
+    // prints help for specific function
+    help(contains);
+
+    // print all the functions
+    help(functions);
+</code></pre>
+<h2><a class="header" href="#if" id="if">if</a></h2>
+<p>If the first argument is truthy returns the second argument, otherwise returns the third argument</p>
+<p>Usage:</p>
+<pre><code>    first = if(1 == 1, &quot;success&quot;, &quot;failed&quot;) == &quot;success&quot;;
+    
+    one = &quot;1&quot;;
+    two = &quot;2&quot;;
+    some_test = e != pi;
+    second = if(some_test, one, two) == one;
+</code></pre>
+<h2><a class="header" href="#join" id="join">join</a></h2>
+<p>Combine the first argument into a string with the second argument as is seperator</p>
+<p>Usage:</p>
+<pre><code>    first = join([&quot;1&quot;, &quot;2&quot;, &quot;3&quot;], &quot;, &quot;) == &quot;1, 2, 3&quot;;
+    second = join([&quot;test&quot;, &quot;testing&quot;, &quot;test&quot;], &quot;-&quot;) == &quot;test-testing-test&quot;;
+</code></pre>
+<h2><a class="header" href="#lower" id="lower">lower</a></h2>
+<p>Converts input to lowercase</p>
+<p>Usage:</p>
+<pre><code>    first = lower(&quot;TESTING&quot;) == &quot;testing&quot;;
+</code></pre>
+<h2><a class="header" href="#mul" id="mul">mul</a></h2>
+<p>Multiplies the two arguments together</p>
+<p>Usage:</p>
+<pre><code>    first = 1 * 1 == 1;
+    second = 150 * 0 == 0;
+    third = -5 * -5 == 25;
+</code></pre>
+<h2><a class="header" href="#not_equal" id="not_equal">not_equal</a></h2>
+<p>Compares if the two arguments are not equal</p>
+<p>Usage:</p>
+<pre><code>    first = 1 != 2; 
+    second = [1,2,3] != [3,2,1]; 
+    third = {&quot;test&quot;: true} != {&quot;test&quot;: false}; 
+</code></pre>
+<h2><a class="header" href="#now" id="now">now</a></h2>
+<p>Returns the unix timestamp of the current time</p>
+<p>Usage:</p>
+<pre><code>    now();
+</code></pre>
+<h2><a class="header" href="#or" id="or">or</a></h2>
+<p>If the first argument is truthy returns the first argument, otherwise returns the second argument</p>
+<p>Usage:</p>
+<pre><code>    first = false or true;
+    second = 0.0 or true;
+    third = [] or true;
+</code></pre>
+<h2><a class="header" href="#pow" id="pow">pow</a></h2>
+<p>Raises the first argument to the second argument</p>
+<p>Usage:</p>
+<pre><code>    first = 1 ** 1 == 1;
+    second = 2 ^ 3 == 8;
+    third = 16 ** 0.5 == 4;
+</code></pre>
+<h2><a class="header" href="#print" id="print">print</a></h2>
+<p>Prints value</p>
+<p>Usage:</p>
+<pre><code>
+</code></pre>
+<h2><a class="header" href="#product" id="product">product</a></h2>
+<p>Calculates the product of the arguments</p>
+<p>Usage:</p>
+<pre><code>    first = product(1,2,3,4,5) == 120;
+    second = product([1,2,3,4,5]) == 120;
+</code></pre>
+<h2><a class="header" href="#push" id="push">push</a></h2>
+<p>Push value to the list</p>
+<p>Usage:</p>
+<pre><code>    first = push([1, 2, 3], 1) == [1,2,3,1];
+    second = push([1, 2, 3], [1, 2, 3]) == [1,2,3,[1,2,3]];
+</code></pre>
+<h2><a class="header" href="#put" id="put">put</a></h2>
+<p>Put third argument into the map under the second argument</p>
+<p>Usage:</p>
+<pre><code>    first = put({}, &quot;test&quot;, 123) == {&quot;test&quot;: 123};
+    // overwrites existing key
+    second = put({&quot;test&quot;: 23}, &quot;test&quot;, 5) == {&quot;test&quot;: 5};
+    third =  put({&quot;test&quot;: 23}, &quot;test&quot;, put({&quot;nested&quot;: 23}, &quot;nested&quot;, 5)) == {&quot;test&quot;: {&quot;nested&quot;: 5}};
+</code></pre>
+<h2><a class="header" href="#random" id="random">random</a></h2>
+<p>Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument</p>
+<p>Usage:</p>
+<pre><code>    // random() returns a random number between 0 and 1
+    first = random() != random();
+    second = random(-1, 1) != random(2, 5);
+    third = random(-5) != random(5);
+</code></pre>
+<h2><a class="header" href="#remove" id="remove">remove</a></h2>
+<p>Removes index from the list or key from the map</p>
+<p>Usage:</p>
+<pre><code>    // for lists
+    first = remove([1, 2, 3], 1) == [1, 3];
+    second = remove([1, 2, 3], -1) == [1, 2];
+    // for maps
+    third = remove({&quot;test&quot;: 1}, &quot;test&quot;) == {};
+    four = remove({&quot;test&quot;: 1}, &quot;another&quot;) == {&quot;test&quot;: 1};
+    five = remove({&quot;test&quot;: 1, &quot;another&quot;: 123}, &quot;another&quot;) == {&quot;test&quot;: 1};
+</code></pre>
+<h2><a class="header" href="#sin" id="sin">sin</a></h2>
+<p>Calculates the sine of the number</p>
+<p>Usage:</p>
+<pre><code>    first = sin(0) == 0;
+</code></pre>
+<h2><a class="header" href="#sub" id="sub">sub</a></h2>
+<p>Subtracts the second argument from the first argument</p>
+<p>Usage:</p>
+<pre><code>    first = 1 - 1 == 0;
+    second = 421 - 321 == 100;
+    third = -123 - 321 == -444;
+</code></pre>
+<h2><a class="header" href="#sum" id="sum">sum</a></h2>
+<p>Sums up the arguments</p>
+<p>Usage:</p>
+<pre><code>    first = sum(1,2,3,4,5) == 15;
+    second = sum([1,2,3,4,5]) == 15;
+</code></pre>
+<h2><a class="header" href="#tan" id="tan">tan</a></h2>
+<p>Calculates the tangent of the number</p>
+<p>Usage:</p>
+<pre><code>    first = tan(0) == 0;
+</code></pre>
+<h2><a class="header" href="#trim" id="trim">trim</a></h2>
+<p>Removes the characters at the start and end of the first argument, second argument is an optional argument that contains the character to remove, defaults to ' '</p>
+<p>Usage:</p>
+<pre><code>    first = trim(&quot;   test    &quot;) == &quot;test&quot;;
+    second = trim(&quot;__Testing_Test__&quot;, &quot;_&quot;) == &quot;Testing_Test&quot;;
+    third = trim(&quot;A sentence.\n\n\n\n\n&quot;, &quot;\n&quot;) == &quot;A sentence.&quot;;
+</code></pre>
+<h2><a class="header" href="#try" id="try">try</a></h2>
+<p>Tries the first argument, if that fails returns the second argument</p>
+<p>Usage:</p>
+<pre><code>    // will just return the get function
+    first = try(get({&quot;test&quot;: 10}, &quot;test&quot;), 123) == 10;
+    // get function will raise because &quot;test&quot; is not found
+    second = try(get({}, &quot;test&quot;), 123) == 123;
+
+    map = {&quot;test&quot;: 15};
+    invalid_key = 1;
+    third = try(put(map, invalid_key, 123), map) == map;
+</code></pre>
+<h2><a class="header" href="#type" id="type">type</a></h2>
+<p>Returns the type of the argument</p>
+<p>Usage:</p>
+<pre><code>    one = type(1.0) == &quot;number&quot;;
+    two = type([]) == &quot;list&quot;;
+    three = type({}) == &quot;map&quot;;
+    four = type(&quot;test&quot;) == &quot;string&quot;;
+    five = type({=&gt; x}) == &quot;function&quot;;
+    six = type(true) == &quot;boolean&quot;;
+    seven = type(null) == &quot;null&quot;;
+</code></pre>
+<h2><a class="header" href="#upper" id="upper">upper</a></h2>
+<p>Converts input to uppercase</p>
+<p>Usage:</p>
+<pre><code>    first = upper(&quot;testing&quot;) == &quot;TESTING&quot;;
+</code></pre>
+<h1><a class="header" href="#user-functions" id="user-functions">User Functions</a></h1>
+<p>User functions can be defined as follows:</p>
+<pre><code>my_func = {x, y =&gt;
+    x + y
+};
+my_func.(2, 4) // returns 6
+</code></pre>
+<p>You see that the calling of a function is different than built-ins functions. It uses the <code>.</code> operator to call the function.</p>
+<p>Variables outside the function can be used inside the function.</p>
+<pre><code>GLOBAL = 15;
+my_func = {x =&gt;
+    GLOBAL + x
+};
+my_func.(4) // returns 19
+</code></pre>
+<p>Even currying it implemented.</p>
+<pre><code>factory = {x =&gt;
+    { y =&gt; x + y }
+};
+generated_function = factory.(4);
+generated_function.(12) // returns 16
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3000/__livereload");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>

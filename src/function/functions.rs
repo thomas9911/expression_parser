@@ -200,7 +200,7 @@ fn print_function_help(func: Function) -> String {
     let help_text = func.get_message().unwrap_or_default();
     let mut usage_lines = func.get_usage().lines();
     usage_lines.next_back();
-    let usage_text: String = usage_lines
+    let mut usage_text: String = usage_lines
         .map(|x| {
             let mut x = String::from(x);
             x.push_str("\n");
@@ -208,7 +208,11 @@ fn print_function_help(func: Function) -> String {
         })
         .collect();
 
-    format!("{}\nUsage:\n{}", help_text, usage_text)
+    if usage_text.is_empty() {
+        usage_text = String::from("\n\n");
+    }
+
+    format!("{}\n\nUsage:\n```{}```", help_text, usage_text)
 }
 
 // fn into_value(result: Result<String, Error>) -> Output {

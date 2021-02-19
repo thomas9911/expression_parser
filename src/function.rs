@@ -5,7 +5,7 @@ use crate::{Error, Expression, VariableMap, Variables};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-mod functions;
+pub mod functions;
 
 #[derive(Debug, Clone, PartialEq, EnumString, EnumMessage, EnumIter, EnumDiscriminants)]
 #[strum(serialize_all = "snake_case")]

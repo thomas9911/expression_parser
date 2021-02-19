@@ -2,5 +2,11 @@
 authors = ["Thomas"]
 language = "en"
 multilingual = false
-src = "src/book"
+src = "book"
 title = "expression_parser"
+
+[rust]
+edition = "2018"
+
+[build]
+build-dir = "build"

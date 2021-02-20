@@ -102,6 +102,7 @@ fn make_dot_function(mut pairs: Pairs<Rule>) -> ParseResult {
     let lhs = match first_pair.as_rule() {
         Rule::function => Expression::UserFunction(parse_user_function(first_pair.into_inner())?),
         Rule::var => make_var(first_pair),
+        Rule::func => make_function(first_pair)?,
         _ => panic!("ivalid dot function grammar"),
     };
 

@@ -1,6 +1,4 @@
-use expression_parser::{
-    Error, Expression, ExpressionFile, ExpressionMap, ExpressionValue, VariableMap, Variables,
-};
+use expression_parser::{Error, ExpressionFile, ExpressionValue, Variables};
 
 type Result = std::result::Result<ExpressionValue, Error>;
 
@@ -231,11 +229,10 @@ mod chapter_5 {
         // ANCHOR_END: chapter_5_simple
     }
 
-
     #[test]
     fn extra_vars() {
         // ANCHOR: chapter_5_extra_vars
-        use expression_parser::{ExpressionFile, Variables, VariableMap};
+        use expression_parser::{ExpressionFile, VariableMap, Variables};
 
         let input = r#"
         5 * DATA     
@@ -245,7 +242,7 @@ mod chapter_5 {
 
         let mut vars = Variables::default();
         vars.insert("DATA", 1234.into());
-        
+
         let output = ExpressionFile::eval(parsed_expression, &mut vars).unwrap();
         assert_eq!(output, 6170.into());
         // ANCHOR_END: chapter_5_extra_vars
@@ -254,8 +251,10 @@ mod chapter_5 {
     #[test]
     fn extra_functions() {
         // ANCHOR: chapter_5_extra_functions
+        use expression_parser::{
+            Closure, Error, ExpressionFile, ExpressionValue, VariableMap, Variables,
+        };
         use std::sync::Arc;
-        use expression_parser::{Closure, Error, ExpressionFile, ExpressionValue, Variables, VariableMap};
 
         let mut vars = Variables::new();
         let closure = Closure::new(

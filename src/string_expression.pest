@@ -56,7 +56,7 @@ number_operation = _{ power | add | subtract | multiply | divide }
     power    = { "^" | "**" }
 
 dot_function = ${ var_or_func ~ dot_operator ~ "(" ~ spaces ~ any_arguments ~ spaces  ~ ")"}
-    var_or_func = _{ var | function }
+    var_or_func = _{ func | var | function }
     dot_operator = { "." }
 
 expr = !{ term ~ (operation ~ term)* }

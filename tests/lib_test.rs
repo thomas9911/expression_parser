@@ -1,4 +1,6 @@
-use expression_parser::{Expression, ExpressionMap, ExpressionValue, ExpressionFile, VariableMap, Variables};
+use expression_parser::{
+    Expression, ExpressionFile, ExpressionMap, ExpressionValue, VariableMap, Variables,
+};
 use std::collections::HashMap;
 
 mod iter_variables {
@@ -565,6 +567,31 @@ mod function {
     }
 
     #[test]
+    fn dot_operator_variable_chain_not_allowed() {
+        // this is invalid syntax for now.
+        let script = "a = {x, y => {=> x + y + 1}}; a.(2, 3).()";
+
+        let result = ExpressionFile::run(script, &mut Variables::default());
+
+        assert!(result.is_err())
+    }
+
+    #[test]
+    fn dot_operator_built_ins() {
+        let script = r#"
+        a = {x, y => 
+            {
+                "test": {z => x * y + z}
+            }
+        };
+
+        get(a.(2, 3), "test").(4);"#;
+
+        let result = ExpressionFile::run(script, &mut Variables::default());
+        assert_eq!(result, Ok(10.into()))
+    }
+
+    #[test]
     fn invalid_operator_variable() {
         let script = "(2 + 1).(2, 3)";
         assert!(ExpressionFile::parse(script).is_err())
@@ -798,8 +825,10 @@ mod closure {
         assert_eq!(result, Ok("testing-test-testing246".into()))
     }
 
-
-    fn inner_func(args: Vec<ExpressionValue>, context: &mut ScopedVariables) -> Result<ExpressionValue, Error> {
+    fn inner_func(
+        args: Vec<ExpressionValue>,
+        context: &mut ScopedVariables,
+    ) -> Result<ExpressionValue, Error> {
         fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
             x.ok_or(Error::new_static("missing arguments"))?
                 .as_number()
@@ -820,10 +849,7 @@ mod closure {
     #[test]
     fn seperate_function_test() {
         let mut vars = Variables::new();
-        let closure = Closure::new(
-            vec!["y".to_string()],
-            Arc::new(Box::new(inner_func)),
-        );
+        let closure = Closure::new(vec!["y".to_string()], Arc::new(Box::new(inner_func)));
         vars.insert("external_func", closure.into());
 
         let script = r#"
@@ -870,7 +896,6 @@ mod serde_tests {
     }
 }
 
-
 #[test]
 fn class_test() {
     // Test how classes can work.
@@ -879,16 +904,14 @@ fn class_test() {
             {
                 "value": x,
                 "calculate": {y => x + y},
-                "other": {=> 2*x}
+                "lazy": {=> 2*x}
             }
         };
 
         obj = MyClass.(5);
         one = get(obj, "value") == 5;
-        calc = get(obj, "calculate");
-        two = calc.(2) == 7;
-        other = get(obj, "other");
-        three = other.() == 10;
+        two = get(obj, "calculate").(2) == 7;
+        three = get(obj, "lazy").() == 10;
         one and two and three;
         "#;
 

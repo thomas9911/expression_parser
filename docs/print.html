@@ -97,7 +97,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">2.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">4.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">5.</strong> User Functions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">2.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">4.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">5.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">6.</strong> Library Usage</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -642,6 +642,40 @@ my_func.(4) // returns 19
 };
 generated_function = factory.(4);
 generated_function.(12) // returns 16
+</code></pre>
+<h1><a class="header" href="#library-usage-1" id="library-usage-1">Library Usage</a></h1>
+<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, Variables};
+
+        let input = r#&quot;
+        a = 1 + 1;
+        a + 5        
+        &quot;#;
+
+        // ofcourse handle this better in you code
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        // you can now decide what to do with the expression
+
+        // we will just evaluate it here with default variables.
+
+        let mut vars = Variables::default();
+        let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
+        assert_eq!(output, 7.into());
+</code></pre>
+<p>Add extra variables you can use in your code:</p>
+<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, Variables, VariableMap};
+
+        let input = r#&quot;
+        5 * DATA     
+        &quot;#;
+
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        let mut vars = Variables::default();
+        vars.insert(&quot;DATA&quot;, 1234.into());
+        
+        let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
+        assert_eq!(output, 6170.into());
 </code></pre>
 
                     </main>

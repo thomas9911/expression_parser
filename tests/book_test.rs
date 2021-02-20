@@ -206,3 +206,83 @@ generated_function.(12) // returns 16
         );
     }
 }
+
+mod chapter_5 {
+    #[test]
+    fn simple() {
+        // ANCHOR: chapter_5_simple
+        use expression_parser::{ExpressionFile, Variables};
+
+        let input = r#"
+        a = 1 + 1;
+        a + 5        
+        "#;
+
+        // ofcourse handle this better in you code
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        // you can now decide what to do with the expression
+
+        // we will just evaluate it here with default variables.
+
+        let mut vars = Variables::default();
+        let output = ExpressionFile::eval(parsed_expression, &mut vars).unwrap();
+        assert_eq!(output, 7.into());
+        // ANCHOR_END: chapter_5_simple
+    }
+
+
+    #[test]
+    fn extra_vars() {
+        // ANCHOR: chapter_5_extra_vars
+        use expression_parser::{ExpressionFile, Variables, VariableMap};
+
+        let input = r#"
+        5 * DATA     
+        "#;
+
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        let mut vars = Variables::default();
+        vars.insert("DATA", 1234.into());
+        
+        let output = ExpressionFile::eval(parsed_expression, &mut vars).unwrap();
+        assert_eq!(output, 6170.into());
+        // ANCHOR_END: chapter_5_extra_vars
+    }
+
+    #[test]
+    fn extra_functions() {
+        // ANCHOR: chapter_5_extra_functions
+        use std::sync::Arc;
+        use expression_parser::{Closure, Error, ExpressionFile, ExpressionValue, Variables, VariableMap};
+
+        let mut vars = Variables::new();
+        let closure = Closure::new(
+            vec!["x".to_string(), "y".to_string()],
+            Arc::new(Box::new(|vars, _| {
+                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                    x.ok_or(Error::new_static("missing arguments"))?
+                        .as_number()
+                        .ok_or(Error::new_static("argument not a number"))
+                }
+
+                let x = unwrap_number(vars.get(0))?;
+                let y = unwrap_number(vars.get(1))?;
+                let result = x * y;
+
+                Ok(result.into())
+            })),
+        );
+        vars.insert("external_func", closure.into());
+
+        let script = r#"
+        call(external_func, 6, 2)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok(12.into()))
+        // ANCHOR_END: chapter_5_extra_functions
+    }
+}

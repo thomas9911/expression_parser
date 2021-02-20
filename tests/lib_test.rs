@@ -1,4 +1,4 @@
-use expression_parser::{Expression, ExpressionMap, ExpressionValue, VariableMap, Variables};
+use expression_parser::{Expression, ExpressionMap, ExpressionValue, ExpressionFile, VariableMap, Variables};
 use std::collections::HashMap;
 
 mod iter_variables {
@@ -728,7 +728,7 @@ mod function {
 
 mod closure {
     use expression_parser::{
-        Closure, Error, ExpressionFile, ExpressionValue, VariableMap, Variables,
+        Closure, Error, ExpressionFile, ExpressionValue, ScopedVariables, VariableMap, Variables,
     };
     use std::sync::Arc;
 
@@ -797,6 +797,45 @@ mod closure {
         let result = ExpressionFile::eval(parsed, &mut vars);
         assert_eq!(result, Ok("testing-test-testing246".into()))
     }
+
+
+    fn inner_func(args: Vec<ExpressionValue>, context: &mut ScopedVariables) -> Result<ExpressionValue, Error> {
+        fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+            x.ok_or(Error::new_static("missing arguments"))?
+                .as_number()
+                .ok_or(Error::new_static("argument not a number"))
+        }
+        let cfg = context
+            .get("MY_CONFIG")
+            .unwrap_or(&ExpressionValue::from("default"))
+            .as_string()
+            .unwrap_or(String::from("default"));
+        let x = unwrap_number(context.get("x"))?;
+        let y = unwrap_number(args.get(0))?;
+        let result = format!("{}{}", cfg, x * y);
+
+        Ok(result.into())
+    }
+
+    #[test]
+    fn seperate_function_test() {
+        let mut vars = Variables::new();
+        let closure = Closure::new(
+            vec!["y".to_string()],
+            Arc::new(Box::new(inner_func)),
+        );
+        vars.insert("external_func", closure.into());
+
+        let script = r#"
+        MY_CONFIG="testing-test-testing";
+        x = 123;
+        external_func.(2)
+        "#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut vars);
+        assert_eq!(result, Ok("testing-test-testing246".into()))
+    }
 }
 
 #[cfg(feature = "serde_example")]
@@ -829,4 +868,31 @@ mod serde_tests {
         assert_eq!(Ok("a<>b<>c<>d".into()), direct_output);
         assert_eq!(direct_output, loaded_output);
     }
+}
+
+
+#[test]
+fn class_test() {
+    // Test how classes can work.
+    let script = r#"
+        MyClass = {x => 
+            {
+                "value": x,
+                "calculate": {y => x + y},
+                "other": {=> 2*x}
+            }
+        };
+
+        obj = MyClass.(5);
+        one = get(obj, "value") == 5;
+        calc = get(obj, "calculate");
+        two = calc.(2) == 7;
+        other = get(obj, "other");
+        three = other.() == 10;
+        one and two and three;
+        "#;
+
+    let output = ExpressionFile::run(script, &mut Variables::default());
+
+    assert_eq!(Ok(true.into()), output);
 }

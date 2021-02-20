@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>User Functions - expression_parser</title>
+        <title>Library Usage - expression_parser</title>
         
         
 
@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">2.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">4.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html" class="active"><strong aria-hidden="true">5.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">6.</strong> Library Usage</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">2.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">4.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">5.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html" class="active"><strong aria-hidden="true">6.</strong> Library Usage</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -163,27 +163,39 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#user-functions" id="user-functions">User Functions</a></h1>
-<p>User functions can be defined as follows:</p>
-<pre><code>my_func = {x, y =&gt;
-    x + y
-};
-my_func.(2, 4) // returns 6
+                        <h1><a class="header" href="#library-usage" id="library-usage">Library Usage</a></h1>
+<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, Variables};
+
+        let input = r#&quot;
+        a = 1 + 1;
+        a + 5        
+        &quot;#;
+
+        // ofcourse handle this better in you code
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        // you can now decide what to do with the expression
+
+        // we will just evaluate it here with default variables.
+
+        let mut vars = Variables::default();
+        let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
+        assert_eq!(output, 7.into());
 </code></pre>
-<p>You see that the calling of a function is different than built-ins functions. It uses the <code>.</code> operator to call the function.</p>
-<p>Variables outside the function can be used inside the function.</p>
-<pre><code>GLOBAL = 15;
-my_func = {x =&gt;
-    GLOBAL + x
-};
-my_func.(4) // returns 19
-</code></pre>
-<p>Even currying it implemented.</p>
-<pre><code>factory = {x =&gt;
-    { y =&gt; x + y }
-};
-generated_function = factory.(4);
-generated_function.(12) // returns 16
+<p>Add extra variables you can use in your code:</p>
+<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, Variables, VariableMap};
+
+        let input = r#&quot;
+        5 * DATA     
+        &quot;#;
+
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        let mut vars = Variables::default();
+        vars.insert(&quot;DATA&quot;, 1234.into());
+        
+        let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
+        assert_eq!(output, 6170.into());
 </code></pre>
 
                     </main>
@@ -191,15 +203,11 @@ generated_function.(12) // returns 16
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="chapter_3.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="chapter_4.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
-                        
-                            <a rel="next" href="chapter_5.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
-                            </a>
                         
 
                         <div style="clear: both"></div>
@@ -209,15 +217,11 @@ generated_function.(12) // returns 16
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a rel="prev" href="chapter_3.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="chapter_4.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
-                
-                    <a rel="next" href="chapter_5.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
-                    </a>
                 
             </nav>
 

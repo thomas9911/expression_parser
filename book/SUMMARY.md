@@ -5,3 +5,4 @@
 - [Variables](./chapter_2.md)
 - [Built-in Functions](./chapter_3.md)
 - [User Functions](./chapter_4.md)
+- [Library Usage](./chapter_5.md)

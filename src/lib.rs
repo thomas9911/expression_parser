@@ -1,8 +1,8 @@
 //!
 //! TODO: think of a new name.
-//! 
+//!
 //! [Github Pages](https://thomas9911.github.io/expression_parser/)
-//! 
+//!
 //! ## Why
 //! - Library first
 //! - JSON support (copy paste your json, should be valid code)

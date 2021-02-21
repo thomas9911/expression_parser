@@ -257,31 +257,102 @@ mod chapter_5 {
         use std::sync::Arc;
 
         let mut vars = Variables::new();
+
+        // a `Closure` struct is just a container for holding the function.
+        // `new` takes a list of the arguments used (only for debugging purposes)
+        // and an `Arc` with a `Box`ed function with two arguments.
+        // the first is a list containing all the arguments given by the user. These need to be validated yourself.
+        // the second argument is a ScopedVariables struct that acts like a Map that contains all the variables used above the function call.
+        // this can be used for instance for config options.
+        // the return value is a `Result<ExpressionValue, Error>`
         let closure = Closure::new(
             vec!["x".to_string(), "y".to_string()],
             Arc::new(Box::new(|vars, _| {
-                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                /// validate the arguments or return an error
+                fn validate_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
                     x.ok_or(Error::new_static("missing arguments"))?
                         .as_number()
                         .ok_or(Error::new_static("argument not a number"))
                 }
 
-                let x = unwrap_number(vars.get(0))?;
-                let y = unwrap_number(vars.get(1))?;
+                let x = validate_number(vars.get(0))?;
+                let y = validate_number(vars.get(1))?;
                 let result = x * y;
 
+                // the `into` casts the rust value into a `ExpressionValue` enum
                 Ok(result.into())
             })),
         );
         vars.insert("external_func", closure.into());
 
         let script = r#"
-        call(external_func, 6, 2)
+        external_func.(6, 2)
         "#;
 
         let parsed = ExpressionFile::parse(script).unwrap();
         let result = ExpressionFile::eval(parsed, &mut vars);
         assert_eq!(result, Ok(12.into()))
         // ANCHOR_END: chapter_5_extra_functions
+    }
+
+    #[test]
+    fn extra_functions2() {
+        // ANCHOR: chapter_5_extra_functions2
+        use expression_parser::{
+            Closure, Error, Expression, ExpressionFile, VariableMap, Variables,
+        };
+        use std::sync::Arc;
+
+        let mut vars = Variables::new();
+
+        let closure = Closure::new(
+            vec!["map".to_string(), "key".to_string()],
+            Arc::new(Box::new(|vars, context| {
+                let map = vars
+                    .get(0)
+                    .ok_or(Error::new_static("expect a map as the first argument"))?
+                    // probably do something more smart than just clone
+                    .clone()
+                    .as_map()
+                    .ok_or(Error::new_static("expect a map as the first argument"))?;
+                let key = vars
+                    .get(1)
+                    .ok_or(Error::new_static("expect a key as the second argument"))?
+                    .as_string()
+                    .ok_or(Error::new_static("expect a key as the second argument"))?;
+
+                // get access to the underlying HashMap
+                let result = map.0.get(&key).ok_or(Error::new_static("key not found"))?;
+
+                // the result is an expression, these can include variables ect.
+                // We can just match on the value or eval the Expression with the current context.
+                let result = Expression::eval(result.clone(), &context)?;
+
+                Ok(result)
+            })),
+        );
+        vars.insert("map_get", closure.into());
+
+        let script = r#"
+        map_get.(
+            {"test": "some_value"},
+            "test"
+        )
+        "#;
+
+        let result = ExpressionFile::run(script, &mut vars);
+        assert_eq!(result, Ok("some_value".into()));
+
+        let script = r#"
+        text = "some_variable";
+        map_get.(
+            {"test": text},
+            "test"
+        )
+        "#;
+
+        let result = ExpressionFile::run(script, &mut vars);
+        assert_eq!(result, Ok("some_variable".into()));
+        // ANCHOR_END: chapter_5_extra_functions2
     }
 }

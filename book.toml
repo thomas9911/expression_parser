@@ -10,3 +10,7 @@ edition = "2018"
 
 [build]
 build-dir = "docs"
+
+
+[output.html]
+additional-js = ["book/custom.js"]

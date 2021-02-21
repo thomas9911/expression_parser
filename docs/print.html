@@ -663,7 +663,7 @@ generated_function.(12) // returns 16
         assert_eq!(output, 7.into());
 </code></pre>
 <p>Add extra variables you can use in your code:</p>
-<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, Variables, VariableMap};
+<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, VariableMap, Variables};
 
         let input = r#&quot;
         5 * DATA     
@@ -673,9 +673,107 @@ generated_function.(12) // returns 16
 
         let mut vars = Variables::default();
         vars.insert(&quot;DATA&quot;, 1234.into());
-        
+
         let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
         assert_eq!(output, 6170.into());
+</code></pre>
+<pre><code class="language-rust ignore">        use expression_parser::{
+            Closure, Error, ExpressionFile, ExpressionValue, VariableMap, Variables,
+        };
+        use std::sync::Arc;
+
+        let mut vars = Variables::new();
+
+        // a `Closure` struct is just a container for holding the function.
+        // `new` takes a list of the arguments used (only for debugging purposes)
+        // and an `Arc` with a `Box`ed function with two arguments.
+        // the first is a list containing all the arguments given by the user. These need to be validated yourself.
+        // the second argument is a ScopedVariables struct that acts like a Map that contains all the variables used above the function call.
+        // this can be used for instance for config options.
+        // the return value is a `Result&lt;ExpressionValue, Error&gt;`
+        let closure = Closure::new(
+            vec![&quot;x&quot;.to_string(), &quot;y&quot;.to_string()],
+            Arc::new(Box::new(|vars, _| {
+                /// validate the arguments or return an error
+                fn validate_number(x: Option&lt;&amp;ExpressionValue&gt;) -&gt; Result&lt;f64, Error&gt; {
+                    x.ok_or(Error::new_static(&quot;missing arguments&quot;))?
+                        .as_number()
+                        .ok_or(Error::new_static(&quot;argument not a number&quot;))
+                }
+
+                let x = validate_number(vars.get(0))?;
+                let y = validate_number(vars.get(1))?;
+                let result = x * y;
+
+                // the `into` casts the rust value into a `ExpressionValue` enum
+                Ok(result.into())
+            })),
+        );
+        vars.insert(&quot;external_func&quot;, closure.into());
+
+        let script = r#&quot;
+        external_func.(6, 2)
+        &quot;#;
+
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &amp;mut vars);
+        assert_eq!(result, Ok(12.into()))
+</code></pre>
+<pre><code class="language-rust ignore">        use expression_parser::{
+            Closure, Error, Expression, ExpressionFile, VariableMap, Variables,
+        };
+        use std::sync::Arc;
+
+        let mut vars = Variables::new();
+
+        let closure = Closure::new(
+            vec![&quot;map&quot;.to_string(), &quot;key&quot;.to_string()],
+            Arc::new(Box::new(|vars, context| {
+                let map = vars
+                    .get(0)
+                    .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?
+                    // probably do something more smart than just clone
+                    .clone()
+                    .as_map()
+                    .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?;
+                let key = vars
+                    .get(1)
+                    .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?
+                    .as_string()
+                    .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?;
+
+                // get access to the underlying HashMap
+                let result = map.0.get(&amp;key).ok_or(Error::new_static(&quot;key not found&quot;))?;
+
+                // the result is an expression, these can include variables ect.
+                // We can just match on the value or eval the Expression with the current context.
+                let result = Expression::eval(result.clone(), &amp;context)?;
+
+                Ok(result)
+            })),
+        );
+        vars.insert(&quot;map_get&quot;, closure.into());
+
+        let script = r#&quot;
+        map_get.(
+            {&quot;test&quot;: &quot;some_value&quot;},
+            &quot;test&quot;
+        )
+        &quot;#;
+
+        let result = ExpressionFile::run(script, &amp;mut vars);
+        assert_eq!(result, Ok(&quot;some_value&quot;.into()));
+
+        let script = r#&quot;
+        text = &quot;some_variable&quot;;
+        map_get.(
+            {&quot;test&quot;: text},
+            &quot;test&quot;
+        )
+        &quot;#;
+
+        let result = ExpressionFile::run(script, &amp;mut vars);
+        assert_eq!(result, Ok(&quot;some_variable&quot;.into()));
 </code></pre>
 
                     </main>
@@ -699,6 +797,21 @@ generated_function.(12) // returns 16
 
         </div>
 
+        
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            var socket = new WebSocket("ws://localhost:3000/__livereload");
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
         
 
         
@@ -724,6 +837,8 @@ generated_function.(12) // returns 16
         <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
         <!-- Custom JS scripts -->
+        
+        <script type="text/javascript" src="book/custom.js"></script>
         
 
         

@@ -91,11 +91,17 @@ pub enum Function {
     Type(Expression),
     #[strum(message = "Tries the first argument, if that fails returns the second argument")]
     Try(Expression, Expression),
+    #[strum(
+        message = "Formats the arguments into the template, only positional arguments are supported."
+    )]
+    Format(Expression, Vec<Expression>),
     #[strum(message = "Prints value")]
     Print(Expression),
-    #[strum(message = "")]
+    #[strum(message = "Raises an error with the given message")]
     Error(Expression),
-    #[strum(message = "")]
+    #[strum(
+        message = "Raises an error with the given message if the first argument is not truthy"
+    )]
     Assert(Expression, Expression),
     #[strum(message = "Prints help message")]
     Help(Expression),
@@ -125,11 +131,11 @@ impl std::fmt::Display for Function {
             | Try(lhs, rhs)
             | Assert(lhs, rhs)
             | Remove(lhs, rhs) => write!(f, "{}({}, {})", func_name, lhs, rhs),
-            Call(function, list) => write!(
+            Call(lhs, list) | Format(lhs, list) => write!(
                 f,
                 "{}({}, {})",
                 func_name,
-                function,
+                lhs,
                 list_to_string(list).join(", ")
             ),
             Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
@@ -190,6 +196,7 @@ impl Function {
             Assert(lhs, rhs) => functions::assert(lhs, rhs, vars),
             Try(lhs, rhs) => functions::try_function(lhs, rhs, vars),
             Call(func, list) => functions::call(func, list, vars),
+            Format(lhs, list) => functions::format(lhs, list, vars),
             Help(lhs) => functions::help(lhs, vars),
         }
     }
@@ -235,6 +242,7 @@ impl Function {
                 Assert(lhs, rhs) => Assert(E::compile(lhs)?, E::compile(rhs)?),
                 Try(lhs, rhs) => Try(E::compile(lhs)?, E::compile(rhs)?),
                 Call(func, list) => Call(E::compile(func)?, Function::compile_list(list)?),
+                Format(lhs, list) => Format(E::compile(lhs)?, Function::compile_list(list)?),
                 Print(lhs) => Print(E::compile(lhs)?),
                 Help(lhs) => Help(E::compile(lhs)?),
             };
@@ -300,10 +308,10 @@ impl Function {
                 Box::new(list.iter().flat_map(|x| x.iter_variables()))
             }
 
-            Call(func, list) => Box::new(
+            Call(lhs, list) | Format(lhs, list) => Box::new(
                 list.iter()
                     .flat_map(|x| x.iter_variables())
-                    .chain(func.iter_variables()),
+                    .chain(lhs.iter_variables()),
             ),
 
             Now() => Box::new(std::iter::empty::<String>()),
@@ -625,8 +633,25 @@ impl Function {
     now();
     true"#
             }
-            Call => "true",
+            Call => {
+                r#"
+    my_function = {x => x + 25};
+    one = my_function.(5) == 30;
+    # the same as:
+    two = call(my_function, 5) == 30;
+    one and two  
+            "#
+            }
             Print => "true",
+            Format => {
+                r#"
+    one = format("{} + {} = {}", 1, 1, 2) == "1 + 1 = 2";
+    two = format("{2} - {1} = {0}", 5, 8, 13) == "13 - 8 = 5";
+    three = format("{}{}", "abc", "def") == "abcdef";
+
+    one and two and three
+            "#
+            }
         }
     }
 }

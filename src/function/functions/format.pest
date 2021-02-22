@@ -1,0 +1,8 @@
+template = _{SOI ~ template_inner ~ EOI}
+
+template_inner = _{ ((just_string? ~ replace_object)+ ~ just_string?) | just_string }
+
+just_string = { (!"{" ~ ANY)+ }
+replace_object = _{ "{" ~ replace ~ "}"}
+// replace = { (!"}" ~ ANY)* }
+replace = { '0'..'9'* }

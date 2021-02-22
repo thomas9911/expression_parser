@@ -8,11 +8,13 @@ pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
 
 mod binary;
+pub(crate) mod format;
 mod list;
 mod many;
 mod map;
 mod number;
 mod string;
+
 pub use binary::*;
 pub use list::*;
 pub use many::*;
@@ -126,6 +128,20 @@ pub fn call_external_function<'a>(
     f(args, context)
 }
 
+pub fn format<'a, Vars: VariableMap>(lhs: Input, list: Vec<Input>, vars: &'a Vars) -> Output {
+    let template = Expression::eval(lhs, vars)?
+        .as_string()
+        .ok_or(Error::new_static("template is not a string"))?;
+
+    let args = evaluate_inputs(list, vars)?
+        .into_iter()
+        .map(|x| as_string(x))
+        .collect();
+
+    let result = format::format(&template, args)?;
+    Ok(result.into())
+}
+
 pub fn type_function<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
     let value = Expression::eval(lhs, vars)?;
     Ok(value.what_type().into())
@@ -220,7 +236,12 @@ fn print_function_help(func: Function) -> String {
 // }
 
 pub(crate) fn as_string(val: ExpressionValue) -> String {
-    val.to_string().trim_matches('"').to_string()
+    let mut res = val.to_string();
+    if res.starts_with('"') && res.ends_with('"') {
+        res.remove(0);
+        res.pop();
+    }
+    res
 }
 
 pub(crate) fn as_variable_or_string(expr: Expression) -> Result<String, Error> {

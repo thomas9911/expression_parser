@@ -311,6 +311,12 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
             check_arguments(func_name, pair_span, 0, Some(0), &arguments)?;
             Expr(Box::new(Function::Now()))
         }
+        Format => {
+            check_arguments(func_name, pair_span, 1, None, &arguments)?;
+            let template = arguments.remove(0);
+
+            Expr(Box::new(Function::Format(template, arguments)))
+        }
         Call => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             let func = arguments.remove(0);

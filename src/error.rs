@@ -1,3 +1,4 @@
+use crate::function::functions::format::Rule as FormatRule;
 use crate::grammar::Rule;
 use pest::error::Error as PestError;
 
@@ -44,6 +45,12 @@ impl Error {
 
 impl From<PestError<Rule>> for Error {
     fn from(error: PestError<Rule>) -> Error {
+        Error::new(format!("{}", error))
+    }
+}
+
+impl From<PestError<FormatRule>> for Error {
+    fn from(error: PestError<FormatRule>) -> Error {
         Error::new(format!("{}", error))
     }
 }

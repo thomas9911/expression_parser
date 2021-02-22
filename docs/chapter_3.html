@@ -193,6 +193,7 @@
     third = any([0.0, false, [], {}]) == false;
 </code></pre>
 <h2><a class="header" href="#assert" id="assert">assert</a></h2>
+<p>Raises an error with the given message if the first argument is not truthy</p>
 <p>Usage:</p>
 <pre><code>    one = assert(true == true);
     two = assert([1,2,3]) == [1,2,3];
@@ -203,7 +204,11 @@
 <h2><a class="header" href="#call" id="call">call</a></h2>
 <p>Calls the function with given arguments</p>
 <p>Usage:</p>
-<pre><code>
+<pre><code>    my_function = {x =&gt; x + 25};
+    one = my_function.(5) == 30;
+    # the same as:
+    two = call(my_function, 5) == 30;
+    one and two  
 </code></pre>
 <h2><a class="header" href="#concat" id="concat">concat</a></h2>
 <p>Combines two or more lists into one</p>
@@ -237,10 +242,20 @@
     third = {&quot;test&quot;: true} == {&quot;test&quot;: true}; 
 </code></pre>
 <h2><a class="header" href="#error" id="error">error</a></h2>
+<p>Raises an error with the given message</p>
 <p>Usage:</p>
 <pre><code>    # an error with &quot;something went wrong&quot; will be catched and returns &quot;default&quot;
     one = try(error(&quot;something went wrong&quot;), &quot;default&quot;) == &quot;default&quot;;
 
+</code></pre>
+<h2><a class="header" href="#format" id="format">format</a></h2>
+<p>Formats the arguments into the template, only positional arguments are supported.</p>
+<p>Usage:</p>
+<pre><code>    one = format(&quot;{} + {} = {}&quot;, 1, 1, 2) == &quot;1 + 1 = 2&quot;;
+    two = format(&quot;{2} - {1} = {0}&quot;, 5, 8, 13) == &quot;13 - 8 = 5&quot;;
+    three = format(&quot;{}{}&quot;, &quot;abc&quot;, &quot;def&quot;) == &quot;abcdef&quot;;
+
+    one and two and three
 </code></pre>
 <h2><a class="header" href="#get" id="get">get</a></h2>
 <p>Gets the value from a list or a map</p>

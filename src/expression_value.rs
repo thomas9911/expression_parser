@@ -269,7 +269,7 @@ impl ExpressionValue {
         }
     }
 
-    pub fn is_function(self) -> bool {
+    pub fn is_function(&self) -> bool {
         use ExpressionValue::*;
 
         match self {

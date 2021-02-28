@@ -480,7 +480,15 @@ impl Function {
     two = "2";
     some_test = e != pi;
     second = if(some_test, one, two) == one;
-    first and second"#
+
+    // if function can also take a function
+    third = if(1 == 1, {=>
+        1 + 2
+    }, {=>
+        "error"
+    }) == 3;
+
+    first and second and third"#
             }
             Random => {
                 r#"

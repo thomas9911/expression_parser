@@ -24,11 +24,14 @@ pub use string::*;
 
 pub fn if_function<Vars: VariableMap>(lhs: Input, mdl: Input, rhs: Input, vars: &Vars) -> Output {
     let condition = Expression::eval(lhs, vars)?;
-    if condition.is_truthy() {
-        Expression::eval(mdl, vars)
+
+    let res = if condition.is_truthy() {
+        Expression::eval(mdl, vars)?
     } else {
-        Expression::eval(rhs, vars)
-    }
+        Expression::eval(rhs, vars)?
+    };
+
+    evaluate_lazy_function(res, vars)
 }
 
 pub fn now<Vars: VariableMap>(_vars: &Vars) -> Output {
@@ -274,4 +277,46 @@ pub(crate) fn evaluate_inputs<Vars: VariableMap>(
         acc.push(Expression::eval(x, vars)?);
         Ok(acc)
     })
+}
+
+pub(crate) fn evaluate_lazy_function<Vars: VariableMap>(
+    result: ExpressionValue,
+    vars: &Vars,
+) -> Output {
+    match result {
+        // if function doesn't take arguments evaluate it now
+        ExpressionValue::Function(
+            UserFunction {
+                arguments,
+                expression,
+            },
+            local_vars,
+        ) if arguments.len() == 0 => {
+            let val = ExpressionValue::Function(
+                UserFunction {
+                    arguments,
+                    expression,
+                },
+                local_vars,
+            );
+            call(val.into(), Vec::new(), vars)
+        }
+        ExpressionValue::Function(func, local_vars) => {
+            Ok(ExpressionValue::Function(func, local_vars))
+        }
+        ExpressionValue::ExternalFunction(Closure {
+            function,
+            input_variables,
+        }) if input_variables.len() == 0 => {
+            let val = ExpressionValue::ExternalFunction(Closure {
+                function,
+                input_variables,
+            });
+            call(val.into(), Vec::new(), vars)
+        }
+        ExpressionValue::ExternalFunction(closure) => {
+            Ok(ExpressionValue::ExternalFunction(closure))
+        }
+        val => Ok(val),
+    }
 }

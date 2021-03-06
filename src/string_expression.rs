@@ -158,15 +158,15 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
     Ok(match func_name {
         Upper => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Upper(arguments[0].clone())))
+            Expr(Box::new(Function::Upper(arguments.remove(0))))
         }
         Lower => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Lower(arguments[0].clone())))
+            Expr(Box::new(Function::Lower(arguments.remove(0))))
         }
         Print => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Print(arguments[0].clone())))
+            Expr(Box::new(Function::Print(arguments.remove(0))))
         }
         Help => {
             check_arguments(func_name, pair_span, 0, Some(1), &arguments)?;
@@ -175,22 +175,22 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         }
         Cos => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Cos(arguments[0].clone())))
+            Expr(Box::new(Function::Cos(arguments.remove(0))))
         }
         Sin => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Sin(arguments[0].clone())))
+            Expr(Box::new(Function::Sin(arguments.remove(0))))
         }
         Tan => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Tan(arguments[0].clone())))
+            Expr(Box::new(Function::Tan(arguments.remove(0))))
         }
         Trim => {
             check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
             Expr(Box::new(Function::Trim(
-                arguments[0].clone(),
+                arguments.remove(0),
                 arguments
-                    .get(1)
+                    .get(0)
                     .unwrap_or(&Expression::Value(String::from(" ").into()))
                     .clone(),
             )))
@@ -198,52 +198,52 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         Contains => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Contains(
-                arguments[0].clone(),
-                arguments[1].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         Join => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Join(
-                arguments[0].clone(),
-                arguments[1].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         Get => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Get(
-                arguments[0].clone(),
-                arguments[1].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         Push => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Push(
-                arguments[0].clone(),
-                arguments[1].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         Remove => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Remove(
-                arguments[0].clone(),
-                arguments[1].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         Put => {
             check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
             Expr(Box::new(Function::Put(
-                arguments[0].clone(),
-                arguments[1].clone(),
-                arguments[2].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         If => {
             check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
             Expr(Box::new(Function::If(
-                arguments[0].clone(),
-                arguments[1].clone(),
-                arguments[2].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         Concat => {
@@ -285,24 +285,24 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         Try => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Try(
-                arguments[0].clone(),
-                arguments[1].clone(),
+                arguments.remove(0),
+                arguments.remove(0),
             )))
         }
         Type => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Type(arguments[0].clone())))
+            Expr(Box::new(Function::Type(arguments.remove(0))))
         }
         Error => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Error(arguments[0].clone())))
+            Expr(Box::new(Function::Error(arguments.remove(0))))
         }
         Assert => {
             check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
             Expr(Box::new(Function::Assert(
-                arguments[0].clone(),
+                arguments.remove(0),
                 arguments
-                    .get(1)
+                    .get(0)
                     .cloned()
                     .unwrap_or(Expression::Value("assertion failed".into())),
             )))

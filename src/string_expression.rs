@@ -189,10 +189,7 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
             check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
             Expr(Box::new(Function::Trim(
                 arguments.remove(0),
-                arguments
-                    .get(0)
-                    .unwrap_or(&Expression::Value(String::from(" ").into()))
-                    .clone(),
+                arguments.pop().unwrap_or(Expression::Value(" ".into())),
             )))
         }
         Contains => {
@@ -269,18 +266,21 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         Random => {
             check_arguments(func_name, pair_span, 0, Some(2), &arguments)?;
 
-            let default_a = &Expression::Value(0.0.into());
-            let default_b = &Expression::Value(1.0.into());
+            let default_a = Expression::Value(0.0.into());
+            let default_b = Expression::Value(1.0.into());
 
-            let (a, b) = match arguments.get(0) {
+            let arg2 = arguments.pop();
+            let arg1 = arguments.pop();
+
+            let (a, b) = match arg1 {
                 None => (default_a, default_b),
-                Some(x) => match arguments.get(1) {
+                Some(x) => match arg2 {
                     None => (default_a, x),
                     Some(y) => (x, y),
                 },
             };
 
-            Expr(Box::new(Function::Random(a.to_owned(), b.to_owned())))
+            Expr(Box::new(Function::Random(a, b)))
         }
         Try => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
@@ -302,8 +302,7 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
             Expr(Box::new(Function::Assert(
                 arguments.remove(0),
                 arguments
-                    .get(0)
-                    .cloned()
+                    .pop()
                     .unwrap_or(Expression::Value("assertion failed".into())),
             )))
         }
@@ -460,11 +459,13 @@ impl Expression {
         match expression {
             Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(Expression::Value(ExpressionValue::List(
-                    list.iter()
-                        .try_fold::<_, _, Result<_, Error>>(Vec::new(), |mut acc, x| {
-                            acc.push(Expression::compile(x.clone())?);
+                    list.into_iter().try_fold::<_, _, Result<_, Error>>(
+                        Vec::new(),
+                        |mut acc, x| {
+                            acc.push(Expression::compile(x)?);
                             Ok(acc)
-                        })?,
+                        },
+                    )?,
                 ))),
                 x => Ok(Expression::Value(x)),
             },

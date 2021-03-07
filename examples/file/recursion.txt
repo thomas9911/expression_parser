@@ -1,0 +1,7 @@
+createList = {list, index => 
+    newList = push(list, index);
+    newIndex = index+1;
+    if(newIndex == 15, newList, {=> createList.(newList, newIndex)})
+};
+
+createList.([], 0);

@@ -927,16 +927,13 @@ mod recursion_overflow_test {
     fn script(amount: usize) -> String {
         format!(
             r#"
-        a = {{list, index => [push(list, index), index+1]}};
-
-        b = {{list, index => 
-            out = a.(list, index);
-            newList = get(out, 0);
-            newIndex = get(out, 1);
-            if(newIndex == {}, newList, {{=> b.(newList, newIndex)}})
+        createList = {{list, index => 
+            newList = push(list, index);
+            newIndex = index+1;
+            if(newIndex == {}, newList, {{=> createList.(newList, newIndex)}})
         }};
-
-        b.([], 0)
+        
+        createList.([], 0);
         "#,
             amount
         )
@@ -944,6 +941,7 @@ mod recursion_overflow_test {
 
     #[test]
     fn overflow() {
+        // if this does not fail just bump the number below until it overflows
         let script = &script(90);
         let output = ExpressionFile::run(script, &mut Variables::default());
 

@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html" class="active"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">2.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">3.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">4.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">5.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">6.</strong> Library Usage</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> README</a></li><li class="chapter-item expanded "><a href="introduction.html" class="active"><strong aria-hidden="true">2.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">3.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">4.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">5.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">6.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">7.</strong> Library Usage</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -163,135 +163,16 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#expression_parser" id="expression_parser">expression_parser</a></h1>
-<p>TODO: think of a new name.</p>
-<p><a href="https://thomas9911.github.io/expression_parser/">Github Pages</a></p>
-<h3><a class="header" href="#why" id="why">Why</a></h3>
-<ul>
-<li>Library first</li>
-<li>JSON support (copy paste your json, should be valid code)</li>
-<li>Immutable</li>
-<li>Compiled code externaly saveable (using serde)</li>
-<li>No external calls build-in (you can add those yourself if you want)
-<ul>
-<li>Currently <code>print</code> is implemented using <code>println!</code>, this should change in the future.</li>
-</ul>
-</li>
-</ul>
-<p>Take a look at the calculator example:</p>
-<pre><code class="language-sh">cargo run --example calculator 1 + 12
-</code></pre>
-<p>Or the expression example:</p>
-<pre><code class="language-sh">cargo run --example calculator 1 + 12
-</code></pre>
-<p>Or even better use the REPL:</p>
-<pre><code class="language-sh">cargo run --example repl
-</code></pre>
-<h4><a class="header" href="#library-usage" id="library-usage">library usage</a></h4>
-<p>Simple example</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables};
-
-let parsed = Expression::parse(&quot;1 + 5 - 2&quot;)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
-
-assert_eq!(Ok(4.0.into()), result);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Another example</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables};
-
-let parsed = Expression::parse(&quot;e ^ (1 + 5 - 2)&quot;)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
-
-assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Use build-in variables and functions</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables};
-
-let parsed = Expression::parse(&quot;sin(e) + 1&quot;)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
-
-assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Use your own variables</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables, VariableMap};
-
-let parsed = Expression::parse(&quot;x + y + z&quot;)?;
-
-let mut vars = std::collections::HashMap::new();
-vars.insert(String::from(&quot;x&quot;), 3.0.into());
-vars.insert(String::from(&quot;y&quot;), 3.0.into());
-vars.insert(String::from(&quot;z&quot;), 10.0.into());
-
-let result = Expression::eval(parsed.clone(), &amp;Variables::from(vars));
-
-assert_eq!(Ok(16.0.into()), result);
-
-let mut vars = Variables::default();
-vars.insert(&quot;x&quot;, 3.0.into());
-vars.insert(&quot;y&quot;, 3.0.into());
-vars.insert(&quot;z&quot;, 10.0.into());
-
-let result = Expression::eval(parsed, &amp;Variables::from(vars));
-assert_eq!(Ok(16.0.into()), result);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Simple String example</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables, ExpressionValue};
-
-let parsed = Expression::parse(r#&quot;concat(&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;)&quot;#)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
-
-assert_eq!(Ok(ExpressionValue::from(&quot;1234&quot;)), result);
-assert_eq!(&quot;\&quot;1234\&quot;&quot;, result.unwrap().to_string());
-<span class="boring">}
-</span></code></pre></pre>
-<p>Multi-line example with variable assigment</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{ExpressionFile, Variables, ExpressionValue};
-
-let input = r#&quot;
-    a = [1, 2, 3];
-    b = [3, 2, 1];
-    c = concat(a, b);
-    d = concat(b, a);
-    concat(c, [4,4], d);
-&quot;#;
-let file = ExpressionFile::parse(input)?;
-let evaluated = ExpressionFile::eval(file, &amp;mut Variables::default());
-assert_eq!(
-    ExpressionValue::from(vec![
-        1, 2, 3, 3, 2, 1, 4,
-        4, 3, 2, 1, 1, 2, 3
-    ]),
-    evaluated.unwrap()
-);
-<span class="boring">}
-</span></code></pre></pre>
+                        <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
                         
 
                         
@@ -306,6 +187,10 @@ assert_eq!(
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
                 
 
                 

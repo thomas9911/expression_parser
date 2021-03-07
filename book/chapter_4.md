@@ -20,3 +20,8 @@ Even currying it implemented.
 {{#include ../tests/book_test.rs:chapter_4_curry}}
 ```
 
+Also simple recursion works:
+
+```
+{{#include ../tests/book_test.rs:chapter_4_recursion}}
+```

@@ -203,6 +203,23 @@ generated_function.(12) // returns 16
             )
         );
     }
+
+    #[test]
+    fn recursion() {
+        assert_eq!(
+            Ok(40320.into()),
+            running_default(
+                r#"
+// ANCHOR: chapter_4_recursion
+factorial = {n => 
+    if((n == 0) or (n == 1), 1, n * factorial.(n-1))
+};
+factorial.(8) // returns 40320
+// ANCHOR_END: chapter_4_recursion
+        "#
+            )
+        );
+    }
 }
 
 mod chapter_5 {

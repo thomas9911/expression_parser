@@ -1,5 +1,6 @@
 # Summary
 
+- [README](./readme.md)
 - [Introduction](./introduction.md)
 - [Basic Types](./chapter_1.md)
 - [Variables](./chapter_2.md)

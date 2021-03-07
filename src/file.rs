@@ -47,7 +47,7 @@ impl ExpressionLine {
     pub fn eval<V: VariableMap>(line: Self, vars: &mut V) -> EvalResult {
         // vars.check_recursion_limit()?;
         check_stack()?;
-        
+
         match line {
             ExpressionLine::Expression(Expression::UserFunction(function)) => {
                 for item in function.iter_variables() {
@@ -84,7 +84,7 @@ impl ExpressionLine {
 fn check_stack() -> Result<(), Error> {
     if let Some(x) = stacker::remaining_stack() {
         if x > MINIMAL_STACKSIZE {
-            return Ok(())
+            return Ok(());
         }
     }
     Err(Error::new_code(ErrorCodes::STACKOVERFLOW))

@@ -11,26 +11,19 @@ pub struct Error {
 
 #[derive(Debug, PartialEq)]
 pub enum ErrorCodes {
-    STACKOVERFLOW
+    STACKOVERFLOW,
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // match self.static_info {
-        //     Some(x) => write!(f, "{}", x),
-        //     None => match self.info {
-        //         Some(ref x) => write!(f, "{}", x),
-        //         None => write!(f, "Unable to evaluate expression"),
-        //     },
-        // }
         if let Some(info) = self.static_info {
-            return write!(f, "{}", info)
+            return write!(f, "{}", info);
         }
         if let Some(ref info) = self.info {
-            return write!(f, "{}", info)
+            return write!(f, "{}", info);
         }
         if let Some(ref info) = self.code {
-            return write!(f, "{:?}", info)
+            return write!(f, "{:?}", info);
         }
         write!(f, "Unable to evaluate expression")
     }

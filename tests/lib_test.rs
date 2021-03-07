@@ -920,13 +920,13 @@ fn class_test() {
     assert_eq!(Ok(true.into()), output);
 }
 
-
 mod recursion_overflow_test {
-    use expression_parser::{ExpressionFile, Error, Variables};
     use expression_parser::error::ErrorCodes;
-    
-    fn script(amount: usize) -> String{
-        format!(r#"
+    use expression_parser::{Error, ExpressionFile, Variables};
+
+    fn script(amount: usize) -> String {
+        format!(
+            r#"
         a = {{list, index => [push(list, index), index+1]}};
 
         b = {{list, index => 
@@ -937,14 +937,16 @@ mod recursion_overflow_test {
         }};
 
         b.([], 0)
-        "#, amount)
+        "#,
+            amount
+        )
     }
-    
+
     #[test]
     fn overflow() {
         let script = &script(90);
         let output = ExpressionFile::run(script, &mut Variables::default());
-    
+
         assert_eq!(output, Err(Error::new_code(ErrorCodes::STACKOVERFLOW)))
     }
 
@@ -952,7 +954,7 @@ mod recursion_overflow_test {
     fn works() {
         let script = &script(5);
         let output = ExpressionFile::run(script, &mut Variables::default());
-    
+
         assert_eq!(output, Ok(vec![0, 1, 2, 3, 4].into()))
     }
 }

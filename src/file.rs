@@ -3,9 +3,13 @@ use pest::iterators::Pairs;
 use pest::Parser;
 
 use crate::assignment::{parse_assignment, parse_unassignment};
+use crate::error::ErrorCodes;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
 use crate::{Assignment, Error, Expression, ExpressionValue, Unassignment, VariableMap};
+
+/// minimal amount of stacksize needed in bytes
+const MINIMAL_STACKSIZE: usize = 65536;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -42,6 +46,8 @@ impl std::fmt::Display for ExpressionLine {
 impl ExpressionLine {
     pub fn eval<V: VariableMap>(line: Self, vars: &mut V) -> EvalResult {
         // vars.check_recursion_limit()?;
+        check_stack()?;
+        
         match line {
             ExpressionLine::Expression(Expression::UserFunction(function)) => {
                 for item in function.iter_variables() {
@@ -73,6 +79,15 @@ impl ExpressionLine {
             Assignment(_) | Unassignment(_) => Box::new(std::iter::empty::<String>()),
         }
     }
+}
+
+fn check_stack() -> Result<(), Error> {
+    if let Some(x) = stacker::remaining_stack() {
+        if x > MINIMAL_STACKSIZE {
+            return Ok(())
+        }
+    }
+    Err(Error::new_code(ErrorCodes::STACKOVERFLOW))
 }
 
 pub fn parse_file(expression: Pairs<Rule>) -> ParseResult {

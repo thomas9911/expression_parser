@@ -6,17 +6,33 @@ use pest::error::Error as PestError;
 pub struct Error {
     pub static_info: Option<&'static str>,
     pub info: Option<String>,
+    pub code: Option<ErrorCodes>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ErrorCodes {
+    STACKOVERFLOW
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.static_info {
-            Some(x) => write!(f, "{}", x),
-            None => match self.info {
-                Some(ref x) => write!(f, "{}", x),
-                None => write!(f, "Unable to evaluate expression"),
-            },
+        // match self.static_info {
+        //     Some(x) => write!(f, "{}", x),
+        //     None => match self.info {
+        //         Some(ref x) => write!(f, "{}", x),
+        //         None => write!(f, "Unable to evaluate expression"),
+        //     },
+        // }
+        if let Some(info) = self.static_info {
+            return write!(f, "{}", info)
         }
+        if let Some(ref info) = self.info {
+            return write!(f, "{}", info)
+        }
+        if let Some(ref info) = self.code {
+            return write!(f, "{:?}", info)
+        }
+        write!(f, "Unable to evaluate expression")
     }
 }
 
@@ -25,6 +41,7 @@ impl Error {
         Error {
             info: Some(info),
             static_info: None,
+            code: None,
         }
     }
 
@@ -32,6 +49,15 @@ impl Error {
         Error {
             static_info: Some(info),
             info: None,
+            code: None,
+        }
+    }
+
+    pub fn new_code(info: ErrorCodes) -> Self {
+        Error {
+            static_info: None,
+            info: None,
+            code: Some(info),
         }
     }
 
@@ -39,6 +65,7 @@ impl Error {
         Error {
             info: None,
             static_info: None,
+            code: None,
         }
     }
 }
@@ -52,5 +79,11 @@ impl From<PestError<Rule>> for Error {
 impl From<PestError<FormatRule>> for Error {
     fn from(error: PestError<FormatRule>) -> Error {
         Error::new(format!("{}", error))
+    }
+}
+
+impl From<ErrorCodes> for Error {
+    fn from(error: ErrorCodes) -> Error {
+        Error::new_code(error)
     }
 }

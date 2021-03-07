@@ -45,6 +45,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
 
 [[package]]
+name = "cc"
+version = "1.0.67"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3c69b077ad434294d3ce9f1f6143a2a4b89a8a2d54ef813d85003a4fd1137fd"
+
+[[package]]
+name = "cfg-if"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
 name = "colored"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -76,6 +88,7 @@ dependencies = [
  "serde",
  "serde_json",
  "snailquote",
+ "stacker",
  "strum",
  "strum_macros",
 ]
@@ -202,6 +215,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "psm"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3abf49e5417290756acfd26501536358560c4a5cc4a0934d390939acb3e7083a"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -304,6 +326,19 @@ checksum = "f34b729d802f52194598858ac852c3fb3b33f6e026cd03195072ccb7bf3fc810"
 dependencies = [
  "thiserror",
  "unicode_categories",
+]
+
+[[package]]
+name = "stacker"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3f47e840d001df3b785fbc3b84c7228519bdf63d4fb61b9e9f50f7fa153ce10"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "libc",
+ "psm",
+ "winapi",
 ]
 
 [[package]]

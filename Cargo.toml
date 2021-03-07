@@ -16,6 +16,7 @@ rand  = "0.4"
 snailquote = "0.3.0"
 strum = "0.18.0"
 strum_macros = "0.18.0"
+stacker = "0.1.13"
 
 [dev-dependencies]
 colored = "2"

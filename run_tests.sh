@@ -37,8 +37,8 @@ function run_test() {
   esac
 }
 
-# cargo test -q
-# cargo test -q --all-features
+cargo test -q
+cargo test -q --all-features
 
 echo "run file examples"
 for FILE in ./examples/file/*; do

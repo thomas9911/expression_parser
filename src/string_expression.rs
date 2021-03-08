@@ -29,6 +29,8 @@ pub fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
                 Rule::concat_op => Ok(Expr(Box::new(Function::Concat(vec![lhs, rhs])))),
                 Rule::equal => Ok(Expr(Box::new(Function::Equal(lhs, rhs)))),
                 Rule::not_equal => Ok(Expr(Box::new(Function::NotEqual(lhs, rhs)))),
+                Rule::lesser => Ok(Expr(Box::new(Function::Lesser(lhs, rhs)))),
+                Rule::greater => Ok(Expr(Box::new(Function::Greater(lhs, rhs)))),
                 Rule::and => Ok(Expr(Box::new(Function::And(lhs, rhs)))),
                 Rule::or => Ok(Expr(Box::new(Function::Or(lhs, rhs)))),
                 Rule::add => Ok(Expr(Box::new(Function::Add(lhs, rhs)))),
@@ -36,7 +38,6 @@ pub fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
                 Rule::multiply => Ok(Expr(Box::new(Function::Mul(lhs, rhs)))),
                 Rule::divide => Ok(Expr(Box::new(Function::Div(lhs, rhs)))),
                 Rule::power => Ok(Expr(Box::new(Function::Pow(lhs, rhs)))),
-                // Rule::dot_function => Ok(Expr(Box::new(Function::Call(lhs, vec![rhs])))),
                 // _ => unreachable!(),
                 rule => {
                     println!("{:?}", rule);
@@ -53,9 +54,6 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
 
     match pair.as_rule() {
         Rule::num => Ok(Value(pair.as_str().parse::<f64>().unwrap().into())),
-        // Rule::string => Ok(Value(ExpressionValue::String(
-        //     pair.as_str().trim_matches('"').to_string(),
-        // ))),
         Rule::string => match snailquote::unescape(&make_string(pair.clone().into_inner())) {
             Ok(x) => Ok(Value(ExpressionValue::String(x))),
             Err(e) => Err(make_pest_error(pair.as_span(), e.to_string())),
@@ -324,7 +322,7 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
         }
 
         // infix functions
-        Equal | NotEqual | Add | Sub | Mul | Div | Pow | And | Or => {
+        Equal | NotEqual | Greater | Lesser | Add | Sub | Mul | Div | Pow | And | Or => {
             return Err(make_pest_error(
                 pair_span,
                 format!("function {:?} is not defined", function_name.as_str()),
@@ -400,8 +398,6 @@ impl Default for Expression {
 impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
     pub fn eval<V: VariableMap + std::fmt::Debug>(expression: Expression, vars: &V) -> EvalResult {
-        // println!("expr: {:?}", vars);
-
         match expression {
             Expression::Expr(op) => Function::eval(*op, vars),
             Expression::Value(value) => match value {
@@ -427,7 +423,6 @@ impl Expression {
                 }
                 x => Ok(x),
             },
-            // Expression::Var(s) => vars.get(&s).clone(),
             Expression::Var(s) => match vars.get(&s) {
                 Some(x) => Ok(x.clone()),
                 None => Err(Error::new(format!("Variable {} not found", &s))),

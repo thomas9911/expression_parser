@@ -154,7 +154,6 @@ impl From<BTreeMap<String, ExpressionValue>> for Variables {
 #[derive(Debug)]
 pub struct ScopedVariables<'a> {
     local: HashMap<String, ExpressionValue>,
-    // global: HashMap<String, ExpressionValue>,
     global: Box<dyn VariableMap + 'a>,
 }
 
@@ -169,13 +168,6 @@ impl<'a> VariableMap for ScopedVariables<'a> {
     fn local(&self) -> Option<Variables> {
         Some(Variables::from_iter(self.local.clone()))
     }
-
-    // fn get_mut(&mut self, key: &str) -> Option<&mut ExpressionValue> {
-    //     match self.local.get_mut(key) {
-    //         None => self.global.get_mut(key),
-    //         x => x,
-    //     }
-    // }
 
     fn insert(&mut self, key: &str, value: ExpressionValue) -> Option<ExpressionValue> {
         self.local.insert(String::from(key), value.into())

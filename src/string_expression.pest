@@ -42,9 +42,11 @@ operation = _{ string_operation | binary_operation | number_operation}
 string_operation = _{ concat_op }
     concat_op = { "++" }
 
-binary_operation = _{ equal | not_equal | and | or }
+binary_operation = _{ equal | not_equal | lesser | greater | and | or }
     equal     = { "==" }
     not_equal = { "!=" }
+    lesser    = { "<" }
+    greater   = { ">" }
     and       = { "&" | "&&" |"and" }
     or        = { "|" | "||" | "or" }
 

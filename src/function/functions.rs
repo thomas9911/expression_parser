@@ -87,15 +87,10 @@ pub fn call<'a, Vars: VariableMap>(func: Input, list: Vec<Input>, vars: &'a Vars
 
     let mut context = ScopedVariables::new(Box::new(vars));
 
-    // let (function, compiled_vars) = Expression::eval(func, &context)?
-    //     .as_function()
-    //     .ok_or(Error::new_static("input should be a function"))?;
-
     match Expression::eval(func, &context)? {
         ExpressionValue::ExternalFunction(closure) => {
             call_external_function(closure, list, &mut context)
         }
-        // ExpressionValue::Function(function, compiled_vars) => (function, compiled_vars),
         ExpressionValue::Function(function, compiled_vars) => {
             call_function(function, compiled_vars, list, &mut context)
         }
@@ -191,11 +186,6 @@ pub fn remove<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output 
 fn normal_help(lhs: Input) -> Output {
     use std::str::FromStr;
 
-    // let value = match Expression::eval(lhs.clone(), vars){
-    //     Ok(x) => Expression::Value(x),
-    //     Err(_e) => lhs,
-    // };
-
     let value = as_variable_or_string(lhs)?;
     match value.as_ref() {
         "functions" => {
@@ -261,6 +251,10 @@ pub(crate) fn ok_string(string: String) -> Output {
 
 pub(crate) fn ok_number(number: f64) -> Output {
     Ok(ExpressionValue::Number(number))
+}
+
+pub(crate) fn ok_boolean(boolean: bool) -> Output {
+    Ok(ExpressionValue::Bool(boolean))
 }
 
 pub(crate) fn into_number<Vars: VariableMap>(input: Input, vars: &Vars) -> Result<f64, Error> {

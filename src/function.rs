@@ -31,6 +31,10 @@ pub enum Function {
     Equal(Expression, Expression),
     #[strum(message = "Compares if the two arguments are not equal")]
     NotEqual(Expression, Expression),
+    #[strum(message = "Compares if left is less than right")]
+    Lesser(Expression, Expression),
+    #[strum(message = "Compares if left is greater than right")]
+    Greater(Expression, Expression),
     #[strum(
         message = "If the first argument is truthy returns the second argument, otherwise returns the first argument"
     )]
@@ -152,6 +156,8 @@ impl std::fmt::Display for Function {
             Mul(lhs, rhs) => write!(f, "({} * {})", lhs, rhs),
             Div(lhs, rhs) => write!(f, "({} / {})", lhs, rhs),
             Pow(lhs, rhs) => write!(f, "({} ^ {})", lhs, rhs),
+            Greater(lhs, rhs) => write!(f, "({} > {})", lhs, rhs),
+            Lesser(lhs, rhs) => write!(f, "({} < {})", lhs, rhs),
         }
     }
 }
@@ -169,6 +175,8 @@ impl Function {
             Trim(lhs, rhs) => functions::trim(lhs, rhs, vars),
             Equal(lhs, rhs) => functions::equal(lhs, rhs, vars),
             NotEqual(lhs, rhs) => functions::not_equal(lhs, rhs, vars),
+            Greater(lhs, rhs) => functions::greater(lhs, rhs, vars),
+            Lesser(lhs, rhs) => functions::lesser(lhs, rhs, vars),
             And(lhs, rhs) => functions::and(lhs, rhs, vars),
             Or(lhs, rhs) => functions::or(lhs, rhs, vars),
             Contains(lhs, rhs) => functions::contains(lhs, rhs, vars),
@@ -216,6 +224,8 @@ impl Function {
                 Trim(lhs, rhs) => Trim(E::compile(lhs)?, E::compile(rhs)?),
                 Equal(lhs, rhs) => Equal(E::compile(lhs)?, E::compile(rhs)?),
                 NotEqual(lhs, rhs) => NotEqual(E::compile(lhs)?, E::compile(rhs)?),
+                Greater(lhs, rhs) => Greater(E::compile(lhs)?, E::compile(rhs)?),
+                Lesser(lhs, rhs) => Lesser(E::compile(lhs)?, E::compile(rhs)?),
                 And(lhs, rhs) => And(E::compile(lhs)?, E::compile(rhs)?),
                 Or(lhs, rhs) => Or(E::compile(lhs)?, E::compile(rhs)?),
                 Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
@@ -279,6 +289,8 @@ impl Function {
             Trim(lhs, rhs)
             | Equal(lhs, rhs)
             | NotEqual(lhs, rhs)
+            | Greater(lhs, rhs)
+            | Lesser(lhs, rhs)
             | And(lhs, rhs)
             | Or(lhs, rhs)
             | Contains(lhs, rhs)
@@ -395,6 +407,16 @@ impl Function {
     second = [1,2,3] != [3,2,1]; 
     third = {"test": true} != {"test": false}; 
     first and second and third"#
+            }
+            Greater => {
+                r#"
+    first = 2 > 1; 
+    first"#
+            }
+            Lesser => {
+                r#"
+    first = 1 < 2; 
+    first"#
             }
             And => {
                 r#"

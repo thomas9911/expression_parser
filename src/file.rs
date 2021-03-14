@@ -85,9 +85,12 @@ fn check_stack() -> Result<(), Error> {
     if let Some(x) = stacker::remaining_stack() {
         if x > MINIMAL_STACKSIZE {
             return Ok(());
+        } else {
+            return Err(Error::new_code(ErrorCodes::STACKOVERFLOW));
         }
     }
-    Err(Error::new_code(ErrorCodes::STACKOVERFLOW))
+    // on not supported targets always return ok (for instance wasm)
+    Ok(())
 }
 
 pub fn parse_file(expression: Pairs<Rule>) -> ParseResult {

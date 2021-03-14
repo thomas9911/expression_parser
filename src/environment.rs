@@ -1,9 +1,48 @@
 use crate::statics::DEFAULT_VARIABLES;
-use crate::{VariableMap, ScopedVariables};
+use crate::{ScopedVariables, VariableMap, Variables};
 
-pub trait Env<'a>{
+pub trait Env<'a>: std::fmt::Debug {
     fn variables(&self) -> &Box<dyn VariableMap + 'a>;
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a>;
+    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b>;
+    // Environment::builder()
+    //     .with_variables(Box::new(ScopedVariables::new(self.variables())))
+    //     .build_scoped()
+}
+
+
+impl<'a, T> Env<'a> for &mut T
+where
+    T: Env<'a>,
+{
+    fn variables(&self) -> &Box<dyn VariableMap + 'a> {
+        (**self).variables()
+    }
+
+    fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
+        (*self).variables_mut()
+    }
+
+    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b> {
+        (**self).to_scoped()
+    }
+}
+
+impl<'a, T> Env<'a> for &T
+where
+    T: Env<'a>,
+{
+    fn variables(&self) -> &Box<dyn VariableMap + 'a> {
+        (*self).variables()
+    }
+
+    fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
+        panic!("cannot mutate when not defined as mutatable")
+    }
+
+    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b> {
+        (**self).to_scoped()
+    }
 }
 
 #[derive(Debug)]
@@ -12,8 +51,11 @@ pub struct Environment<'a> {
 }
 
 #[derive(Debug)]
-pub struct ScopedEnvironment<'a> {
-    variables: Box<dyn VariableMap + 'a>,
+pub struct ScopedEnvironment<'a, 'b> {
+    // variables: Box<dyn VariableMap + 'a>,
+    pub(crate) original: Box<&'b dyn Env<'a>>,
+    // local: ScopedVariables<'b>,
+    pub(crate) local: Box<dyn VariableMap + 'b>,
 }
 
 #[derive(Debug)]
@@ -25,18 +67,23 @@ impl<'a> Environment<'a> {
     pub fn builder() -> EnvironmentBuilder<'a> {
         EnvironmentBuilder::default()
     }
-
-    pub fn to_scoped(&self) -> ScopedEnvironment {
-        Self::builder().with_variables(Box::new(ScopedVariables::new(self.variables()))).build_scoped()
-    }
 }
 
 impl<'a> Env<'a> for Environment<'a> {
-    fn variables(&self) -> &Box<dyn VariableMap + 'a>{
+    fn variables(&self) -> &Box<dyn VariableMap + 'a> {
         &self.variables
     }
-    fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a>{
+    fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
         &mut self.variables
+    }
+
+    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b> {
+        let var = ScopedVariables::new(self.variables());
+
+        ScopedEnvironment {
+            original: Box::new(self),
+            local: Box::new(var),
+        }
     }
 }
 
@@ -46,12 +93,21 @@ impl<'a> Default for Environment<'a> {
     }
 }
 
-impl<'a> Env<'a> for ScopedEnvironment<'a> {
-    fn variables(&self) -> &Box<dyn VariableMap + 'a>{
-        &self.variables
+impl<'a, 'b> Env<'b> for ScopedEnvironment<'a, 'b> {
+    fn variables(&self) -> &Box<dyn VariableMap + 'b> {
+        &self.local
     }
-    fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a>{
-        &mut self.variables
+    fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'b> {
+        &mut self.local
+    }
+
+    fn to_scoped<'c>(&'b self) -> ScopedEnvironment<'b, 'c> {
+        let var = ScopedVariables::new(self.variables());
+
+        ScopedEnvironment {
+            original: Box::new(self),
+            local: Box::new(var),
+        }
     }
 }
 
@@ -64,13 +120,13 @@ impl<'a> EnvironmentBuilder<'a> {
         Environment { variables }
     }
 
-    pub fn build_scoped(self) -> ScopedEnvironment<'a> {
-        let variables = self
-            .variables
-            .unwrap_or(Box::new(DEFAULT_VARIABLES.to_owned()));
+    // pub fn build_scoped(self) -> ScopedEnvironment<'a> {
+    //     let variables = self
+    //         .variables
+    //         .unwrap_or(Box::new(DEFAULT_VARIABLES.to_owned()));
 
-        ScopedEnvironment { variables }
-    }
+    //     ScopedEnvironment { variables }
+    // }
 
     pub fn with_variables(
         mut self,
@@ -138,7 +194,6 @@ fn build_test() {
 
     assert_eq!(Some(&ExpressionValue::from(1)), env.variables().get("test"));
 }
-
 
 #[test]
 fn mutable_variables() {

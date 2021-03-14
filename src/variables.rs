@@ -115,7 +115,7 @@ impl Variables {
         Variables { state: variables }
     }
 
-    pub fn iter(&self) -> std::collections::hash_map::Iter<String, ExpressionValue> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, String, ExpressionValue> {
         self.state.iter()
     }
 }

@@ -1,42 +1,42 @@
 use super::{into_number, ok_boolean, ok_number};
-use super::{Input, Output, VariableMap};
+use super::{Env, Input, Output};
 
-pub fn lesser<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+pub fn lesser<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {
     ok_boolean(into_number(lhs, vars)? < into_number(rhs, vars)?)
 }
 
-pub fn greater<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+pub fn greater<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {
     ok_boolean(into_number(lhs, vars)? > into_number(rhs, vars)?)
 }
 
-pub fn add<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+pub fn add<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)? + into_number(rhs, vars)?)
 }
 
-pub fn sub<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+pub fn sub<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)? - into_number(rhs, vars)?)
 }
 
-pub fn mul<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+pub fn mul<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)? * into_number(rhs, vars)?)
 }
 
-pub fn div<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+pub fn div<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)? / into_number(rhs, vars)?)
 }
 
-pub fn pow<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
+pub fn pow<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)?.powf(into_number(rhs, vars)?))
 }
 
-pub fn cos<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
+pub fn cos<'a, 'b, Vars: Env<'a>>(lhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)?.cos())
 }
 
-pub fn sin<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
+pub fn sin<'a, 'b, Vars: Env<'a>>(lhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)?.sin())
 }
 
-pub fn tan<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
+pub fn tan<'a, 'b, Vars: Env<'a>>(lhs: Input, vars: &'b Vars) -> Output {
     ok_number(into_number(lhs, vars)?.tan())
 }

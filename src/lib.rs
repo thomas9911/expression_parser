@@ -148,11 +148,12 @@
 //!
 // #![recursion_limit = "1024"]
 
+#![deny(rust_2018_idioms)]
+
 #[macro_use]
 extern crate pest_derive;
 #[macro_use]
 extern crate lazy_static;
-extern crate strum;
 #[macro_use]
 extern crate strum_macros;
 
@@ -171,8 +172,8 @@ pub mod variables;
 
 pub use assignment::{Assignment, Unassignment};
 pub use closure::Closure;
+pub use environment::{Env, Environment, EnvironmentBuilder, ScopedEnvironment};
 pub use error::Error;
-pub use environment::{Environment, EnvironmentBuilder};
 pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;
 pub use function::Function;

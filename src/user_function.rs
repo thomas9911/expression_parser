@@ -18,7 +18,7 @@ pub struct UserFunction {
     pub expression: ExpressionFile,
 }
 
-pub fn parse_user_function(mut assignment: Pairs<Rule>) -> FunctionParseResult {
+pub fn parse_user_function(mut assignment: Pairs<'_, Rule>) -> FunctionParseResult {
     let vars: Vec<String> = assignment
         .next()
         .expect("grammar of function is incorrect")

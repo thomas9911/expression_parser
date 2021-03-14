@@ -1,6 +1,6 @@
 use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
-use crate::{Error, Expression, VariableMap, Variables};
+use crate::{Env, Environment, Error, Expression, Variables};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -163,7 +163,7 @@ impl std::fmt::Display for Function {
 }
 
 impl Function {
-    pub fn eval<V: VariableMap>(operator: Function, vars: &V) -> EvalResult {
+    pub fn eval<'a, 'b, V: Env<'a>>(operator: Function, vars: &'b V) -> EvalResult {
         use Function::*;
 
         match operator {
@@ -259,7 +259,7 @@ impl Function {
 
             Ok(Expr(Box::new(funcs)))
         } else {
-            Ok(Value(Function::eval(operator, &Variables::default())?))
+            Ok(Value(Function::eval(operator, &Environment::default())?))
         }
     }
 
@@ -706,7 +706,7 @@ fn function_names_test() {
 
 #[test]
 fn function_doc_tests() {
-    use crate::{ExpressionFile, ExpressionValue};
+    use crate::{Environment, ExpressionFile, ExpressionValue};
     use strum::IntoEnumIterator;
 
     for function in Function::iter() {
@@ -718,7 +718,7 @@ fn function_doc_tests() {
             ),
         };
 
-        match ExpressionFile::eval(expr, &mut Variables::default()) {
+        match ExpressionFile::eval(expr, &mut Environment::default()) {
             Ok(ExpressionValue::Bool(true)) => (),
             _ => panic!("usage test for \"{}\" fails", FunctionName::from(function)),
         }

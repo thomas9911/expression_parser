@@ -7,7 +7,7 @@ use crate::function::FunctionName;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
 use crate::user_function::{parse_user_function, UserFunction};
-use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap, Variables};
+use crate::{Env, Error, ExpressionMap, ExpressionValue, Function, VariableMap, Variables};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -15,13 +15,13 @@ use serde::{Deserialize, Serialize};
 pub type EvalResult = Result<ExpressionValue, Error>;
 pub type ParseResult = Result<Expression, PestError<Rule>>;
 
-pub fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
+pub fn parse_expression(expression: Pairs<'_, Rule>) -> ParseResult {
     use Expression::*;
 
     PREC_CLIMBER.climb(
         expression,
         parse_single_pair,
-        |lhs: ParseResult, op: Pair<Rule>, rhs: ParseResult| {
+        |lhs: ParseResult, op: Pair<'_, Rule>, rhs: ParseResult| {
             let lhs = lhs?;
             let rhs = rhs?;
 
@@ -49,7 +49,7 @@ pub fn parse_expression(expression: Pairs<Rule>) -> ParseResult {
     )
 }
 
-fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
+fn parse_single_pair(pair: Pair<'_, Rule>) -> ParseResult {
     use Expression::*;
 
     match pair.as_rule() {
@@ -94,7 +94,7 @@ fn parse_single_pair(pair: Pair<Rule>) -> ParseResult {
     }
 }
 
-fn make_dot_function(mut pairs: Pairs<Rule>) -> ParseResult {
+fn make_dot_function(mut pairs: Pairs<'_, Rule>) -> ParseResult {
     let first_pair = pairs.next().expect("invalid dot function grammar");
 
     let lhs = match first_pair.as_rule() {
@@ -114,11 +114,11 @@ fn make_dot_function(mut pairs: Pairs<Rule>) -> ParseResult {
     Ok(Expression::Expr(Box::new(Function::Call(lhs, arguments))))
 }
 
-fn make_var(pair: Pair<Rule>) -> Expression {
+fn make_var(pair: Pair<'_, Rule>) -> Expression {
     Expression::Var(pair.as_str().trim().to_string())
 }
 
-fn make_string(string: Pairs<Rule>) -> String {
+fn make_string(string: Pairs<'_, Rule>) -> String {
     let mut buffer = String::from("\"");
     for pair in string {
         match pair.as_rule() {
@@ -130,7 +130,7 @@ fn make_string(string: Pairs<Rule>) -> String {
     buffer
 }
 
-fn make_function(pair: Pair<Rule>) -> ParseResult {
+fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
     use std::str::FromStr;
     use Expression::Expr;
     use FunctionName::*;
@@ -333,7 +333,7 @@ fn make_function(pair: Pair<Rule>) -> ParseResult {
 
 fn check_arguments(
     function_name: FunctionName,
-    span: Span,
+    span: Span<'_>,
     min_args: usize,
     max_args: Option<usize>,
     args: &Vec<Expression>,
@@ -363,7 +363,7 @@ fn check_arguments(
     Ok(())
 }
 
-fn make_pest_error(span: Span, message: String) -> PestError<Rule> {
+fn make_pest_error(span: Span<'_>, message: String) -> PestError<Rule> {
     let variant = ErrorVariant::<Rule>::CustomError { message: message };
     PestError::new_from_span(variant, span)
 }
@@ -397,7 +397,10 @@ impl Default for Expression {
 
 impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
-    pub fn eval<V: VariableMap + std::fmt::Debug>(expression: Expression, vars: &V) -> EvalResult {
+    pub fn eval<'a, 'b, V: Env<'a> + std::fmt::Debug>(
+        expression: Expression,
+        vars: &'b V,
+    ) -> EvalResult {
         match expression {
             Expression::Expr(op) => Function::eval(*op, vars),
             Expression::Value(value) => match value {
@@ -423,19 +426,19 @@ impl Expression {
                 }
                 x => Ok(x),
             },
-            Expression::Var(s) => match vars.get(&s) {
+            Expression::Var(s) => match vars.variables().get(&s) {
                 Some(x) => Ok(x.clone()),
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
             Expression::UserFunction(function) => {
-                let mut compiled = if let Some(compiled) = vars.local() {
+                let mut compiled = if let Some(compiled) = vars.variables().local() {
                     compiled
                 } else {
                     Variables::new()
                 };
 
                 for local_var in function.iter_variables() {
-                    if let Some(var) = vars.get(&local_var) {
+                    if let Some(var) = vars.variables().get(&local_var) {
                         compiled.insert(&local_var, var.to_owned());
                     }
                 }
@@ -510,20 +513,20 @@ impl From<ExpressionMap> for Expression {
 
 #[test]
 fn unicode_json() {
-    use crate::Variables;
+    use crate::Environment;
 
     let parsed = Expression::parse(r#""testing \u1F996""#).unwrap();
-    let evaluated = Expression::eval(parsed, &Variables::default()).unwrap();
+    let evaluated = Expression::eval(parsed, &Environment::default()).unwrap();
 
     assert_eq!(r#""testing 🦖""#, evaluated.to_string());
 }
 
 #[test]
 fn unicode_rust() {
-    use crate::Variables;
+    use crate::Environment;
 
     let parsed = Expression::parse(r#""testing \u{1F980}""#).unwrap();
-    let evaluated = Expression::eval(parsed, &Variables::default()).unwrap();
+    let evaluated = Expression::eval(parsed, &Environment::default()).unwrap();
 
     assert_eq!(r#""testing 🦀""#, evaluated.to_string());
 }

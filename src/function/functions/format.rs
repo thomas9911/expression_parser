@@ -84,14 +84,14 @@ impl<'a> Iterator for FormatIter<'a> {
     }
 }
 
-fn apply_format<T: std::fmt::Display>(iter: FormatIter, vars: Vec<T>) -> Result<String, Error> {
+fn apply_format<T: std::fmt::Display>(iter: FormatIter, env: Vec<T>) -> Result<String, Error> {
     let mut out = String::new();
 
     for res in iter {
         match res? {
             Part::String(x) => out.push_str(x),
             Part::Replace(index) => {
-                let var = vars.get(index).ok_or(Error::new(format!(
+                let var = env.get(index).ok_or(Error::new(format!(
                     "argument on position {} not found",
                     index
                 )))?;
@@ -103,9 +103,9 @@ fn apply_format<T: std::fmt::Display>(iter: FormatIter, vars: Vec<T>) -> Result<
     Ok(out)
 }
 
-pub fn format<T: std::fmt::Display>(template: &str, vars: Vec<T>) -> Result<String, Error> {
+pub fn format<T: std::fmt::Display>(template: &str, env: Vec<T>) -> Result<String, Error> {
     let iter = FormatIter::new(template)?;
-    apply_format(iter, vars)
+    apply_format(iter, env)
 }
 
 #[test]

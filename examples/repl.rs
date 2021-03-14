@@ -1,5 +1,5 @@
 use colored::*;
-use expression_parser::{ExpressionFile, ExpressionValue, Variables};
+use expression_parser::{Environment, ExpressionFile, ExpressionValue, Variables};
 use std::io::{self, Error, StdoutLock, Write};
 
 const HELP_TEXT: &'static str = "Expression interactive example
@@ -41,7 +41,7 @@ fn main() -> Result<(), Error> {
         true => return Ok(()),
     };
 
-    let mut vars = Variables::default();
+    let mut vars = Environment::default();
 
     let is_debug = parse_debug_env_var();
 
@@ -91,7 +91,7 @@ fn print_help(first_arg: &str) -> bool {
     }
 }
 
-fn do_expression(buffer: String, vars: &mut Variables, is_debug: bool) {
+fn do_expression(buffer: String, vars: &mut Environment, is_debug: bool) {
     let parsed = match ExpressionFile::parse(buffer.as_ref()) {
         Ok(x) => x,
         Err(e) => return println!("{}: Invalid expression{}", "error".bright_red(), e),

@@ -7,7 +7,7 @@ use crate::function::FunctionName;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
 use crate::user_function::{parse_user_function, UserFunction};
-use crate::{Error, ExpressionMap, ExpressionValue, Function, VariableMap, Variables};
+use crate::{Environment, Error, ExpressionMap, ExpressionValue, Function, VariableMap, Variables};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -397,15 +397,15 @@ impl Default for Expression {
 
 impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
-    pub fn eval<V: VariableMap + std::fmt::Debug>(expression: Expression, vars: &V) -> EvalResult {
+    pub fn eval(expression: Expression, env: &Environment) -> EvalResult {
         match expression {
-            Expression::Expr(op) => Function::eval(*op, vars),
+            Expression::Expr(op) => Function::eval(*op, env),
             Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(ExpressionValue::List(
                     list.into_iter().try_fold::<_, _, Result<_, Error>>(
                         Vec::new(),
                         |mut acc, x| {
-                            acc.push(Expression::Value(Expression::eval(x, vars)?));
+                            acc.push(Expression::Value(Expression::eval(x, env)?));
                             Ok(acc)
                         },
                     )?,
@@ -415,7 +415,7 @@ impl Expression {
                         map.into_iter().try_fold::<_, _, Result<_, Error>>(
                             HashMap::new(),
                             |mut acc, (k, v)| {
-                                acc.insert(k, Expression::Value(Expression::eval(v, vars)?));
+                                acc.insert(k, Expression::Value(Expression::eval(v, env)?));
                                 Ok(acc)
                             },
                         )?
@@ -423,19 +423,19 @@ impl Expression {
                 }
                 x => Ok(x),
             },
-            Expression::Var(s) => match vars.get(&s) {
+            Expression::Var(s) => match env.variables.get(&s) {
                 Some(x) => Ok(x.clone()),
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
             Expression::UserFunction(function) => {
-                let mut compiled = if let Some(compiled) = vars.local() {
+                let mut compiled = if let Some(compiled) = env.variables.local() {
                     compiled
                 } else {
                     Variables::new()
                 };
 
                 for local_var in function.iter_variables() {
-                    if let Some(var) = vars.get(&local_var) {
+                    if let Some(var) = env.variables.get(&local_var) {
                         compiled.insert(&local_var, var.to_owned());
                     }
                 }
@@ -510,20 +510,16 @@ impl From<ExpressionMap> for Expression {
 
 #[test]
 fn unicode_json() {
-    use crate::Variables;
-
     let parsed = Expression::parse(r#""testing \u1F996""#).unwrap();
-    let evaluated = Expression::eval(parsed, &Variables::default()).unwrap();
+    let evaluated = Expression::eval(parsed, &Environment::default()).unwrap();
 
     assert_eq!(r#""testing 🦖""#, evaluated.to_string());
 }
 
 #[test]
 fn unicode_rust() {
-    use crate::Variables;
-
     let parsed = Expression::parse(r#""testing \u{1F980}""#).unwrap();
-    let evaluated = Expression::eval(parsed, &Variables::default()).unwrap();
+    let evaluated = Expression::eval(parsed, &Environment::default()).unwrap();
 
     assert_eq!(r#""testing 🦀""#, evaluated.to_string());
 }

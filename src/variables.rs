@@ -230,3 +230,73 @@ impl<'a> From<Variables> for ScopedVariables<'a> {
         }
     }
 }
+
+use std::sync::Arc;
+
+/// Creates a variable map that has two stores.
+/// One can only be changed on creation and the other one on runtime.
+#[derive(Debug)]
+pub struct ScopedVariablesArc<'a> {
+    local: HashMap<String, ExpressionValue>,
+    global: Arc<Box<dyn VariableMap + 'a>>,
+}
+
+impl<'a> VariableMap for ScopedVariablesArc<'a> {
+    fn get(&self, key: &str) -> Option<&ExpressionValue> {
+        match self.local.get(key) {
+            None => self.global.get(key),
+            x => x,
+        }
+    }
+
+    fn local(&self) -> Option<Variables> {
+        Some(Variables::from_iter(self.local.clone()))
+    }
+
+    fn insert(&mut self, key: &str, value: ExpressionValue) -> Option<ExpressionValue> {
+        self.local.insert(String::from(key), value.into())
+    }
+
+    fn remove(&mut self, key: &str) -> Option<ExpressionValue> {
+        self.local.remove(key)
+    }
+
+    fn clear(&mut self) {
+        self.local.clear()
+    }
+}
+
+impl<'a> ScopedVariablesArc<'a> {
+    pub fn new(variables: Arc<Box<dyn VariableMap + 'a>>) -> Self {
+        Self {
+            global: variables,
+            local: HashMap::new(),
+        }
+    }
+
+    pub fn new_arc(variables: Box<dyn VariableMap + 'a>) -> Self {
+        Self {
+            global: Arc::new(variables),
+            local: HashMap::new(),
+        }
+    }
+
+    pub fn from_iter<T: IntoIterator<Item = (String, ExpressionValue)>>(iter: T) -> Self {
+        let mut variables = DEFAULT_VARIABLES.to_owned();
+        variables.extend(iter);
+
+        Self {
+            global: Arc::new(Box::new(variables)),
+            local: HashMap::new(),
+        }
+    }
+}
+
+impl<'a> std::default::Default for ScopedVariablesArc<'a> {
+    fn default() -> Self {
+        Self {
+            global: Arc::new(Box::new(DEFAULT_VARIABLES.to_owned())),
+            local: HashMap::new(),
+        }
+    }
+}

@@ -83,21 +83,21 @@
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("x + y + z")?;
 //!
-//! let mut vars = std::collections::HashMap::new();
-//! vars.insert(String::from("x"), 3.0.into());
-//! vars.insert(String::from("y"), 3.0.into());
-//! vars.insert(String::from("z"), 10.0.into());
+//! let mut env = std::collections::HashMap::new();
+//! env.insert(String::from("x"), 3.0.into());
+//! env.insert(String::from("y"), 3.0.into());
+//! env.insert(String::from("z"), 10.0.into());
 //!
-//! let result = Expression::eval(parsed.clone(), &Variables::from(vars));
+//! let result = Expression::eval(parsed.clone(), &Variables::from(env));
 //!
 //! assert_eq!(Ok(16.0.into()), result);
 //!
-//! let mut vars = Variables::default();
-//! vars.insert("x", 3.0.into());
-//! vars.insert("y", 3.0.into());
-//! vars.insert("z", 10.0.into());
+//! let mut env = Variables::default();
+//! env.insert("x", 3.0.into());
+//! env.insert("y", 3.0.into());
+//! env.insert("z", 10.0.into());
 //!
-//! let result = Expression::eval(parsed, &Variables::from(vars));
+//! let result = Expression::eval(parsed, &Variables::from(env));
 //! assert_eq!(Ok(16.0.into()), result);
 //! # Ok(())
 //! # }
@@ -171,11 +171,11 @@ pub mod variables;
 
 pub use assignment::{Assignment, Unassignment};
 pub use closure::Closure;
-pub use error::Error;
 pub use environment::{Environment, EnvironmentBuilder};
+pub use error::Error;
 pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;
 pub use function::Function;
 pub use string_expression::Expression;
 pub use user_function::UserFunction;
-pub use variables::{ScopedVariables, VariableMap, Variables};
+pub use variables::{ScopedVariables, ScopedVariablesArc, VariableMap, Variables};

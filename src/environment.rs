@@ -1,20 +1,44 @@
+use std::sync::Arc;
+
 use crate::statics::DEFAULT_VARIABLES;
-use crate::VariableMap;
+use crate::{ScopedVariables, ScopedVariablesArc, VariableMap};
 
 #[derive(Debug)]
 pub struct Environment<'a> {
-    variables: Box<dyn VariableMap + 'a>,
+    pub variables: Box<dyn VariableMap + 'a>,
+    pub global: Option<Box<&'a Environment<'a>>>,
 }
 
 #[derive(Debug)]
 pub struct EnvironmentBuilder<'a> {
     variables: Option<Box<dyn VariableMap + 'a>>,
+    global: Option<Box<&'a Environment<'a>>>,
 }
 
 impl<'a> Environment<'a> {
     pub fn builder() -> EnvironmentBuilder<'a> {
         EnvironmentBuilder::default()
     }
+
+    pub fn vars(&'a self) -> Box<dyn VariableMap + 'a> {
+        match self.global {
+            Some(ref x) => x.vars(),
+            None => self.variables,
+        }
+    }
+
+    // pub fn new_scoped(&self) -> Environment<'a> {
+
+    //     let context = ScopedVariablesArc::new(Arc::new(self.variables));
+
+    //     Environment::builder()
+    //         .with_variables(Box::new(context))
+    //         .build()
+    // }
+
+    // pub fn new_scoped(&self) -> Environment<'a> {
+
+    // }
 }
 
 impl<'a> Default for Environment<'a> {
@@ -29,7 +53,10 @@ impl<'a> EnvironmentBuilder<'a> {
             .variables
             .unwrap_or(Box::new(DEFAULT_VARIABLES.to_owned()));
 
-        Environment { variables }
+        Environment {
+            variables,
+            global: self.global,
+        }
     }
 
     pub fn with_variables(
@@ -39,11 +66,19 @@ impl<'a> EnvironmentBuilder<'a> {
         self.variables = Some(variables);
         self
     }
+
+    pub fn with_global(mut self, global: &'a Environment<'a>) -> EnvironmentBuilder<'a> {
+        self.global = Some(Box::new(global));
+        self
+    }
 }
 
 impl<'a> Default for EnvironmentBuilder<'a> {
     fn default() -> Self {
-        EnvironmentBuilder { variables: None }
+        EnvironmentBuilder {
+            variables: None,
+            global: None,
+        }
     }
 }
 
@@ -77,9 +112,9 @@ fn env_default_test() {
 #[test]
 fn with_variables_test() {
     use std::collections::HashMap;
-    let vars = HashMap::new();
+    let env = HashMap::new();
 
-    let builder = Environment::builder().with_variables(Box::new(vars));
+    let builder = Environment::builder().with_variables(Box::new(env));
 
     assert!(builder.variables.is_some());
 }
@@ -89,12 +124,10 @@ fn build_test() {
     use crate::ExpressionValue;
     use std::collections::HashMap;
 
-    let mut vars = HashMap::new();
-    vars.insert(String::from("test"), 1.into());
+    let mut env = HashMap::new();
+    env.insert(String::from("test"), 1.into());
 
-    let env = Environment::builder()
-        .with_variables(Box::new(vars))
-        .build();
+    let env = Environment::builder().with_variables(Box::new(env)).build();
 
     assert_eq!(Some(&ExpressionValue::from(1)), env.variables.get("test"));
 }

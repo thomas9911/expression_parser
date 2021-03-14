@@ -19,7 +19,7 @@ pub struct UserFunction {
 }
 
 pub fn parse_user_function(mut assignment: Pairs<Rule>) -> FunctionParseResult {
-    let vars: Vec<String> = assignment
+    let env: Vec<String> = assignment
         .next()
         .expect("grammar of function is incorrect")
         .into_inner()
@@ -29,7 +29,7 @@ pub fn parse_user_function(mut assignment: Pairs<Rule>) -> FunctionParseResult {
     let expr = parse_file(assignment)?;
 
     Ok(UserFunction {
-        arguments: vars,
+        arguments: env,
         expression: expr,
     })
 }

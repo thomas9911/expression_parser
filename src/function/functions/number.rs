@@ -1,42 +1,43 @@
 use super::{into_number, ok_boolean, ok_number};
 use super::{Input, Output, VariableMap};
+use crate::Environment;
 
-pub fn lesser<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_boolean(into_number(lhs, vars)? < into_number(rhs, vars)?)
+pub fn lesser(lhs: Input, rhs: Input, env: &Environment) -> Output {
+    ok_boolean(into_number(lhs, env)? < into_number(rhs, env)?)
 }
 
-pub fn greater<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_boolean(into_number(lhs, vars)? > into_number(rhs, vars)?)
+pub fn greater(lhs: Input, rhs: Input, env: &Environment) -> Output {
+    ok_boolean(into_number(lhs, env)? > into_number(rhs, env)?)
 }
 
-pub fn add<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? + into_number(rhs, vars)?)
+pub fn add(lhs: Input, rhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)? + into_number(rhs, env)?)
 }
 
-pub fn sub<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? - into_number(rhs, vars)?)
+pub fn sub(lhs: Input, rhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)? - into_number(rhs, env)?)
 }
 
-pub fn mul<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? * into_number(rhs, vars)?)
+pub fn mul(lhs: Input, rhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)? * into_number(rhs, env)?)
 }
 
-pub fn div<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? / into_number(rhs, vars)?)
+pub fn div(lhs: Input, rhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)? / into_number(rhs, env)?)
 }
 
-pub fn pow<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.powf(into_number(rhs, vars)?))
+pub fn pow(lhs: Input, rhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)?.powf(into_number(rhs, env)?))
 }
 
-pub fn cos<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.cos())
+pub fn cos(lhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)?.cos())
 }
 
-pub fn sin<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.sin())
+pub fn sin(lhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)?.sin())
 }
 
-pub fn tan<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.tan())
+pub fn tan(lhs: Input, env: &Environment) -> Output {
+    ok_number(into_number(lhs, env)?.tan())
 }

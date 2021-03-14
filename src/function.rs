@@ -1,6 +1,6 @@
 use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
-use crate::{Error, Expression, VariableMap, Variables};
+use crate::{Environment, Error, Expression, Variables};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -163,49 +163,49 @@ impl std::fmt::Display for Function {
 }
 
 impl Function {
-    pub fn eval<V: VariableMap>(operator: Function, vars: &V) -> EvalResult {
+    pub fn eval(operator: Function, env: &Environment) -> EvalResult {
         use Function::*;
 
         match operator {
-            Concat(list) => functions::concat(list, vars),
-            Sum(list) => functions::sum(list, vars),
-            Product(list) => functions::product(list, vars),
-            All(list) => functions::all(list, vars),
-            Any(list) => functions::any(list, vars),
-            Trim(lhs, rhs) => functions::trim(lhs, rhs, vars),
-            Equal(lhs, rhs) => functions::equal(lhs, rhs, vars),
-            NotEqual(lhs, rhs) => functions::not_equal(lhs, rhs, vars),
-            Greater(lhs, rhs) => functions::greater(lhs, rhs, vars),
-            Lesser(lhs, rhs) => functions::lesser(lhs, rhs, vars),
-            And(lhs, rhs) => functions::and(lhs, rhs, vars),
-            Or(lhs, rhs) => functions::or(lhs, rhs, vars),
-            Contains(lhs, rhs) => functions::contains(lhs, rhs, vars),
-            Join(lhs, rhs) => functions::join(lhs, rhs, vars),
-            If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, vars),
-            Upper(lhs) => functions::upper(lhs, vars),
-            Lower(lhs) => functions::lower(lhs, vars),
-            Add(lhs, rhs) => functions::add(lhs, rhs, vars),
-            Sub(lhs, rhs) => functions::sub(lhs, rhs, vars),
-            Mul(lhs, rhs) => functions::mul(lhs, rhs, vars),
-            Div(lhs, rhs) => functions::div(lhs, rhs, vars),
-            Pow(lhs, rhs) => functions::pow(lhs, rhs, vars),
-            Cos(lhs) => functions::cos(lhs, vars),
-            Sin(lhs) => functions::sin(lhs, vars),
-            Tan(lhs) => functions::tan(lhs, vars),
-            Get(lhs, rhs) => functions::get(lhs, rhs, vars),
-            Push(lhs, rhs) => functions::push(lhs, rhs, vars),
-            Remove(lhs, rhs) => functions::remove(lhs, rhs, vars),
-            Put(lhs, mdl, rhs) => functions::put(lhs, mdl, rhs, vars),
-            Random(lhs, rhs) => functions::random(lhs, rhs, vars),
-            Now() => functions::now(vars),
-            Type(lhs) => functions::type_function(lhs, vars),
-            Print(lhs) => functions::print(lhs, vars),
-            Error(lhs) => functions::error(lhs, vars),
-            Assert(lhs, rhs) => functions::assert(lhs, rhs, vars),
-            Try(lhs, rhs) => functions::try_function(lhs, rhs, vars),
-            Call(func, list) => functions::call(func, list, vars),
-            Format(lhs, list) => functions::format(lhs, list, vars),
-            Help(lhs) => functions::help(lhs, vars),
+            Concat(list) => functions::concat(list, env),
+            Sum(list) => functions::sum(list, env),
+            Product(list) => functions::product(list, env),
+            All(list) => functions::all(list, env),
+            Any(list) => functions::any(list, env),
+            Trim(lhs, rhs) => functions::trim(lhs, rhs, env),
+            Equal(lhs, rhs) => functions::equal(lhs, rhs, env),
+            NotEqual(lhs, rhs) => functions::not_equal(lhs, rhs, env),
+            Greater(lhs, rhs) => functions::greater(lhs, rhs, env),
+            Lesser(lhs, rhs) => functions::lesser(lhs, rhs, env),
+            And(lhs, rhs) => functions::and(lhs, rhs, env),
+            Or(lhs, rhs) => functions::or(lhs, rhs, env),
+            Contains(lhs, rhs) => functions::contains(lhs, rhs, env),
+            Join(lhs, rhs) => functions::join(lhs, rhs, env),
+            If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, env),
+            Upper(lhs) => functions::upper(lhs, env),
+            Lower(lhs) => functions::lower(lhs, env),
+            Add(lhs, rhs) => functions::add(lhs, rhs, env),
+            Sub(lhs, rhs) => functions::sub(lhs, rhs, env),
+            Mul(lhs, rhs) => functions::mul(lhs, rhs, env),
+            Div(lhs, rhs) => functions::div(lhs, rhs, env),
+            Pow(lhs, rhs) => functions::pow(lhs, rhs, env),
+            Cos(lhs) => functions::cos(lhs, env),
+            Sin(lhs) => functions::sin(lhs, env),
+            Tan(lhs) => functions::tan(lhs, env),
+            Get(lhs, rhs) => functions::get(lhs, rhs, env),
+            Push(lhs, rhs) => functions::push(lhs, rhs, env),
+            Remove(lhs, rhs) => functions::remove(lhs, rhs, env),
+            Put(lhs, mdl, rhs) => functions::put(lhs, mdl, rhs, env),
+            Random(lhs, rhs) => functions::random(lhs, rhs, env),
+            Now() => functions::now(env),
+            Type(lhs) => functions::type_function(lhs, env),
+            Print(lhs) => functions::print(lhs, env),
+            Error(lhs) => functions::error(lhs, env),
+            Assert(lhs, rhs) => functions::assert(lhs, rhs, env),
+            Try(lhs, rhs) => functions::try_function(lhs, rhs, env),
+            Call(func, list) => functions::call(func, list, env),
+            Format(lhs, list) => functions::format(lhs, list, env),
+            Help(lhs) => functions::help(lhs, env),
         }
     }
 
@@ -259,7 +259,7 @@ impl Function {
 
             Ok(Expr(Box::new(funcs)))
         } else {
-            Ok(Value(Function::eval(operator, &Variables::default())?))
+            Ok(Value(Function::eval(operator, &Environment::default())?))
         }
     }
 
@@ -718,7 +718,7 @@ fn function_doc_tests() {
             ),
         };
 
-        match ExpressionFile::eval(expr, &mut Variables::default()) {
+        match ExpressionFile::eval(expr, &mut Environment::default()) {
             Ok(ExpressionValue::Bool(true)) => (),
             _ => panic!("usage test for \"{}\" fails", FunctionName::from(function)),
         }

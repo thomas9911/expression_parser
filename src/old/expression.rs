@@ -114,11 +114,11 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn eval(expression: Expr, vars: &Variables) -> Option<f64> {
+    pub fn eval(expression: Expr, env: &Variables) -> Option<f64> {
         Some(match expression {
-            Expr::Expr(op) => Ops::eval(*op, vars)?,
+            Expr::Expr(op) => Ops::eval(*op, env)?,
             Expr::Value(x) => x,
-            Expr::Var(s) => *vars.get(&s)?,
+            Expr::Var(s) => *env.get(&s)?,
         })
     }
 
@@ -144,17 +144,17 @@ pub enum Ops {
 }
 
 impl Ops {
-    pub fn eval(operator: Ops, vars: &Variables) -> Option<f64> {
+    pub fn eval(operator: Ops, env: &Variables) -> Option<f64> {
         Some(match operator {
-            Ops::Add(lhs, rhs) => Expr::eval(lhs, vars)? + Expr::eval(rhs, vars)?,
-            Ops::Sub(lhs, rhs) => Expr::eval(lhs, vars)? - Expr::eval(rhs, vars)?,
-            Ops::Mul(lhs, rhs) => Expr::eval(lhs, vars)? * Expr::eval(rhs, vars)?,
-            Ops::Div(lhs, rhs) => Expr::eval(lhs, vars)? / Expr::eval(rhs, vars)?,
-            Ops::Pow(lhs, rhs) => Expr::eval(lhs, vars)?.powf(Expr::eval(rhs, vars)?),
+            Ops::Add(lhs, rhs) => Expr::eval(lhs, env)? + Expr::eval(rhs, env)?,
+            Ops::Sub(lhs, rhs) => Expr::eval(lhs, env)? - Expr::eval(rhs, env)?,
+            Ops::Mul(lhs, rhs) => Expr::eval(lhs, env)? * Expr::eval(rhs, env)?,
+            Ops::Div(lhs, rhs) => Expr::eval(lhs, env)? / Expr::eval(rhs, env)?,
+            Ops::Pow(lhs, rhs) => Expr::eval(lhs, env)?.powf(Expr::eval(rhs, env)?),
 
-            Ops::Sin(lhs) => Expr::eval(lhs, vars)?.sin(),
-            Ops::Cos(lhs) => Expr::eval(lhs, vars)?.cos(),
-            Ops::Tan(lhs) => Expr::eval(lhs, vars)?.tan(),
+            Ops::Sin(lhs) => Expr::eval(lhs, env)?.sin(),
+            Ops::Cos(lhs) => Expr::eval(lhs, env)?.cos(),
+            Ops::Tan(lhs) => Expr::eval(lhs, env)?.tan(),
         })
     }
 }
@@ -223,15 +223,15 @@ mod tests {
 
     #[test]
     fn override_build_in_variable() {
-        let mut vars = std::collections::HashMap::new();
+        let mut env = std::collections::HashMap::new();
         // for the physics people
-        vars.insert(String::from("e"), 3.0);
-        vars.insert(String::from("pi"), 3.0);
-        vars.insert(String::from("g"), 10.0);
+        env.insert(String::from("e"), 3.0);
+        env.insert(String::from("pi"), 3.0);
+        env.insert(String::from("g"), 10.0);
 
         let parsed = Expr::parse("(2*e - pi) * g").unwrap();
 
-        assert_eq!(Some(30.0), Expr::eval(parsed, &vars.into()));
+        assert_eq!(Some(30.0), Expr::eval(parsed, &env.into()));
     }
 
     #[test]

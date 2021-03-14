@@ -158,6 +158,7 @@ extern crate strum_macros;
 
 pub mod assignment;
 pub mod closure;
+pub mod environment;
 pub mod error;
 pub mod expression_value;
 pub mod file;
@@ -171,6 +172,7 @@ pub mod variables;
 pub use assignment::{Assignment, Unassignment};
 pub use closure::Closure;
 pub use error::Error;
+pub use environment::{Environment, EnvironmentBuilder};
 pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;
 pub use function::Function;

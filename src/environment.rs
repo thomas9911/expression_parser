@@ -33,6 +33,7 @@ where
 }
 
 #[derive(Debug)]
+/// Environment holding all the connections to side effects. 
 pub struct Environment<'a> {
     variables: Box<dyn VariableMap + 'a>,
 }

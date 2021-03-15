@@ -1,4 +1,4 @@
-use expression_parser::{Expression, Variables};
+use expression_parser::{Environment, Expression};
 
 fn main() {
     let original = "1 + 5 - 2 + (12 - 2) + 123";
@@ -10,11 +10,11 @@ fn main() {
     println!("just rust: {}", 1 + 5 - 2 + (12 - 2) + 123);
     println!(
         "parsed: {}",
-        Expression::eval(parsed, &Variables::default()).unwrap()
+        Expression::eval(parsed, &Environment::default()).unwrap()
     );
     println!(
         "parsed twice: {}",
-        Expression::eval(parsed2, &Variables::default()).unwrap()
+        Expression::eval(parsed2, &Environment::default()).unwrap()
     );
 
     println!("=================================================");

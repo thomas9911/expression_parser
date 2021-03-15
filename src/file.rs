@@ -6,7 +6,7 @@ use crate::assignment::{parse_assignment, parse_unassignment};
 use crate::error::ErrorCodes;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Assignment, Env, Error, Expression, ExpressionValue, Unassignment, VariableMap};
+use crate::{Assignment, Env, Error, Expression, ExpressionValue, Unassignment};
 
 /// minimal amount of stacksize needed in bytes
 const MINIMAL_STACKSIZE: usize = 65536;
@@ -44,29 +44,29 @@ impl std::fmt::Display for ExpressionLine {
 }
 
 impl ExpressionLine {
-    pub fn eval<'a, 'b, V: Env<'a>>(line: Self, vars: &'b mut V) -> EvalResult {
+    pub fn eval<'a, 'b, E: Env<'a>>(line: Self, env: &'b mut E) -> EvalResult {
         // vars.check_recursion_limit()?;
         check_stack()?;
 
         match line {
             ExpressionLine::Expression(Expression::UserFunction(function)) => {
                 for item in function.iter_variables() {
-                    let val = if let Some(val) = vars.variables().get(&item) {
+                    let val = if let Some(val) = env.variables().get(&item) {
                         val.to_owned()
                     } else {
                         continue;
                     };
-                    vars.variables_mut().insert(&item, val);
+                    env.variables_mut().insert(&item, val);
                 }
-                Expression::eval(Expression::UserFunction(function), vars)
+                Expression::eval(Expression::UserFunction(function), env)
             }
-            ExpressionLine::Expression(ex) => Expression::eval(ex, vars),
+            ExpressionLine::Expression(ex) => Expression::eval(ex, env),
             ExpressionLine::Assignment(ass) => {
-                Assignment::eval(ass, vars)?;
+                Assignment::eval(ass, env)?;
                 Ok(ExpressionValue::Null)
             }
             ExpressionLine::Unassignment(un) => {
-                Unassignment::eval(un, vars)?;
+                Unassignment::eval(un, env)?;
                 Ok(ExpressionValue::Null)
             }
         }
@@ -134,18 +134,18 @@ impl ExpressionFile {
         Box::new(self.lines.iter().flat_map(|x| x.iter_variables()))
     }
 
-    pub fn eval<'a, 'b, V: Env<'a>>(file: Self, vars: &'b mut V) -> EvalResult {
+    pub fn eval<'a, 'b, E: Env<'a>>(file: Self, env: &'b mut E) -> EvalResult {
         let mut last = ExpressionValue::Null;
         for line in file.lines {
-            last = ExpressionLine::eval(line, vars)?;
+            last = ExpressionLine::eval(line, env)?;
         }
 
         Ok(last)
     }
 
-    pub fn run<'a, 'b, V: Env<'a>>(input: &str, vars: &'b mut V) -> EvalResult {
+    pub fn run<'a, 'b, E: Env<'a>>(input: &str, env: &'b mut E) -> EvalResult {
         let file = Self::parse(input)?;
-        Self::eval(file, vars)
+        Self::eval(file, env)
     }
 }
 

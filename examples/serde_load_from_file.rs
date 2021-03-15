@@ -1,4 +1,4 @@
-use expression_parser::{ExpressionFile, Variables};
+use expression_parser::{Environment, ExpressionFile};
 use serde_json::{from_slice, to_writer_pretty};
 
 use std::fs::{read, read_to_string, File};
@@ -20,7 +20,7 @@ fn main() {
     let f = File::create(JSON_DATA).unwrap();
     to_writer_pretty(f, &compiled).unwrap();
 
-    let direct_output = ExpressionFile::eval(compiled, &mut Variables::default()).unwrap();
+    let direct_output = ExpressionFile::eval(compiled, &mut Environment::default()).unwrap();
 
     println!("output: {}", direct_output);
 
@@ -28,7 +28,7 @@ fn main() {
     let data = read(JSON_DATA).unwrap();
     let loaded: ExpressionFile = from_slice(&data).unwrap();
 
-    let loaded_output = ExpressionFile::eval(loaded, &mut Variables::default()).unwrap();
+    let loaded_output = ExpressionFile::eval(loaded, &mut Environment::default()).unwrap();
 
     println!("output: {}", loaded_output);
     println!("same output? {}", loaded_output == direct_output);

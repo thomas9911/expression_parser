@@ -1,4 +1,4 @@
-use expression_parser::{ExpressionFile, Variables};
+use expression_parser::{Environment, ExpressionFile};
 
 const HELP_TEXT: &'static str = "ExpressionFile example
 Usage: expression [OPTIONS] [ARGS ..]
@@ -29,7 +29,7 @@ fn main() {
     if parse_debug_env_var() {
         println!("{:?}", parsed); // 'ast'
     }
-    match ExpressionFile::eval(parsed, &mut Variables::default()) {
+    match ExpressionFile::eval(parsed, &mut Environment::default()) {
         Ok(x) => println!("{}", x), // evaluated expression
         Err(e) => println!("{}", e),
     }

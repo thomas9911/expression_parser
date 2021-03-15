@@ -1,4 +1,4 @@
-use super::{Input, Output, VariableMap};
+use super::{Input, Output};
 use crate::{Env, Error, Expression, ExpressionMap, ExpressionValue};
 
 pub fn get_map<'a, 'b, Vars: Env<'a>>(map: ExpressionMap, rhs: Input, vars: &'b Vars) -> Output {

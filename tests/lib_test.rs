@@ -1,5 +1,5 @@
 use expression_parser::{
-    Env, Environment, Expression, ExpressionFile, ExpressionMap, ExpressionValue, VariableMap, Variables,
+    Env, Environment, Expression, ExpressionFile, ExpressionMap, ExpressionValue,
 };
 use std::collections::HashMap;
 
@@ -45,7 +45,7 @@ mod iter_variables {
 }
 
 mod or {
-    use expression_parser::{Expression, ExpressionValue, Environment};
+    use expression_parser::{Environment, Expression, ExpressionValue};
 
     #[test]
     fn operator_true() {
@@ -115,7 +115,7 @@ mod or {
 }
 
 mod and {
-    use expression_parser::{Expression, ExpressionValue, Environment};
+    use expression_parser::{Environment, Expression, ExpressionValue};
 
     #[test]
     fn operator_false() {
@@ -197,7 +197,7 @@ mod and {
 }
 
 mod number {
-    use expression_parser::{Expression, Environment};
+    use expression_parser::{Environment, Expression};
 
     #[test]
     fn simple_addition() {
@@ -537,7 +537,7 @@ fn compile_calculation() {
 }
 
 mod function {
-    use expression_parser::{Expression, ExpressionFile, Environment};
+    use expression_parser::{Environment, Expression, ExpressionFile};
 
     #[test]
     fn simple() {
@@ -756,7 +756,7 @@ mod function {
 
 mod closure {
     use expression_parser::{
-        Closure, Env, Environment, Error, ExpressionFile, ExpressionValue, ScopedEnvironment, VariableMap, Variables,
+        Closure, Env, Environment, Error, ExpressionFile, ExpressionValue, ScopedEnvironment,
     };
     use std::sync::Arc;
 
@@ -869,7 +869,7 @@ mod closure {
 
 #[cfg(feature = "serde_example")]
 mod serde_tests {
-    use expression_parser::{ExpressionFile, Variables};
+    use expression_parser::{Environment, ExpressionFile};
 
     #[test]
     fn loading_script_from_json() {
@@ -925,7 +925,7 @@ fn class_test() {
 
 mod recursion_overflow_test {
     use expression_parser::error::ErrorCodes;
-    use expression_parser::{Error, ExpressionFile, Environment};
+    use expression_parser::{Environment, Error, ExpressionFile};
 
     fn script(amount: usize) -> String {
         format!(

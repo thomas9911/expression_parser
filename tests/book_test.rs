@@ -1,4 +1,4 @@
-use expression_parser::{Error, ExpressionFile, ExpressionValue, Environment, Variables};
+use expression_parser::{Environment, Error, ExpressionFile, ExpressionValue};
 
 type Result = std::result::Result<ExpressionValue, Error>;
 
@@ -226,7 +226,7 @@ mod chapter_5 {
     #[test]
     fn simple() {
         // ANCHOR: chapter_5_simple
-        use expression_parser::{ExpressionFile, Environment};
+        use expression_parser::{Environment, ExpressionFile};
 
         let input = r#"
         a = 1 + 1;
@@ -249,8 +249,8 @@ mod chapter_5 {
     #[test]
     fn extra_vars() {
         // ANCHOR: chapter_5_extra_vars
-        use expression_parser::{Env, ExpressionFile, VariableMap, Environment};
-        
+        use expression_parser::{Env, Environment, ExpressionFile};
+
         let input = r#"
         5 * DATA     
         "#;
@@ -269,7 +269,7 @@ mod chapter_5 {
     fn extra_functions() {
         // ANCHOR: chapter_5_extra_functions
         use expression_parser::{
-            Closure, Error, ExpressionFile, ExpressionValue, Env, Environment,
+            Closure, Env, Environment, Error, ExpressionFile, ExpressionValue,
         };
         use std::sync::Arc;
 

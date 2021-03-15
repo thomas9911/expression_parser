@@ -397,18 +397,18 @@ impl Default for Expression {
 
 impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
-    pub fn eval<'a, 'b, V: Env<'a> + std::fmt::Debug>(
+    pub fn eval<'a, 'b, E: Env<'a> + std::fmt::Debug>(
         expression: Expression,
-        vars: &'b V,
+        env: &'b E,
     ) -> EvalResult {
         match expression {
-            Expression::Expr(op) => Function::eval(*op, vars),
+            Expression::Expr(op) => Function::eval(*op, env),
             Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(ExpressionValue::List(
                     list.into_iter().try_fold::<_, _, Result<_, Error>>(
                         Vec::new(),
                         |mut acc, x| {
-                            acc.push(Expression::Value(Expression::eval(x, vars)?));
+                            acc.push(Expression::Value(Expression::eval(x, env)?));
                             Ok(acc)
                         },
                     )?,
@@ -418,7 +418,7 @@ impl Expression {
                         map.into_iter().try_fold::<_, _, Result<_, Error>>(
                             HashMap::new(),
                             |mut acc, (k, v)| {
-                                acc.insert(k, Expression::Value(Expression::eval(v, vars)?));
+                                acc.insert(k, Expression::Value(Expression::eval(v, env)?));
                                 Ok(acc)
                             },
                         )?
@@ -426,19 +426,20 @@ impl Expression {
                 }
                 x => Ok(x),
             },
-            Expression::Var(s) => match vars.variables().get(&s) {
+            Expression::Var(s) => match env.variables().get(&s) {
                 Some(x) => Ok(x.clone()),
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
             Expression::UserFunction(function) => {
-                let mut compiled = if let Some(compiled) = vars.variables().local() {
+                let vars = env.variables();
+                let mut compiled = if let Some(compiled) = vars.local() {
                     compiled
                 } else {
                     Variables::new()
                 };
 
                 for local_var in function.iter_variables() {
-                    if let Some(var) = vars.variables().get(&local_var) {
+                    if let Some(var) = vars.get(&local_var) {
                         compiled.insert(&local_var, var.to_owned());
                     }
                 }

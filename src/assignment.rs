@@ -4,7 +4,7 @@ use pest::Parser;
 
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Env, Error, Expression, VariableMap};
+use crate::{Env, Error, Expression};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};

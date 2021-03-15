@@ -32,12 +32,12 @@
 //! Simple example
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{Expression, Variables};
+//! use expression_parser::{Environment, Expression};
 //! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("1 + 5 - 2")?;
-//! let result = Expression::eval(parsed, &Variables::default());
+//! let result = Expression::eval(parsed, &Environment::default());
 //!
 //! assert_eq!(Ok(4.0.into()), result);
 //! # Ok(())
@@ -47,12 +47,12 @@
 //! Another example
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{Expression, Variables};
+//! use expression_parser::{Environment, Expression};
 //! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("e ^ (1 + 5 - 2)")?;
-//! let result = Expression::eval(parsed, &Variables::default());
+//! let result = Expression::eval(parsed, &Environment::default());
 //!
 //! assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 //! # Ok(())
@@ -62,12 +62,12 @@
 //! Use build-in variables and functions
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{Expression, Variables};
+//! use expression_parser::{Environment, Expression};
 //! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse("sin(e) + 1")?;
-//! let result = Expression::eval(parsed, &Variables::default());
+//! let result = Expression::eval(parsed, &Environment::default());
 //!
 //! assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 //! # Ok(())
@@ -77,7 +77,7 @@
 //! Use your own variables
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{Expression, Variables, VariableMap};
+//! use expression_parser::{Env, Environment, Expression, Variables, VariableMap};
 //! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
@@ -88,7 +88,11 @@
 //! vars.insert(String::from("y"), 3.0.into());
 //! vars.insert(String::from("z"), 10.0.into());
 //!
-//! let result = Expression::eval(parsed.clone(), &Variables::from(vars));
+//! let env = Environment::builder()
+//!             .with_variables(Box::new(vars))
+//!             .build();
+//!
+//! let result = Expression::eval(parsed.clone(), &env);
 //!
 //! assert_eq!(Ok(16.0.into()), result);
 //!
@@ -97,7 +101,11 @@
 //! vars.insert("y", 3.0.into());
 //! vars.insert("z", 10.0.into());
 //!
-//! let result = Expression::eval(parsed, &Variables::from(vars));
+//! let env = Environment::builder()
+//!             .with_variables(Box::new(vars))
+//!             .build();
+//!
+//! let result = Expression::eval(parsed, &env);
 //! assert_eq!(Ok(16.0.into()), result);
 //! # Ok(())
 //! # }
@@ -106,12 +114,12 @@
 //! Simple String example
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{Expression, Variables, ExpressionValue};
+//! use expression_parser::{Environment, Expression, ExpressionValue};
 //! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
 //! let parsed = Expression::parse(r#"concat("1", "2", "3", "4")"#)?;
-//! let result = Expression::eval(parsed, &Variables::default());
+//! let result = Expression::eval(parsed, &Environment::default());
 //!
 //! assert_eq!(Ok(ExpressionValue::from("1234")), result);
 //! assert_eq!("\"1234\"", result.unwrap().to_string());
@@ -122,7 +130,7 @@
 //! Multi-line example with variable assigment
 //! ```
 //! # use pest::error::Error;
-//! use expression_parser::{ExpressionFile, Variables, ExpressionValue};
+//! use expression_parser::{Environment, ExpressionFile, ExpressionValue};
 //! # use expression_parser::grammar::Rule;
 //!
 //! # fn main() -> Result<(), Error<Rule>> {
@@ -134,7 +142,7 @@
 //!     concat(c, [4,4], d);
 //! "#;
 //! let file = ExpressionFile::parse(input)?;
-//! let evaluated = ExpressionFile::eval(file, &mut Variables::default());
+//! let evaluated = ExpressionFile::eval(file, &mut Environment::default());
 //! assert_eq!(
 //!     ExpressionValue::from(vec![
 //!         1, 2, 3, 3, 2, 1, 4,

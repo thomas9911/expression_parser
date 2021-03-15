@@ -1,15 +1,10 @@
 use crate::statics::DEFAULT_VARIABLES;
-use crate::{ScopedVariables, VariableMap, Variables};
+use crate::VariableMap;
 
 pub trait Env<'a>: std::fmt::Debug {
     fn variables(&self) -> &Box<dyn VariableMap + 'a>;
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a>;
-    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b>;
-    // Environment::builder()
-    //     .with_variables(Box::new(ScopedVariables::new(self.variables())))
-    //     .build_scoped()
 }
-
 
 impl<'a, T> Env<'a> for &mut T
 where
@@ -21,10 +16,6 @@ where
 
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
         (*self).variables_mut()
-    }
-
-    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b> {
-        (**self).to_scoped()
     }
 }
 
@@ -39,10 +30,6 @@ where
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
         panic!("cannot mutate when not defined as mutatable")
     }
-
-    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b> {
-        (**self).to_scoped()
-    }
 }
 
 #[derive(Debug)]
@@ -52,9 +39,7 @@ pub struct Environment<'a> {
 
 #[derive(Debug)]
 pub struct ScopedEnvironment<'a, 'b> {
-    // variables: Box<dyn VariableMap + 'a>,
     pub(crate) original: Box<&'b dyn Env<'a>>,
-    // local: ScopedVariables<'b>,
     pub(crate) local: Box<dyn VariableMap + 'b>,
 }
 
@@ -76,15 +61,6 @@ impl<'a> Env<'a> for Environment<'a> {
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
         &mut self.variables
     }
-
-    fn to_scoped<'b>(&'a self) -> ScopedEnvironment<'a, 'b> {
-        let var = ScopedVariables::new(self.variables());
-
-        ScopedEnvironment {
-            original: Box::new(self),
-            local: Box::new(var),
-        }
-    }
 }
 
 impl<'a> Default for Environment<'a> {
@@ -100,15 +76,6 @@ impl<'a, 'b> Env<'b> for ScopedEnvironment<'a, 'b> {
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'b> {
         &mut self.local
     }
-
-    fn to_scoped<'c>(&'b self) -> ScopedEnvironment<'b, 'c> {
-        let var = ScopedVariables::new(self.variables());
-
-        ScopedEnvironment {
-            original: Box::new(self),
-            local: Box::new(var),
-        }
-    }
 }
 
 impl<'a> EnvironmentBuilder<'a> {
@@ -119,14 +86,6 @@ impl<'a> EnvironmentBuilder<'a> {
 
         Environment { variables }
     }
-
-    // pub fn build_scoped(self) -> ScopedEnvironment<'a> {
-    //     let variables = self
-    //         .variables
-    //         .unwrap_or(Box::new(DEFAULT_VARIABLES.to_owned()));
-
-    //     ScopedEnvironment { variables }
-    // }
 
     pub fn with_variables(
         mut self,
@@ -197,7 +156,6 @@ fn build_test() {
 
 #[test]
 fn mutable_variables() {
-    use crate::ExpressionValue;
     use std::collections::HashMap;
 
     let mut vars = HashMap::new();
@@ -207,7 +165,7 @@ fn mutable_variables() {
         .with_variables(Box::new(vars))
         .build();
 
-    let mut vars = env.variables_mut();
+    env.variables_mut().insert("ok", 1.into());
 
-    vars.insert("ok", 1.into());
+    assert_eq!(Some(&1.into()), env.variables().get("ok"))
 }

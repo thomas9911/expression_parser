@@ -1,5 +1,5 @@
 use super::{as_string, ok_string};
-use super::{Input, Output, VariableMap};
+use super::{Input, Output};
 use crate::{Env, Error, Expression, ExpressionValue};
 
 pub fn join<'a, 'b, Vars: Env<'a>>(lhs: Input, rhs: Input, vars: &'b Vars) -> Output {

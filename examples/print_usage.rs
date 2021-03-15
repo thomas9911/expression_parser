@@ -1,6 +1,6 @@
 // use expression_parser::{ExpressionFile, ExpressionValue, Function};
 use expression_parser::function::{functions, FunctionName};
-use expression_parser::{Expression, Function, Variables};
+use expression_parser::{Environment, Expression, Function};
 
 use strum::IntoEnumIterator;
 
@@ -15,8 +15,8 @@ fn function_doc_tests() {
     functions.sort_unstable();
 
     for function in functions {
-        let vars = Variables::default();
-        let a = functions::help(Expression::Var(function.clone()), &vars);
+        let env = Environment::default();
+        let a = functions::help(Expression::Var(function.clone()), &env);
         println!(
             "## {}\n\n{}\n",
             function,

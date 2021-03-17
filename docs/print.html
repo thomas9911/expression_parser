@@ -767,61 +767,59 @@ factorial.(8) // returns 40320
         let result = ExpressionFile::eval(parsed, &amp;mut env);
         assert_eq!(result, Ok(12.into()))
 </code></pre>
-<pre><code class="language-rust ignore">    //     use expression_parser::{
-    //         Closure, Env, Error, Expression, ExpressionFile, VariableMap, Variables, Environment,
-    //     };
-    //     use std::sync::Arc;
+<pre><code class="language-rust ignore">        use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
+        use std::sync::Arc;
 
-    //     let mut env = Environment::default();
+        let mut env = Environment::default();
 
-    //     let closure = Closure::new(
-    //         vec![&quot;map&quot;.to_string(), &quot;key&quot;.to_string()],
-    //         Arc::new(Box::new(|vars, context| {
-    //             let map = vars
-    //                 .get(0)
-    //                 .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?
-    //                 // probably do something more smart than just clone
-    //                 .clone()
-    //                 .as_map()
-    //                 .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?;
-    //             let key = vars
-    //                 .get(1)
-    //                 .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?
-    //                 .as_string()
-    //                 .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?;
+        let closure = Closure::new(
+            vec![&quot;map&quot;.to_string(), &quot;key&quot;.to_string()],
+            Arc::new(Box::new(|vars, context| {
+                let map = vars
+                    .get(0)
+                    .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?
+                    // probably do something more smart than just clone
+                    .clone()
+                    .as_map()
+                    .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?;
+                let key = vars
+                    .get(1)
+                    .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?
+                    .as_string()
+                    .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?;
 
-    //             // get access to the underlying HashMap
-    //             let result = map.0.get(&amp;key).ok_or(Error::new_static(&quot;key not found&quot;))?;
+                // get access to the underlying HashMap
+                let result = map.0.get(&amp;key).ok_or(Error::new_static(&quot;key not found&quot;))?;
 
-    //             // the result is an expression, these can include variables ect.
-    //             // We can just match on the value or eval the Expression with the current context.
-    //             let result = Expression::eval(result.clone(), &amp;Box::new(context))?;
+                // the result is an expression, these can include variables ect.
+                // We can just match on the value or eval the Expression with the current context.
+                let result = Expression::eval(result.clone(), &amp;Box::new(context))?;
 
-    //             Ok(result)
-    //         })),
-    //     );
-    //     env.variables_mut().insert(&quot;map_get&quot;, closure.into());
+                Ok(result)
+            })),
+        );
+        env.variables_mut().insert(&quot;map_get&quot;, closure.into());
 
-    //     let script = r#&quot;
-    //     map_get.(
-    //         {&quot;test&quot;: &quot;some_value&quot;},
-    //         &quot;test&quot;
-    //     )
-    //     &quot;#;
+        let script = r#&quot;
+        map_get.(
+            {&quot;test&quot;: &quot;some_value&quot;},
+            &quot;test&quot;
+        )
+        &quot;#;
 
-    //     let result = ExpressionFile::run(script, &amp;mut env);
-    //     assert_eq!(result, Ok(&quot;some_value&quot;.into()));
+        let result = ExpressionFile::run(script, &amp;mut env);
+        assert_eq!(result, Ok(&quot;some_value&quot;.into()));
 
-    //     let script = r#&quot;
-    //     text = &quot;some_variable&quot;;
-    //     map_get.(
-    //         {&quot;test&quot;: text},
-    //         &quot;test&quot;
-    //     )
-    //     &quot;#;
+        let script = r#&quot;
+        text = &quot;some_variable&quot;;
+        map_get.(
+            {&quot;test&quot;: text},
+            &quot;test&quot;
+        )
+        &quot;#;
 
-    //     let result = ExpressionFile::run(script, &amp;mut env);
-    //     assert_eq!(result, Ok(&quot;some_variable&quot;.into()));
+        let result = ExpressionFile::run(script, &amp;mut env);
+        assert_eq!(result, Ok(&quot;some_variable&quot;.into()));
 </code></pre>
 
                     </main>

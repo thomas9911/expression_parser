@@ -105,11 +105,11 @@ pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b E) -> Ou
     }
 }
 
-pub fn call_function<'a, 'b, E: Env<'a>>(
+pub fn call_function<'a, 'b>(
     user_func: UserFunction,
     compiled_vars: Variables,
     args: Vec<ExpressionValue>,
-    context: &'b mut E,
+    context: &'b mut ScopedEnvironment<'a, '_>,
 ) -> Output {
     for (key, value) in compiled_vars.into_iter() {
         context.variables_mut().insert(&key, value);
@@ -124,10 +124,10 @@ pub fn call_function<'a, 'b, E: Env<'a>>(
     Ok(result)
 }
 
-pub fn call_external_function<'a, 'b, E: Env<'a>>(
+pub fn call_external_function<'a, 'b>(
     closure: Closure,
     args: Vec<ExpressionValue>,
-    context: &'b mut E,
+    context: &'b mut ScopedEnvironment<'a, '_>,
 ) -> Output {
     let f = closure.function;
     f(args, context)

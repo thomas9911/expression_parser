@@ -829,7 +829,7 @@ mod closure {
 
     fn inner_func(
         args: Vec<ExpressionValue>,
-        context: &mut ScopedEnvironment,
+        context: &mut ScopedEnvironment<'_, '_>,
     ) -> Result<ExpressionValue, Error> {
         fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
             x.ok_or(Error::new_static("missing arguments"))?
@@ -849,22 +849,22 @@ mod closure {
         Ok(result.into())
     }
 
-    // #[test]
-    // fn seperate_function_test() {
-    //     let mut env = Environment::default();
-    //     let closure = Closure::new(vec!["y".to_string()], Arc::new(Box::new(inner_func)));
-    //     env.variables_mut().insert("external_func", closure.into());
+    #[test]
+    fn seperate_function_test() {
+        let mut env = Environment::default();
+        let closure = Closure::new(vec!["y".to_string()], Arc::new(Box::new(inner_func)));
+        env.variables_mut().insert("external_func", closure.into());
 
-    //     let script = r#"
-    //     MY_CONFIG="testing-test-testing";
-    //     x = 123;
-    //     external_func.(2)
-    //     "#;
+        let script = r#"
+        MY_CONFIG="testing-test-testing";
+        x = 123;
+        external_func.(2)
+        "#;
 
-    //     let parsed = ExpressionFile::parse(script).unwrap();
-    //     let result = ExpressionFile::eval(parsed, &mut env);
-    //     assert_eq!(result, Ok("testing-test-testing246".into()))
-    // }
+        let parsed = ExpressionFile::parse(script).unwrap();
+        let result = ExpressionFile::eval(parsed, &mut env);
+        assert_eq!(result, Ok("testing-test-testing246".into()))
+    }
 }
 
 #[cfg(feature = "serde_example")]

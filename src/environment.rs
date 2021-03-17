@@ -19,6 +19,19 @@ where
     }
 }
 
+impl<'a, T> Env<'a> for Box<T>
+where
+    T: Env<'a>,
+{
+    fn variables(&self) -> &Box<dyn VariableMap + 'a> {
+        (**self).variables()
+    }
+
+    fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
+        (**self).variables_mut()
+    }
+}
+
 impl<'a, T> Env<'a> for &T
 where
     T: Env<'a>,
@@ -33,7 +46,7 @@ where
 }
 
 #[derive(Debug)]
-/// Environment holding all the connections to side effects. 
+/// Environment holding all the connections to side effects.
 pub struct Environment<'a> {
     variables: Box<dyn VariableMap + 'a>,
 }
@@ -169,4 +182,39 @@ fn mutable_variables() {
     env.variables_mut().insert("ok", 1.into());
 
     assert_eq!(Some(&1.into()), env.variables().get("ok"))
+}
+
+#[test]
+fn boxed_test_variables() {
+    fn fetch_true<'a, E: Env<'a>>(t: E) -> bool {
+        t.variables().get("true").unwrap().as_bool().unwrap()
+    };
+
+    let env = Environment::default();
+    assert!(fetch_true(env));
+
+    let mut env = Environment::default();
+    assert!(fetch_true(Box::new(&mut env)));
+    assert!(fetch_true(Box::new(&env)));
+    assert!(fetch_true(Box::new(env)));
+}
+
+#[test]
+fn boxed_test_variables_mut() {
+    fn set_ok<'a, E: Env<'a>>(mut t: E) {
+        t.variables_mut().insert("ok", true.into());
+    };
+
+    fn fetch_ok<'a, E: Env<'a>>(mut t: E) -> bool {
+        t.variables_mut().get("ok").unwrap().as_bool().unwrap()
+    };
+
+    let mut env = Environment::default();
+    set_ok(Box::new(&mut env));
+    assert!(fetch_ok(Box::new(&mut env)));
+
+    let env = Environment::default();
+    let mut boxed_env = Box::new(env);
+    set_ok(&mut boxed_env);
+    assert!(fetch_ok(&mut boxed_env));
 }

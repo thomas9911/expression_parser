@@ -279,8 +279,7 @@ mod chapter_5 {
         // `new` takes a list of the arguments used (only for debugging purposes)
         // and an `Arc` with a `Box`ed function with two arguments.
         // the first is a list containing all the arguments given by the user. These need to be validated yourself.
-        // the second argument is a ScopedVariables struct that acts like a Map that contains all the variables used above the function call.
-        // this can be used for instance for config options.
+        // the second argument is a `ScopedEnvironment` struct that has methods to access variables outside the function and side effects.
         // the return value is a `Result<ExpressionValue, Error>`
         let closure = Closure::new(
             vec!["x".to_string(), "y".to_string()],
@@ -312,64 +311,62 @@ mod chapter_5 {
         // ANCHOR_END: chapter_5_extra_functions
     }
 
-    // #[test]
-    // fn extra_functions2() {
-    //     // ANCHOR: chapter_5_extra_functions2
-    //     use expression_parser::{
-    //         Closure, Env, Error, Expression, ExpressionFile, VariableMap, Variables, Environment,
-    //     };
-    //     use std::sync::Arc;
+    #[test]
+    fn extra_functions2() {
+        // ANCHOR: chapter_5_extra_functions2
+        use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
+        use std::sync::Arc;
 
-    //     let mut env = Environment::default();
+        let closure = Closure::new(
+            vec!["map".to_string(), "key".to_string()],
+            Arc::new(Box::new(|vars, context| {
+                let map = vars
+                    .get(0)
+                    .ok_or(Error::new_static("expect a map as the first argument"))?
+                    // probably do something more smart than just clone
+                    .clone()
+                    .as_map()
+                    .ok_or(Error::new_static("expect a map as the first argument"))?;
+                let key = vars
+                    .get(1)
+                    .ok_or(Error::new_static("expect a key as the second argument"))?
+                    .as_string()
+                    .ok_or(Error::new_static("expect a key as the second argument"))?;
 
-    //     let closure = Closure::new(
-    //         vec!["map".to_string(), "key".to_string()],
-    //         Arc::new(Box::new(|vars, context| {
-    //             let map = vars
-    //                 .get(0)
-    //                 .ok_or(Error::new_static("expect a map as the first argument"))?
-    //                 // probably do something more smart than just clone
-    //                 .clone()
-    //                 .as_map()
-    //                 .ok_or(Error::new_static("expect a map as the first argument"))?;
-    //             let key = vars
-    //                 .get(1)
-    //                 .ok_or(Error::new_static("expect a key as the second argument"))?
-    //                 .as_string()
-    //                 .ok_or(Error::new_static("expect a key as the second argument"))?;
+                // get access to the underlying HashMap
+                let result = map.0.get(&key).ok_or(Error::new_static("key not found"))?;
 
-    //             // get access to the underlying HashMap
-    //             let result = map.0.get(&key).ok_or(Error::new_static("key not found"))?;
+                // the result is an expression, these can include variables ect.
+                // We can just match on the value or eval the Expression with the current context.
+                let result = Expression::eval(result.clone(), &Box::new(context))?;
 
-    //             // the result is an expression, these can include variables ect.
-    //             // We can just match on the value or eval the Expression with the current context.
-    //             let result = Expression::eval(result.clone(), &Box::new(context))?;
+                Ok(result)
+            })),
+        );
+        
+        let mut env = Environment::default();
+        env.variables_mut().insert("map_get", closure.into());
 
-    //             Ok(result)
-    //         })),
-    //     );
-    //     env.variables_mut().insert("map_get", closure.into());
+        let script = r#"
+        map_get.(
+            {"test": "some_value"},
+            "test"
+        )
+        "#;
 
-    //     let script = r#"
-    //     map_get.(
-    //         {"test": "some_value"},
-    //         "test"
-    //     )
-    //     "#;
+        let result = ExpressionFile::run(script, &mut env);
+        assert_eq!(result, Ok("some_value".into()));
 
-    //     let result = ExpressionFile::run(script, &mut env);
-    //     assert_eq!(result, Ok("some_value".into()));
+        let script = r#"
+        text = "some_variable";
+        map_get.(
+            {"test": text},
+            "test"
+        )
+        "#;
 
-    //     let script = r#"
-    //     text = "some_variable";
-    //     map_get.(
-    //         {"test": text},
-    //         "test"
-    //     )
-    //     "#;
-
-    //     let result = ExpressionFile::run(script, &mut env);
-    //     assert_eq!(result, Ok("some_variable".into()));
-    //     // ANCHOR_END: chapter_5_extra_functions2
-    // }
+        let result = ExpressionFile::run(script, &mut env);
+        assert_eq!(result, Ok("some_variable".into()));
+        // ANCHOR_END: chapter_5_extra_functions2
+    }
 }

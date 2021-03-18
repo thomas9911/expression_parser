@@ -2,16 +2,16 @@ use super::{as_string, ok_string};
 use super::{Input, Output};
 use crate::{Env, Error, Expression, ExpressionValue};
 
-pub fn join<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, vars: &'b mut E) -> Output {
-    let list = eval_to_list(lhs, vars)?;
-    let join_with = Expression::eval(rhs, vars)?
+pub fn join<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    let list = eval_to_list(lhs, env)?;
+    let join_with = Expression::eval(rhs, env)?
         .as_string()
         .ok_or(Error::new_static("second argument is not a string"))?;
 
     let string_list = list
         .into_iter()
         .try_fold(Vec::new(), |mut acc, x| -> Result<Vec<String>, Error> {
-            let value: ExpressionValue = Expression::eval(x, vars)?;
+            let value: ExpressionValue = Expression::eval(x, env)?;
             acc.push(as_string(value));
             Ok(acc)
         })
@@ -20,25 +20,25 @@ pub fn join<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, vars: &'b mut E) -> Outp
     ok_string(string_list.join(&join_with))
 }
 
-pub fn get_list<'a, 'b, E: Env<'a>>(list: Vec<Input>, rhs: Input, vars: &'b mut E) -> Output {
-    match Expression::eval(rhs, vars)? {
-        ExpressionValue::Number(x) => get_f64(list, x, vars),
+pub fn get_list<'a, 'b, E: Env<'a>>(list: Vec<Input>, rhs: Input, env: &'b mut E) -> Output {
+    match Expression::eval(rhs, env)? {
+        ExpressionValue::Number(x) => get_f64(list, x, env),
         _ => Err(Error::new_static(
             "second argument is not a valid index value",
         )),
     }
 }
 
-pub fn push<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, vars: &'b mut E) -> Output {
-    let mut list = eval_to_list(lhs, vars)?;
-    let item = Expression::eval(rhs, vars)?;
+pub fn push<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    let mut list = eval_to_list(lhs, env)?;
+    let item = Expression::eval(rhs, env)?;
     list.push(Expression::Value(item));
 
     Ok(ExpressionValue::List(list))
 }
 
-pub fn remove_list<'a, 'b, E: Env<'a>>(lhs: Vec<Input>, rhs: Input, vars: &'b mut E) -> Output {
-    match Expression::eval(rhs, vars)? {
+pub fn remove_list<'a, 'b, E: Env<'a>>(lhs: Vec<Input>, rhs: Input, env: &'b mut E) -> Output {
+    match Expression::eval(rhs, env)? {
         ExpressionValue::Number(x) => remove_f64(lhs, x),
         _ => Err(Error::new_static(
             "second argument is not a valid index value",
@@ -46,15 +46,15 @@ pub fn remove_list<'a, 'b, E: Env<'a>>(lhs: Vec<Input>, rhs: Input, vars: &'b mu
     }
 }
 
-fn get_f64<'a, 'b, E: Env<'a>>(list: Vec<Expression>, index: f64, vars: &'b mut E) -> Output {
+fn get_f64<'a, 'b, E: Env<'a>>(list: Vec<Expression>, index: f64, env: &'b mut E) -> Output {
     if index < 0.0 {
         let index = float_to_index(-index)?;
         let item = get_back_int(list, index)?;
-        Expression::eval(item, vars)
+        Expression::eval(item, env)
     } else {
         let index = float_to_index(index)?;
         let item = get_int(list, index)?;
-        Expression::eval(item, vars)
+        Expression::eval(item, env)
     }
 }
 
@@ -104,9 +104,9 @@ fn remove_back_int(list: &mut Vec<Expression>, index: usize) -> Result<(), Error
 
 fn eval_to_list<'a, 'b, E: Env<'a>>(
     input: Input,
-    vars: &'b mut E,
+    env: &'b mut E,
 ) -> Result<Vec<Expression>, Error> {
-    Expression::eval(input, vars)?
+    Expression::eval(input, env)?
         .as_list()
         .ok_or(Error::new_static("first argument is not a list"))
 }

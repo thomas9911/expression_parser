@@ -279,7 +279,7 @@ mod chapter_5 {
         // `new` takes a list of the arguments used (only for debugging purposes)
         // and an `Arc` with a `Box`ed function with two arguments.
         // the first is a list containing all the arguments given by the user. These need to be validated yourself.
-        // the second argument is a `ScopedEnvironment` struct that has methods to access variables outside the function and side effects.
+        // the second argument is a `Environment` struct that has methods to access variables outside the function and side effects.
         // the return value is a `Result<ExpressionValue, Error>`
         let closure = Closure::new(
             vec!["x".to_string(), "y".to_string()],

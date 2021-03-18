@@ -120,12 +120,13 @@ pub fn call_function<'a, 'b>(
     args: Vec<ExpressionValue>,
     context: &'b mut Environment<'a>,
 ) -> Output {
+    let vars = context.variables_mut();
     for (key, value) in compiled_vars.into_iter() {
-        context.variables_mut().insert(&key, value);
+        vars.insert(&key, value);
     }
 
     for (key, value) in user_func.arguments.iter().zip(args) {
-        context.variables_mut().insert(key, value);
+        vars.insert(key, value);
     }
 
     let result = ExpressionFile::eval(user_func.expression, context)?;

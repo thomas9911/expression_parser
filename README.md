@@ -36,7 +36,7 @@ Simple example
 use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse("1 + 5 - 2")?;
-let result = Expression::eval(parsed, &Environment::default());
+let result = Expression::eval(parsed, &mut Environment::default());
 
 assert_eq!(Ok(4.0.into()), result);
 ```
@@ -46,7 +46,7 @@ Another example
 use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse("e ^ (1 + 5 - 2)")?;
-let result = Expression::eval(parsed, &Environment::default());
+let result = Expression::eval(parsed, &mut Environment::default());
 
 assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 ```
@@ -56,7 +56,7 @@ Use build-in variables and functions
 use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse("sin(e) + 1")?;
-let result = Expression::eval(parsed, &Environment::default());
+let result = Expression::eval(parsed, &mut Environment::default());
 
 assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 ```
@@ -72,11 +72,11 @@ vars.insert(String::from("x"), 3.0.into());
 vars.insert(String::from("y"), 3.0.into());
 vars.insert(String::from("z"), 10.0.into());
 
-let env = Environment::builder()
+let mut env = Environment::builder()
             .with_variables(Box::new(vars))
             .build();
 
-let result = Expression::eval(parsed.clone(), &env);
+let result = Expression::eval(parsed.clone(), &mut env);
 
 assert_eq!(Ok(16.0.into()), result);
 
@@ -85,11 +85,11 @@ vars.insert("x", 3.0.into());
 vars.insert("y", 3.0.into());
 vars.insert("z", 10.0.into());
 
-let env = Environment::builder()
+let mut env = Environment::builder()
             .with_variables(Box::new(vars))
             .build();
 
-let result = Expression::eval(parsed, &env);
+let result = Expression::eval(parsed, &mut env);
 assert_eq!(Ok(16.0.into()), result);
 ```
 
@@ -98,7 +98,7 @@ Simple String example
 use expression_parser::{Environment, Expression, ExpressionValue};
 
 let parsed = Expression::parse(r#"concat("1", "2", "3", "4")"#)?;
-let result = Expression::eval(parsed, &Environment::default());
+let result = Expression::eval(parsed, &mut Environment::default());
 
 assert_eq!(Ok(ExpressionValue::from("1234")), result);
 assert_eq!("\"1234\"", result.unwrap().to_string());

@@ -195,7 +195,7 @@
 </span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;1 + 5 - 2&quot;)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(4.0.into()), result);
 <span class="boring">}
@@ -207,7 +207,7 @@ assert_eq!(Ok(4.0.into()), result);
 </span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;e ^ (1 + 5 - 2)&quot;)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 <span class="boring">}
@@ -219,7 +219,7 @@ assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 </span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;sin(e) + 1&quot;)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 <span class="boring">}
@@ -237,11 +237,11 @@ vars.insert(String::from(&quot;x&quot;), 3.0.into());
 vars.insert(String::from(&quot;y&quot;), 3.0.into());
 vars.insert(String::from(&quot;z&quot;), 10.0.into());
 
-let env = Environment::builder()
+let mut env = Environment::builder()
             .with_variables(Box::new(vars))
             .build();
 
-let result = Expression::eval(parsed.clone(), &amp;env);
+let result = Expression::eval(parsed.clone(), &amp;mut env);
 
 assert_eq!(Ok(16.0.into()), result);
 
@@ -250,11 +250,11 @@ vars.insert(&quot;x&quot;, 3.0.into());
 vars.insert(&quot;y&quot;, 3.0.into());
 vars.insert(&quot;z&quot;, 10.0.into());
 
-let env = Environment::builder()
+let mut env = Environment::builder()
             .with_variables(Box::new(vars))
             .build();
 
-let result = Expression::eval(parsed, &amp;env);
+let result = Expression::eval(parsed, &amp;mut env);
 assert_eq!(Ok(16.0.into()), result);
 <span class="boring">}
 </span></code></pre></pre>
@@ -265,7 +265,7 @@ assert_eq!(Ok(16.0.into()), result);
 </span>use expression_parser::{Environment, Expression, ExpressionValue};
 
 let parsed = Expression::parse(r#&quot;concat(&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;)&quot;#)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(ExpressionValue::from(&quot;1234&quot;)), result);
 assert_eq!(&quot;\&quot;1234\&quot;&quot;, result.unwrap().to_string());
@@ -325,21 +325,6 @@ assert_eq!(
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

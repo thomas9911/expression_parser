@@ -357,7 +357,10 @@
 <h2><a class="header" href="#print" id="print">print</a></h2>
 <p>Prints value</p>
 <p>Usage:</p>
-<pre><code>
+<pre><code>    // prints the item to configured logger
+    one = print({&quot;test&quot;: 1}) == {&quot;test&quot;: 1};
+            
+    one
 </code></pre>
 <h2><a class="header" href="#product" id="product">product</a></h2>
 <p>Calculates the product of the arguments</p>
@@ -494,21 +497,6 @@
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

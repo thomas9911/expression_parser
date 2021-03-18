@@ -197,7 +197,7 @@
 </span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;1 + 5 - 2&quot;)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(4.0.into()), result);
 <span class="boring">}
@@ -209,7 +209,7 @@ assert_eq!(Ok(4.0.into()), result);
 </span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;e ^ (1 + 5 - 2)&quot;)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 <span class="boring">}
@@ -221,7 +221,7 @@ assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 </span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;sin(e) + 1&quot;)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 <span class="boring">}
@@ -239,11 +239,11 @@ vars.insert(String::from(&quot;x&quot;), 3.0.into());
 vars.insert(String::from(&quot;y&quot;), 3.0.into());
 vars.insert(String::from(&quot;z&quot;), 10.0.into());
 
-let env = Environment::builder()
+let mut env = Environment::builder()
             .with_variables(Box::new(vars))
             .build();
 
-let result = Expression::eval(parsed.clone(), &amp;env);
+let result = Expression::eval(parsed.clone(), &amp;mut env);
 
 assert_eq!(Ok(16.0.into()), result);
 
@@ -252,11 +252,11 @@ vars.insert(&quot;x&quot;, 3.0.into());
 vars.insert(&quot;y&quot;, 3.0.into());
 vars.insert(&quot;z&quot;, 10.0.into());
 
-let env = Environment::builder()
+let mut env = Environment::builder()
             .with_variables(Box::new(vars))
             .build();
 
-let result = Expression::eval(parsed, &amp;env);
+let result = Expression::eval(parsed, &amp;mut env);
 assert_eq!(Ok(16.0.into()), result);
 <span class="boring">}
 </span></code></pre></pre>
@@ -267,7 +267,7 @@ assert_eq!(Ok(16.0.into()), result);
 </span>use expression_parser::{Environment, Expression, ExpressionValue};
 
 let parsed = Expression::parse(r#&quot;concat(&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;)&quot;#)?;
-let result = Expression::eval(parsed, &amp;Environment::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(ExpressionValue::from(&quot;1234&quot;)), result);
 assert_eq!(&quot;\&quot;1234\&quot;&quot;, result.unwrap().to_string());
@@ -564,7 +564,10 @@ unset a;
 <h2><a class="header" href="#print" id="print">print</a></h2>
 <p>Prints value</p>
 <p>Usage:</p>
-<pre><code>
+<pre><code>    // prints the item to configured logger
+    one = print({&quot;test&quot;: 1}) == {&quot;test&quot;: 1};
+            
+    one
 </code></pre>
 <h2><a class="header" href="#product" id="product">product</a></h2>
 <p>Calculates the product of the arguments</p>
@@ -736,8 +739,7 @@ factorial.(8) // returns 40320
         // `new` takes a list of the arguments used (only for debugging purposes)
         // and an `Arc` with a `Box`ed function with two arguments.
         // the first is a list containing all the arguments given by the user. These need to be validated yourself.
-        // the second argument is a ScopedVariables struct that acts like a Map that contains all the variables used above the function call.
-        // this can be used for instance for config options.
+        // the second argument is a `ScopedEnvironment` struct that has methods to access variables outside the function and side effects.
         // the return value is a `Result&lt;ExpressionValue, Error&gt;`
         let closure = Closure::new(
             vec![&quot;x&quot;.to_string(), &quot;y&quot;.to_string()],
@@ -770,8 +772,6 @@ factorial.(8) // returns 40320
 <pre><code class="language-rust ignore">        use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
         use std::sync::Arc;
 
-        let mut env = Environment::default();
-
         let closure = Closure::new(
             vec![&quot;map&quot;.to_string(), &quot;key&quot;.to_string()],
             Arc::new(Box::new(|vars, context| {
@@ -793,11 +793,13 @@ factorial.(8) // returns 40320
 
                 // the result is an expression, these can include variables ect.
                 // We can just match on the value or eval the Expression with the current context.
-                let result = Expression::eval(result.clone(), &amp;Box::new(context))?;
+                let result = Expression::eval(result.clone(), &amp;mut Box::new(context))?;
 
                 Ok(result)
             })),
         );
+
+        let mut env = Environment::default();
         env.variables_mut().insert(&quot;map_get&quot;, closure.into());
 
         let script = r#&quot;
@@ -843,21 +845,6 @@ factorial.(8) // returns 40320
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

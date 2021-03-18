@@ -208,8 +208,7 @@
         // `new` takes a list of the arguments used (only for debugging purposes)
         // and an `Arc` with a `Box`ed function with two arguments.
         // the first is a list containing all the arguments given by the user. These need to be validated yourself.
-        // the second argument is a ScopedVariables struct that acts like a Map that contains all the variables used above the function call.
-        // this can be used for instance for config options.
+        // the second argument is a `ScopedEnvironment` struct that has methods to access variables outside the function and side effects.
         // the return value is a `Result&lt;ExpressionValue, Error&gt;`
         let closure = Closure::new(
             vec![&quot;x&quot;.to_string(), &quot;y&quot;.to_string()],
@@ -242,8 +241,6 @@
 <pre><code class="language-rust ignore">        use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
         use std::sync::Arc;
 
-        let mut env = Environment::default();
-
         let closure = Closure::new(
             vec![&quot;map&quot;.to_string(), &quot;key&quot;.to_string()],
             Arc::new(Box::new(|vars, context| {
@@ -265,11 +262,13 @@
 
                 // the result is an expression, these can include variables ect.
                 // We can just match on the value or eval the Expression with the current context.
-                let result = Expression::eval(result.clone(), &amp;Box::new(context))?;
+                let result = Expression::eval(result.clone(), &amp;mut Box::new(context))?;
 
                 Ok(result)
             })),
         );
+
+        let mut env = Environment::default();
         env.variables_mut().insert(&quot;map_get&quot;, closure.into());
 
         let script = r#&quot;
@@ -323,21 +322,6 @@
 
         </div>
 
-        
-        <!-- Livereload script (if served using the cli tool) -->
-        <script type="text/javascript">
-            var socket = new WebSocket("ws://localhost:3000/__livereload");
-            socket.onmessage = function (event) {
-                if (event.data === "reload") {
-                    socket.close();
-                    location.reload();
-                }
-            };
-
-            window.onbeforeunload = function() {
-                socket.close();
-            }
-        </script>
         
 
         

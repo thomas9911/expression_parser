@@ -399,7 +399,7 @@ impl Expression {
     /// evaluate the syntax tree with given variables and returns a 'ExpressionValue'
     pub fn eval<'a, 'b, E: Env<'a> + std::fmt::Debug>(
         expression: Expression,
-        env: &'b E,
+        env: &'b mut E,
     ) -> EvalResult {
         match expression {
             Expression::Expr(op) => Function::eval(*op, env),
@@ -517,7 +517,7 @@ fn unicode_json() {
     use crate::Environment;
 
     let parsed = Expression::parse(r#""testing \u1F996""#).unwrap();
-    let evaluated = Expression::eval(parsed, &Environment::default()).unwrap();
+    let evaluated = Expression::eval(parsed, &mut Environment::default()).unwrap();
 
     assert_eq!(r#""testing 🦖""#, evaluated.to_string());
 }
@@ -527,7 +527,7 @@ fn unicode_rust() {
     use crate::Environment;
 
     let parsed = Expression::parse(r#""testing \u{1F980}""#).unwrap();
-    let evaluated = Expression::eval(parsed, &Environment::default()).unwrap();
+    let evaluated = Expression::eval(parsed, &mut Environment::default()).unwrap();
 
     assert_eq!(r#""testing 🦀""#, evaluated.to_string());
 }

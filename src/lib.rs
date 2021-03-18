@@ -180,7 +180,7 @@ pub mod variables;
 
 pub use assignment::{Assignment, Unassignment};
 pub use closure::Closure;
-pub use environment::{Env, Environment, EnvironmentBuilder, ScopedEnvironment};
+pub use environment::{Env, Environment, EnvironmentBuilder};
 pub use error::Error;
 pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::ExpressionFile;

@@ -50,49 +50,49 @@ mod or {
     #[test]
     fn operator_true() {
         let parsed = Expression::parse(r#"true | false"#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(true.into()), result);
     }
 
     #[test]
     fn operator_false() {
         let parsed = Expression::parse(r#"false | false"#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn operator_false_string() {
         let parsed = Expression::parse(r#"false | "test""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok("test".into()), result);
     }
 
     #[test]
     fn operator_true_string() {
         let parsed = Expression::parse(r#"true | "test""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(true.into()), result);
     }
 
     #[test]
     fn operator_false_number_string() {
         let parsed = Expression::parse(r#"0 | "test""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok("test".into()), result);
     }
 
     #[test]
     fn operator_true_number_string() {
         let parsed = Expression::parse(r#"1 | "test""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(1.0f64.into()), result);
     }
 
     #[test]
     fn operator_string_string() {
         let parsed = Expression::parse(r#""test" | "other""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok("test".into()), result);
     }
 
@@ -102,14 +102,14 @@ mod or {
         use ExpressionValue::{List, Number};
 
         let parsed = Expression::parse(r#"[1] | "other""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(List(vec![Value(Number(1.0))])), result);
     }
 
     #[test]
     fn operator_empty_vec_string() {
         let parsed = Expression::parse(r#"[] | "other""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok("other".into()), result);
     }
 }
@@ -120,70 +120,70 @@ mod and {
     #[test]
     fn operator_false() {
         let parsed = Expression::parse(r#"true & false"#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn operator_false_2() {
         let parsed = Expression::parse(r#"false & false"#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn operator_true() {
         let parsed = Expression::parse(r#"true & true"#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(true.into()), result);
     }
 
     #[test]
     fn operator_number_false() {
         let parsed = Expression::parse(r#"5 & false"#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn operator_number_true() {
         let parsed = Expression::parse(r#"1 & true"#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(true.into()), result);
     }
 
     #[test]
     fn operator_false_string() {
         let parsed = Expression::parse(r#"false & "test""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn operator_true_string() {
         let parsed = Expression::parse(r#"true & "test""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok("test".into()), result);
     }
 
     #[test]
     fn operator_string_string() {
         let parsed = Expression::parse(r#""test" & "other""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok("other".into()), result);
     }
 
     #[test]
     fn operator_string_string_2() {
         let parsed = Expression::parse(r#"false & "other""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(false.into()), result);
     }
 
     #[test]
     fn operator_vec_string() {
         let parsed = Expression::parse(r#"[1] & "other""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok("other".into()), result);
     }
 
@@ -191,7 +191,7 @@ mod and {
     fn operator_empty_vec_string() {
         use ExpressionValue::List;
         let parsed = Expression::parse(r#"[] & "other""#).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(List(vec![])), result);
     }
 }
@@ -202,56 +202,56 @@ mod number {
     #[test]
     fn simple_addition() {
         let parsed = Expression::parse("1 + 2").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(3.into()), result);
     }
 
     #[test]
     fn simple_subtraction() {
         let parsed = Expression::parse("1 - 2").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok((-1).into()), result);
     }
 
     #[test]
     fn simple_multiplication() {
         let parsed = Expression::parse("1 * 2").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(2.into()), result);
     }
 
     #[test]
     fn simple_division() {
         let parsed = Expression::parse("1 / 2").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(0.5.into()), result);
     }
 
     #[test]
     fn simple_power() {
         let parsed = Expression::parse("2^2").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(4.into()), result);
     }
 
     #[test]
     fn cosine() {
         let parsed = Expression::parse("cos(0)").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(1.into()), result);
     }
 
     #[test]
     fn sine() {
         let parsed = Expression::parse("sin(0)").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(0.into()), result);
     }
 
     #[test]
     fn tangent() {
         let parsed = Expression::parse("tan(0)").unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(Ok(0.into()), result);
     }
 
@@ -266,7 +266,7 @@ mod number {
         let parsed =
             Expression::parse(r#"3*((((1 + 2) / (3**2) + 5) - 2 + 5) * (2 / 4) * 4) / 2.5"#)
                 .unwrap();
-        let result = Expression::eval(parsed, &Environment::default())
+        let result = Expression::eval(parsed, &mut Environment::default())
             .unwrap()
             .as_number()
             .unwrap();
@@ -277,28 +277,28 @@ mod number {
 #[test]
 fn equal_operator_true() {
     let parsed = Expression::parse(r#""test" == "test""#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok(true.into()), result);
 }
 
 #[test]
 fn equal_operator_false() {
     let parsed = Expression::parse(r#""test" == "other""#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok(false.into()), result);
 }
 
 #[test]
 fn not_equal_operator_true() {
     let parsed = Expression::parse(r#""test" != "test""#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok(false.into()), result);
 }
 
 #[test]
 fn not_equal_operator_false() {
     let parsed = Expression::parse(r#""test" != "other""#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok(true.into()), result);
 }
 
@@ -312,21 +312,21 @@ fn concat_operator() {
             panic!("error")
         }
     };
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("testtest".into()), result);
 }
 
 #[test]
 fn concat_function() {
     let parsed = Expression::parse(r#"concat("other", "test")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("othertest".into()), result);
 }
 
 #[test]
 fn concat_function_multi() {
     let parsed = Expression::parse(r#"concat("1", 2, "3", "4")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("1234".into()), result);
 }
 
@@ -340,63 +340,63 @@ fn concat_function_variables() {
     vars.insert("other", "test".into());
     vars.insert("third", "3456".into());
 
-    let result = Expression::eval(parsed, &env);
+    let result = Expression::eval(parsed, &mut env);
     assert_eq!(Ok("1-test3456!!".into()), result);
 }
 
 #[test]
 fn concat_function_one() {
     let parsed = Expression::parse(r#"concat("test")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("test".into()), result);
 }
 
 #[test]
 fn concat_function_list() {
     let parsed = Expression::parse(r#"[1, 4, 5] ++ [2, 3]"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok(vec![1, 4, 5, 2, 3].into()), result);
 }
 
 #[test]
 fn upper() {
     let parsed = Expression::parse(r#"upper("test")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("TEST".into()), result);
 }
 
 #[test]
 fn trim() {
     let parsed = Expression::parse(r#"trim("..test...............", ".")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("test".into()), result);
 }
 
 #[test]
 fn contains_true() {
     let parsed = Expression::parse(r#"contains("test", "test")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok(true.into()), result);
 }
 
 #[test]
 fn contains_false() {
     let parsed = Expression::parse(r#"contains("test", "something")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok(false.into()), result);
 }
 
 #[test]
 fn if_truthy() {
     let parsed = Expression::parse(r#"if("test", "left", "right")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("left".into()), result);
 }
 
 #[test]
 fn if_falsy() {
     let parsed = Expression::parse(r#"if([], "left", "right")"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("right".into()), result);
 }
 
@@ -421,7 +421,7 @@ fn map_evalutate_functions() {
         Expression::parse(r#"{"testing": sum(1,2,3,4) + 15, "test":  {"testing": sum(1,2,3,4)}}"#)
             .unwrap();
     let expected = Expression::parse(r#"{"testing": 25, "test":  {"testing": 10}}"#).unwrap();
-    let result = Expression::eval(parsed, &Environment::default()).unwrap();
+    let result = Expression::eval(parsed, &mut Environment::default()).unwrap();
     assert_eq!(expected, Expression::Value(result));
 }
 
@@ -444,14 +444,14 @@ fn combine_functions() {
     "#,
     )
     .unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
     assert_eq!(Ok("1234_TESTING_TRUE".into()), result);
 }
 
 #[test]
 fn parse_variable_correctly() {
     let parsed = Expression::parse("true and false").unwrap();
-    let result = Expression::eval(parsed, &Environment::default());
+    let result = Expression::eval(parsed, &mut Environment::default());
 
     assert_eq!(Ok(false.into()), result);
 }
@@ -544,7 +544,7 @@ mod function {
         let script = "call({x => x + 1}, 2)";
         let parsed = Expression::parse(script).unwrap();
 
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
 
         assert_eq!(result, Ok(3.into()))
     }
@@ -612,7 +612,7 @@ mod function {
         let script = "call({x, y => x + y + 1}, 2, 4)";
         let parsed = Expression::parse(script).unwrap();
 
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
 
         assert_eq!(result, Ok(7.into()))
     }
@@ -651,7 +651,7 @@ mod function {
     fn string() {
         let script = r#"call({x => join([ x, x ], ",")}, "test")"#;
         let parsed = Expression::parse(script).unwrap();
-        let result = Expression::eval(parsed, &Environment::default());
+        let result = Expression::eval(parsed, &mut Environment::default());
         assert_eq!(result, Ok("test,test".into()))
     }
 
@@ -755,9 +755,7 @@ mod function {
 }
 
 mod closure {
-    use expression_parser::{
-        Closure, Env, Environment, Error, ExpressionFile, ExpressionValue, ScopedEnvironment,
-    };
+    use expression_parser::{Closure, Env, Environment, Error, ExpressionFile, ExpressionValue};
     use std::sync::Arc;
 
     #[test]
@@ -829,7 +827,7 @@ mod closure {
 
     fn inner_func(
         args: Vec<ExpressionValue>,
-        context: &mut ScopedEnvironment<'_, '_>,
+        context: &mut Environment<'_>,
     ) -> Result<ExpressionValue, Error> {
         fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
             x.ok_or(Error::new_static("missing arguments"))?

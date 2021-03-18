@@ -338,12 +338,12 @@ mod chapter_5 {
 
                 // the result is an expression, these can include variables ect.
                 // We can just match on the value or eval the Expression with the current context.
-                let result = Expression::eval(result.clone(), &Box::new(context))?;
+                let result = Expression::eval(result.clone(), &mut Box::new(context))?;
 
                 Ok(result)
             })),
         );
-        
+
         let mut env = Environment::default();
         env.variables_mut().insert("map_get", closure.into());
 

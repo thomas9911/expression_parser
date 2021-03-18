@@ -1,8 +1,10 @@
 use super::FunctionName;
 use crate::{
-    Closure, Env, Error, Expression, ExpressionFile, ExpressionValue, Function, ScopedEnvironment,
+    Closure, Env, Environment, Error, Expression, ExpressionFile, ExpressionValue, Function,
     ScopedVariables, UserFunction, Variables,
 };
+
+use std::collections::HashMap;
 
 pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
@@ -22,7 +24,12 @@ pub use map::*;
 pub use number::*;
 pub use string::*;
 
-pub fn if_function<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b E) -> Output {
+pub fn if_function<'a, 'b, E: Env<'a>>(
+    lhs: Input,
+    mdl: Input,
+    rhs: Input,
+    env: &'b mut E,
+) -> Output {
     let condition = Expression::eval(lhs, env)?;
 
     let res = if condition.is_truthy() {
@@ -34,7 +41,7 @@ pub fn if_function<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: 
     evaluate_lazy_function(res, env)
 }
 
-pub fn now<'a, 'b, E: Env<'a>>(_env: &'b E) -> Output {
+pub fn now<'a, 'b, E: Env<'a>>(_env: &'b mut E) -> Output {
     use std::time::SystemTime;
 
     let now = SystemTime::now()
@@ -44,7 +51,7 @@ pub fn now<'a, 'b, E: Env<'a>>(_env: &'b E) -> Output {
     Ok(now.as_secs_f64().into())
 }
 
-pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output {
+pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     use rand::distributions::IndependentSample;
 
     let a = into_number(lhs, env)?;
@@ -62,38 +69,40 @@ pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output 
     ok_number(value)
 }
 
-pub fn print<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b E) -> Output {
+pub fn print<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
     println!("{}", value);
     Ok(value)
 }
 
-pub fn try_function<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output {
+pub fn try_function<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     match Expression::eval(lhs, env) {
         Ok(x) => Ok(x),
         Err(_) => Expression::eval(rhs, env),
     }
 }
 
-pub fn help<'a, 'b, E: Env<'a>>(lhs: Input, _env: &'b E) -> Output {
+pub fn help<'a, 'b, E: Env<'a>>(lhs: Input, _env: &'b mut E) -> Output {
     match &lhs {
         x if x == &Expression::default() => ok_string(Function::help()),
         _ => normal_help(lhs),
     }
 }
 
-pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b E) -> Output {
+pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b mut E) -> Output {
     let list = evaluate_inputs(list, env)?;
 
+    let logger = env.logger();
     let var = ScopedVariables::new(env.variables());
 
-    let mut context = ScopedEnvironment {
-        original: Box::new(env),
-        local: Box::new(var),
+    let mut context = Environment {
+        // original: Box::new(env),
+        variables: Box::new(var),
+        logger: logger,
     };
 
     {
-        match Expression::eval(func, &context)? {
+        match Expression::eval(func, &mut context)? {
             ExpressionValue::ExternalFunction(closure) => {
                 call_external_function(closure, list, &mut context)
             }
@@ -109,7 +118,7 @@ pub fn call_function<'a, 'b>(
     user_func: UserFunction,
     compiled_vars: Variables,
     args: Vec<ExpressionValue>,
-    context: &'b mut ScopedEnvironment<'a, '_>,
+    context: &'b mut Environment<'a>,
 ) -> Output {
     for (key, value) in compiled_vars.into_iter() {
         context.variables_mut().insert(&key, value);
@@ -127,13 +136,13 @@ pub fn call_function<'a, 'b>(
 pub fn call_external_function<'a, 'b>(
     closure: Closure,
     args: Vec<ExpressionValue>,
-    context: &'b mut ScopedEnvironment<'a, '_>,
+    context: &'b mut Environment<'a>,
 ) -> Output {
     let f = closure.function;
     f(args, context)
 }
 
-pub fn format<'a, 'b, E: Env<'a>>(lhs: Input, list: Vec<Input>, env: &'b E) -> Output {
+pub fn format<'a, 'b, E: Env<'a>>(lhs: Input, list: Vec<Input>, env: &'b mut E) -> Output {
     let template = Expression::eval(lhs, env)?
         .as_string()
         .ok_or(Error::new_static("template is not a string"))?;
@@ -147,17 +156,17 @@ pub fn format<'a, 'b, E: Env<'a>>(lhs: Input, list: Vec<Input>, env: &'b E) -> O
     Ok(result.into())
 }
 
-pub fn type_function<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b E) -> Output {
+pub fn type_function<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
     Ok(value.what_type().into())
 }
 
-pub fn error<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b E) -> Output {
+pub fn error<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
     Err(Error::new(value.to_string()))
 }
 
-pub fn assert<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output {
+pub fn assert<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
 
     if value.is_truthy() {
@@ -171,7 +180,7 @@ pub fn assert<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output 
 }
 
 /// overload get function for list and map
-pub fn get<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output {
+pub fn get<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
     match value {
         ExpressionValue::List(val) => get_list(val, rhs, env),
@@ -181,7 +190,7 @@ pub fn get<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output {
 }
 
 /// overload remove function for list and map
-pub fn remove<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b E) -> Output {
+pub fn remove<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
     match value {
         ExpressionValue::List(val) => remove_list(val, rhs, env),
@@ -264,7 +273,7 @@ pub(crate) fn ok_boolean(boolean: bool) -> Output {
     Ok(ExpressionValue::Bool(boolean))
 }
 
-pub(crate) fn into_number<'a, 'b, E: Env<'a>>(input: Input, env: &'b E) -> Result<f64, Error> {
+pub(crate) fn into_number<'a, 'b, E: Env<'a>>(input: Input, env: &'b mut E) -> Result<f64, Error> {
     Expression::eval(input, env)?
         .as_number()
         .ok_or(Error::new_static("input should be a number"))
@@ -272,7 +281,7 @@ pub(crate) fn into_number<'a, 'b, E: Env<'a>>(input: Input, env: &'b E) -> Resul
 
 pub(crate) fn evaluate_inputs<'a, 'b, E: Env<'a>>(
     inputs: Vec<Input>,
-    env: &'b E,
+    env: &'b mut E,
 ) -> Result<Vec<ExpressionValue>, Error> {
     inputs.into_iter().try_fold(Vec::new(), |mut acc, x| {
         acc.push(Expression::eval(x, env)?);
@@ -282,7 +291,7 @@ pub(crate) fn evaluate_inputs<'a, 'b, E: Env<'a>>(
 
 pub(crate) fn evaluate_lazy_function<'a, 'b, E: Env<'a>>(
     result: ExpressionValue,
-    env: &'b E,
+    env: &'b mut E,
 ) -> Output {
     match result {
         // if function doesn't take arguments evaluate it now

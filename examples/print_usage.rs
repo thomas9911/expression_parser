@@ -15,8 +15,8 @@ fn function_doc_tests() {
     functions.sort_unstable();
 
     for function in functions {
-        let env = Environment::default();
-        let a = functions::help(Expression::Var(function.clone()), &env);
+        let mut env = Environment::default();
+        let a = functions::help(Expression::Var(function.clone()), &mut env);
         println!(
             "## {}\n\n{}\n",
             function,

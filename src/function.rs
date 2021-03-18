@@ -163,7 +163,7 @@ impl std::fmt::Display for Function {
 }
 
 impl Function {
-    pub fn eval<'a, 'b, E: Env<'a>>(operator: Function, env: &'b E) -> EvalResult {
+    pub fn eval<'a, 'b, E: Env<'a>>(operator: Function, env: &'b mut E) -> EvalResult {
         use Function::*;
 
         match operator {
@@ -259,7 +259,10 @@ impl Function {
 
             Ok(Expr(Box::new(funcs)))
         } else {
-            Ok(Value(Function::eval(operator, &Environment::default())?))
+            Ok(Value(Function::eval(
+                operator,
+                &mut Environment::default(),
+            )?))
         }
     }
 

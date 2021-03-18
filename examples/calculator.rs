@@ -29,7 +29,7 @@ fn main() {
     if parse_debug_env_var() {
         println!("{:?}", parsed); // 'ast'
     }
-    match Expression::eval(parsed, &Environment::default()) {
+    match Expression::eval(parsed, &mut Environment::default()) {
         Ok(x) => println!("{}", x), // evaluated expression
         _ => println!("Expression contains invalid variables"),
     }

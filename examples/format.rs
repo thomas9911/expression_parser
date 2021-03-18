@@ -10,11 +10,11 @@ fn main() {
     println!("just rust: {}", 1 + 5 - 2 + (12 - 2) + 123);
     println!(
         "parsed: {}",
-        Expression::eval(parsed, &Environment::default()).unwrap()
+        Expression::eval(parsed, &mut Environment::default()).unwrap()
     );
     println!(
         "parsed twice: {}",
-        Expression::eval(parsed2, &Environment::default()).unwrap()
+        Expression::eval(parsed2, &mut Environment::default()).unwrap()
     );
 
     println!("=================================================");

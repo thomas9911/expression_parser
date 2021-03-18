@@ -1,12 +1,9 @@
 use crate::statics::DEFAULT_VARIABLES;
 use crate::VariableMap;
 
-/// https://doc.rust-lang.org/std/cell/index.html
-
 pub trait Env<'a>: std::fmt::Debug {
     fn variables(&self) -> &Box<dyn VariableMap + 'a>;
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a>;
-    fn print(&mut self, input: &str);
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>>;
 }
 
@@ -20,10 +17,6 @@ where
 
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a> {
         (*self).variables_mut()
-    }
-
-    fn print(&mut self, input: &str) {
-        (*self).print(input)
     }
 
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
@@ -43,10 +36,6 @@ where
         (**self).variables_mut()
     }
 
-    fn print(&mut self, input: &str) {
-        (**self).print(input)
-    }
-
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
         (**self).logger()
     }
@@ -64,10 +53,6 @@ where
         panic!("cannot mutate when not defined as mutatable")
     }
 
-    fn print(&mut self, _: &str) {
-        panic!("cannot mutate when not defined as mutatable")
-    }
-
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
         panic!("cannot mutate when not defined as mutatable")
     }
@@ -78,7 +63,6 @@ use std::sync::{Arc, RwLock};
 /// Environment holding all the connections to side effects.
 pub struct Environment<'a> {
     pub(crate) variables: Box<dyn VariableMap + 'a>,
-    // logger: Box<dyn std::io::Write +'a>
     pub(crate) logger: Arc<RwLock<dyn std::io::Write + 'a>>,
 }
 
@@ -91,22 +75,6 @@ impl std::fmt::Debug for Environment<'_> {
     }
 }
 
-// pub struct ScopedEnvironment<'a, 'b> {
-//     // pub(crate) original: Box<&'b mut dyn Env<'a>>,
-//     pub(crate) local: Box<dyn VariableMap + 'b>,
-//     pub(crate) logger: Arc<RwLock<dyn std::io::Write +'a>>,
-// }
-
-// impl std::fmt::Debug for ScopedEnvironment<'_, '_> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("ScopedEnvironment")
-//             .field("local", &self.local)
-//             .field("logger", &"<logger>")
-//             .finish()
-//     }
-// }
-
-// #[derive(Debug)]
 pub struct EnvironmentBuilder<'a> {
     variables: Option<Box<dyn VariableMap + 'a>>,
     logger: Option<Box<dyn std::io::Write + 'a>>,
@@ -126,12 +94,6 @@ impl<'a> Env<'a> for Environment<'a> {
         &mut self.variables
     }
 
-    fn print(&mut self, input: &str) {
-        let p = self.logger.clone();
-        let mut logger = p.try_write().unwrap();
-        writeln!(logger, "{}", input);
-    }
-
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
         self.logger.clone()
     }
@@ -142,26 +104,6 @@ impl<'a> Default for Environment<'a> {
         EnvironmentBuilder::default().build()
     }
 }
-
-// impl<'a, 'b> Env<'b> for ScopedEnvironment<'a, 'b> {
-//     fn variables(&self) -> &Box<dyn VariableMap + 'b> {
-//         &self.local
-//     }
-//     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'b> {
-//         &mut self.local
-//     }
-
-//     fn print(&mut self, input: &str){
-//         // self.logger.print(input)
-//         let p = self.logger.clone();
-//         let mut logger = p.try_write().unwrap();
-//         writeln!(logger, "{}", input);
-//     }
-
-//     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write +'b>> {
-//         self.logger.clone()
-//     }
-// }
 
 impl<'a> EnvironmentBuilder<'a> {
     pub fn build(self) -> Environment<'a> {
@@ -180,6 +122,11 @@ impl<'a> EnvironmentBuilder<'a> {
         variables: Box<dyn VariableMap + 'a>,
     ) -> EnvironmentBuilder<'a> {
         self.variables = Some(variables);
+        self
+    }
+
+    pub fn with_logger(mut self, logger: Box<dyn std::io::Write + 'a>) -> EnvironmentBuilder<'a> {
+        self.logger = Some(logger);
         self
     }
 }

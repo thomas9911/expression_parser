@@ -4,8 +4,6 @@ use crate::{
     ScopedVariables, UserFunction, Variables,
 };
 
-use std::collections::HashMap;
-
 pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
 
@@ -71,7 +69,9 @@ pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Out
 
 pub fn print<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
-    println!("{}", value);
+    let env_logger = env.logger();
+    let mut logger = env_logger.try_write()?;
+    writeln!(logger, "{}", value)?;
     Ok(value)
 }
 

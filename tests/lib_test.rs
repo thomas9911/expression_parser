@@ -957,3 +957,52 @@ mod recursion_overflow_test {
         assert_eq!(output, Ok(vec![0, 1, 2, 3, 4].into()))
     }
 }
+
+mod print {
+    #[test]
+    fn with_vec_writer() {
+        use expression_parser::{Environment, ExpressionFile};
+
+        let mut buffer = Vec::new();
+        {
+            let mut env = Environment::builder()
+                .with_logger(Box::new(&mut buffer))
+                .build();
+
+            let script = r#"
+        print("test");
+        print({"test": 1})
+        "#;
+
+            ExpressionFile::run(script, &mut env).unwrap();
+        }
+
+        let out = String::from_utf8(buffer).unwrap();
+        let expected = String::from("\"test\"\n{\"test\": 1}\n");
+        assert_eq!(expected, out);
+    }
+
+    #[test]
+    fn with_cursor_writer_with_bytes_buffer() {
+        use expression_parser::{Environment, ExpressionFile};
+
+        let mut data = [0 as u8; 19];
+        let mut buffer = std::io::Cursor::new(&mut data[..]);
+        {
+            let mut env = Environment::builder()
+                .with_logger(Box::new(&mut buffer))
+                .build();
+
+            let script = r#"
+        print("test");
+        print({"test": 1})
+        "#;
+
+            ExpressionFile::run(script, &mut env).unwrap();
+        }
+
+        let out = String::from_utf8_lossy(buffer.into_inner());
+        let expected = String::from("\"test\"\n{\"test\": 1}\n");
+        assert_eq!(expected, out);
+    }
+}

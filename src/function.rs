@@ -675,7 +675,14 @@ impl Function {
     one and two  
             "#
             }
-            Print => "true",
+            Print => {
+                r#"
+    // prints the item to configured logger
+    one = print({"test": 1}) == {"test": 1};
+            
+    one
+            "#
+            }
             Format => {
                 r#"
     one = format("{} + {} = {}", 1, 1, 2) == "1 + 1 = 2";
@@ -721,7 +728,12 @@ fn function_doc_tests() {
             ),
         };
 
-        match ExpressionFile::eval(expr, &mut Environment::default()) {
+        match ExpressionFile::eval(
+            expr,
+            &mut Environment::builder()
+                .with_logger(Box::new(std::io::sink()))
+                .build(),
+        ) {
             Ok(ExpressionValue::Bool(true)) => (),
             _ => panic!("usage test for \"{}\" fails", FunctionName::from(function)),
         }

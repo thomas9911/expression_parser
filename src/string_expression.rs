@@ -260,6 +260,10 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
 
             Expr(Box::new(Function::Range(a, b, c)))
         }
+        Shuffle => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Function::Shuffle(arguments.remove(0))))
+        }
         Concat => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Function::Concat(arguments)))

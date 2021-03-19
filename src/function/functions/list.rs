@@ -1,4 +1,4 @@
-use super::{as_string, ok_string, call};
+use super::{as_string, call, ok_string};
 use super::{Input, Output};
 use crate::{Env, Error, Expression, ExpressionValue};
 
@@ -68,14 +68,13 @@ pub fn range<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mu
                 .try_fold(Vec::new(), |mut acc, x| {
                     let arg = Expression::Value(ExpressionValue::Number(x as f64));
 
-                    let res =
-                        match call(function.clone(), vec![arg], env) {
-                            Ok(x) => {
-                                acc.push(Expression::Value(x));
-                                Ok(acc)
-                            }
-                            Err(e) => Err(e),
-                        };
+                    let res = match call(function.clone(), vec![arg], env) {
+                        Ok(x) => {
+                            acc.push(Expression::Value(x));
+                            Ok(acc)
+                        }
+                        Err(e) => Err(e),
+                    };
                     res
                 })?
         }
@@ -95,6 +94,20 @@ pub fn range<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mu
     };
 
     Ok(ExpressionValue::List(data))
+}
+
+pub fn shuffle<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
+    let mut list = Expression::eval(lhs, env)?
+        .as_list()
+        .ok_or(Error::new_static("first argument should be a list"))?;
+
+    use rand::seq::SliceRandom;
+    use rand::thread_rng;
+
+    let mut rng = thread_rng();
+    list.shuffle(&mut rng);
+
+    Ok(ExpressionValue::List(list))
 }
 
 fn get_f64<'a, 'b, E: Env<'a>>(list: Vec<Expression>, index: f64, env: &'b mut E) -> Output {

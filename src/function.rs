@@ -89,6 +89,8 @@ pub enum Function {
         message = "Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument"
     )]
     Random(Expression, Expression),
+    #[strum(message = "Shuffles the given list")]
+    Shuffle(Expression),
     #[strum(message = "Generate a list")]
     Range(Expression, Expression, Expression),
     #[strum(message = "Returns the unix timestamp of the current time")]
@@ -145,7 +147,7 @@ impl std::fmt::Display for Function {
                 list_to_string(list).join(", ")
             ),
             Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
-            | Type(lhs) | Error(lhs) => write!(f, "{}({})", func_name, lhs),
+            | Type(lhs) | Error(lhs) | Shuffle(lhs) => write!(f, "{}({})", func_name, lhs),
             Now() => write!(f, "{}()", func_name),
 
             // infixes
@@ -200,6 +202,7 @@ impl Function {
             Remove(lhs, rhs) => functions::remove(lhs, rhs, env),
             Put(lhs, mdl, rhs) => functions::put(lhs, mdl, rhs, env),
             Random(lhs, rhs) => functions::random(lhs, rhs, env),
+            Shuffle(lhs) => functions::shuffle(lhs, env),
             Now() => functions::now(env),
             Type(lhs) => functions::type_function(lhs, env),
             Print(lhs) => functions::print(lhs, env),
@@ -250,6 +253,7 @@ impl Function {
                 Push(lhs, rhs) => Push(E::compile(lhs)?, E::compile(rhs)?),
                 Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
                 Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
+                Shuffle(lhs) => Shuffle(E::compile(lhs)?),
                 Now() => Now(),
                 Type(lhs) => Type(E::compile(lhs)?),
                 Error(lhs) => Error(E::compile(lhs)?),
@@ -315,7 +319,7 @@ impl Function {
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
             Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
-            | Type(lhs) | Error(lhs) => Box::new(lhs.iter_variables()),
+            | Type(lhs) | Error(lhs) | Shuffle(lhs) => Box::new(lhs.iter_variables()),
 
             If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) | Range(lhs, mdl, rhs) => Box::new(
                 lhs.iter_variables()
@@ -526,6 +530,12 @@ impl Function {
     second = random(-1, 1) != random(2, 5);
     third = random(-5) != random(5);
     first and second and third"#
+            }
+            Shuffle => {
+                r#"
+    shuffle([1,2,3,4]);
+                
+    true"#
             }
             Concat => {
                 r#"

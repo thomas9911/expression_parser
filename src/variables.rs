@@ -115,7 +115,7 @@ impl Variables {
         Variables { state: variables }
     }
 
-    pub fn iter(&self) -> std::collections::hash_map::Iter<String, ExpressionValue> {
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, String, ExpressionValue> {
         self.state.iter()
     }
 }
@@ -154,7 +154,7 @@ impl From<BTreeMap<String, ExpressionValue>> for Variables {
 #[derive(Debug)]
 pub struct ScopedVariables<'a> {
     local: HashMap<String, ExpressionValue>,
-    global: Box<dyn VariableMap + 'a>,
+    global: &'a Box<dyn VariableMap + 'a>,
 }
 
 impl<'a> VariableMap for ScopedVariables<'a> {
@@ -183,49 +183,9 @@ impl<'a> VariableMap for ScopedVariables<'a> {
 }
 
 impl<'a> ScopedVariables<'a> {
-    pub fn new(variables: Box<dyn VariableMap + 'a>) -> Self {
+    pub fn new(variables: &'a Box<dyn VariableMap + 'a>) -> Self {
         Self {
             global: variables,
-            local: HashMap::new(),
-        }
-    }
-
-    pub fn from_iter<T: IntoIterator<Item = (String, ExpressionValue)>>(iter: T) -> Self {
-        let mut variables = DEFAULT_VARIABLES.to_owned();
-        variables.extend(iter);
-
-        Self {
-            global: Box::new(variables),
-            local: HashMap::new(),
-        }
-    }
-}
-
-impl<'a> std::default::Default for ScopedVariables<'a> {
-    fn default() -> Self {
-        Self {
-            global: Box::new(DEFAULT_VARIABLES.to_owned()),
-            local: HashMap::new(),
-        }
-    }
-}
-
-impl<'a> From<HashMap<String, ExpressionValue>> for ScopedVariables<'a> {
-    fn from(state: HashMap<String, ExpressionValue>) -> Self {
-        Self::from_iter(state.into_iter())
-    }
-}
-
-impl<'a> From<BTreeMap<String, ExpressionValue>> for ScopedVariables<'a> {
-    fn from(state: BTreeMap<String, ExpressionValue>) -> Self {
-        Self::from_iter(state.into_iter())
-    }
-}
-
-impl<'a> From<Variables> for ScopedVariables<'a> {
-    fn from(state: Variables) -> Self {
-        Self {
-            global: Box::new(state.state),
             local: HashMap::new(),
         }
     }

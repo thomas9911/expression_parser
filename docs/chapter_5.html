@@ -164,7 +164,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#library-usage" id="library-usage">Library Usage</a></h1>
-<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, Variables};
+<pre><code class="language-rust ignore">        use expression_parser::{Environment, ExpressionFile};
 
         let input = r#&quot;
         a = 1 + 1;
@@ -178,12 +178,12 @@
 
         // we will just evaluate it here with default variables.
 
-        let mut vars = Variables::default();
+        let mut vars = Environment::default();
         let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
         assert_eq!(output, 7.into());
 </code></pre>
 <p>Add extra variables you can use in your code:</p>
-<pre><code class="language-rust ignore">        use expression_parser::{ExpressionFile, VariableMap, Variables};
+<pre><code class="language-rust ignore">        use expression_parser::{Env, Environment, ExpressionFile};
 
         let input = r#&quot;
         5 * DATA     
@@ -191,25 +191,24 @@
 
         let parsed_expression = ExpressionFile::parse(input).unwrap();
 
-        let mut vars = Variables::default();
-        vars.insert(&quot;DATA&quot;, 1234.into());
+        let mut env = Environment::default();
+        env.variables_mut().insert(&quot;DATA&quot;, 1234.into());
 
-        let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
+        let output = ExpressionFile::eval(parsed_expression, &amp;mut env).unwrap();
         assert_eq!(output, 6170.into());
 </code></pre>
 <pre><code class="language-rust ignore">        use expression_parser::{
-            Closure, Error, ExpressionFile, ExpressionValue, VariableMap, Variables,
+            Closure, Env, Environment, Error, ExpressionFile, ExpressionValue,
         };
         use std::sync::Arc;
 
-        let mut vars = Variables::new();
+        let mut env = Environment::default();
 
         // a `Closure` struct is just a container for holding the function.
         // `new` takes a list of the arguments used (only for debugging purposes)
         // and an `Arc` with a `Box`ed function with two arguments.
         // the first is a list containing all the arguments given by the user. These need to be validated yourself.
-        // the second argument is a ScopedVariables struct that acts like a Map that contains all the variables used above the function call.
-        // this can be used for instance for config options.
+        // the second argument is a `Environment` struct that has methods to access variables outside the function and side effects.
         // the return value is a `Result&lt;ExpressionValue, Error&gt;`
         let closure = Closure::new(
             vec![&quot;x&quot;.to_string(), &quot;y&quot;.to_string()],
@@ -229,22 +228,18 @@
                 Ok(result.into())
             })),
         );
-        vars.insert(&quot;external_func&quot;, closure.into());
+        env.variables_mut().insert(&quot;external_func&quot;, closure.into());
 
         let script = r#&quot;
         external_func.(6, 2)
         &quot;#;
 
         let parsed = ExpressionFile::parse(script).unwrap();
-        let result = ExpressionFile::eval(parsed, &amp;mut vars);
+        let result = ExpressionFile::eval(parsed, &amp;mut env);
         assert_eq!(result, Ok(12.into()))
 </code></pre>
-<pre><code class="language-rust ignore">        use expression_parser::{
-            Closure, Error, Expression, ExpressionFile, VariableMap, Variables,
-        };
+<pre><code class="language-rust ignore">        use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
         use std::sync::Arc;
-
-        let mut vars = Variables::new();
 
         let closure = Closure::new(
             vec![&quot;map&quot;.to_string(), &quot;key&quot;.to_string()],
@@ -267,12 +262,14 @@
 
                 // the result is an expression, these can include variables ect.
                 // We can just match on the value or eval the Expression with the current context.
-                let result = Expression::eval(result.clone(), &amp;context)?;
+                let result = Expression::eval(result.clone(), &amp;mut Box::new(context))?;
 
                 Ok(result)
             })),
         );
-        vars.insert(&quot;map_get&quot;, closure.into());
+
+        let mut env = Environment::default();
+        env.variables_mut().insert(&quot;map_get&quot;, closure.into());
 
         let script = r#&quot;
         map_get.(
@@ -281,7 +278,7 @@
         )
         &quot;#;
 
-        let result = ExpressionFile::run(script, &amp;mut vars);
+        let result = ExpressionFile::run(script, &amp;mut env);
         assert_eq!(result, Ok(&quot;some_value&quot;.into()));
 
         let script = r#&quot;
@@ -292,7 +289,7 @@
         )
         &quot;#;
 
-        let result = ExpressionFile::run(script, &amp;mut vars);
+        let result = ExpressionFile::run(script, &amp;mut env);
         assert_eq!(result, Ok(&quot;some_variable&quot;.into()));
 </code></pre>
 

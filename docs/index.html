@@ -192,10 +192,10 @@
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables};
+</span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;1 + 5 - 2&quot;)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(4.0.into()), result);
 <span class="boring">}
@@ -204,10 +204,10 @@ assert_eq!(Ok(4.0.into()), result);
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables};
+</span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;e ^ (1 + 5 - 2)&quot;)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 <span class="boring">}
@@ -216,10 +216,10 @@ assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables};
+</span>use expression_parser::{Environment, Expression};
 
 let parsed = Expression::parse(&quot;sin(e) + 1&quot;)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 <span class="boring">}
@@ -228,7 +228,7 @@ assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables, VariableMap};
+</span>use expression_parser::{Env, Environment, Expression, Variables, VariableMap};
 
 let parsed = Expression::parse(&quot;x + y + z&quot;)?;
 
@@ -237,7 +237,11 @@ vars.insert(String::from(&quot;x&quot;), 3.0.into());
 vars.insert(String::from(&quot;y&quot;), 3.0.into());
 vars.insert(String::from(&quot;z&quot;), 10.0.into());
 
-let result = Expression::eval(parsed.clone(), &amp;Variables::from(vars));
+let mut env = Environment::builder()
+            .with_variables(Box::new(vars))
+            .build();
+
+let result = Expression::eval(parsed.clone(), &amp;mut env);
 
 assert_eq!(Ok(16.0.into()), result);
 
@@ -246,7 +250,11 @@ vars.insert(&quot;x&quot;, 3.0.into());
 vars.insert(&quot;y&quot;, 3.0.into());
 vars.insert(&quot;z&quot;, 10.0.into());
 
-let result = Expression::eval(parsed, &amp;Variables::from(vars));
+let mut env = Environment::builder()
+            .with_variables(Box::new(vars))
+            .build();
+
+let result = Expression::eval(parsed, &amp;mut env);
 assert_eq!(Ok(16.0.into()), result);
 <span class="boring">}
 </span></code></pre></pre>
@@ -254,10 +262,10 @@ assert_eq!(Ok(16.0.into()), result);
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use expression_parser::{Expression, Variables, ExpressionValue};
+</span>use expression_parser::{Environment, Expression, ExpressionValue};
 
 let parsed = Expression::parse(r#&quot;concat(&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;)&quot;#)?;
-let result = Expression::eval(parsed, &amp;Variables::default());
+let result = Expression::eval(parsed, &amp;mut Environment::default());
 
 assert_eq!(Ok(ExpressionValue::from(&quot;1234&quot;)), result);
 assert_eq!(&quot;\&quot;1234\&quot;&quot;, result.unwrap().to_string());
@@ -267,7 +275,7 @@ assert_eq!(&quot;\&quot;1234\&quot;&quot;, result.unwrap().to_string());
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use expression_parser::{ExpressionFile, Variables, ExpressionValue};
+</span>use expression_parser::{Environment, ExpressionFile, ExpressionValue};
 
 let input = r#&quot;
     a = [1, 2, 3];
@@ -277,7 +285,7 @@ let input = r#&quot;
     concat(c, [4,4], d);
 &quot;#;
 let file = ExpressionFile::parse(input)?;
-let evaluated = ExpressionFile::eval(file, &amp;mut Variables::default());
+let evaluated = ExpressionFile::eval(file, &amp;mut Environment::default());
 assert_eq!(
     ExpressionValue::from(vec![
         1, 2, 3, 3, 2, 1, 4,

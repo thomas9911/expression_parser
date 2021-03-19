@@ -1,10 +1,10 @@
 use super::{as_string, ok_string};
-use super::{Input, Output, VariableMap};
+use super::{Env, Input, Output};
 use crate::Expression;
 
-pub fn trim<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string = as_string(Expression::eval(lhs, vars)?);
-    let trim_with = as_string(Expression::eval(rhs, vars)?);
+pub fn trim<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    let string = as_string(Expression::eval(lhs, env)?);
+    let trim_with = as_string(Expression::eval(rhs, env)?);
 
     ok_string(
         string
@@ -14,16 +14,16 @@ pub fn trim<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
     )
 }
 
-pub fn contains<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    let string = as_string(Expression::eval(lhs, vars)?);
-    let contains = as_string(Expression::eval(rhs, vars)?);
+pub fn contains<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    let string = as_string(Expression::eval(lhs, env)?);
+    let contains = as_string(Expression::eval(rhs, env)?);
     Ok(string.contains(&contains).into())
 }
 
-pub fn upper<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_string(as_string(Expression::eval(lhs, vars)?).to_uppercase())
+pub fn upper<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
+    ok_string(as_string(Expression::eval(lhs, env)?).to_uppercase())
 }
 
-pub fn lower<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_string(as_string(Expression::eval(lhs, vars)?).to_lowercase())
+pub fn lower<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
+    ok_string(as_string(Expression::eval(lhs, env)?).to_lowercase())
 }

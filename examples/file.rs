@@ -1,4 +1,4 @@
-use expression_parser::{ExpressionFile, Variables};
+use expression_parser::{Environment, ExpressionFile};
 
 fn print_help() {
     print!(
@@ -37,7 +37,7 @@ fn main() {
         Err(e) => return println!("{}", e),
     };
 
-    match ExpressionFile::eval(parsed, &mut Variables::default()) {
+    match ExpressionFile::eval(parsed, &mut Environment::default()) {
         Ok(x) => return println!("{}", x),
         Err(e) => return println!("{}", e),
     };

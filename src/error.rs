@@ -53,6 +53,18 @@ impl From<PestError<FormatRule>> for Error {
     }
 }
 
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Error {
+        Error::new(format!("{}", error))
+    }
+}
+
+impl<T> From<std::sync::TryLockError<T>> for Error {
+    fn from(error: std::sync::TryLockError<T>) -> Error {
+        Error::new(format!("{}", error))
+    }
+}
+
 impl From<ErrorCodes> for Error {
     fn from(error: ErrorCodes) -> Error {
         Error::new_code(error)

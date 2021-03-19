@@ -1,9 +1,9 @@
-use crate::{Error, ExpressionValue, ScopedVariables};
+use crate::{Environment, Error, ExpressionValue};
 use std::sync::Arc;
 
 type Fp = Arc<
     Box<
-        dyn Fn(Vec<ExpressionValue>, &mut ScopedVariables) -> Result<ExpressionValue, Error>
+        dyn Fn(Vec<ExpressionValue>, &mut Environment<'_>) -> Result<ExpressionValue, Error>
             + Send
             + Sync,
     >,

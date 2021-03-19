@@ -1,5 +1,5 @@
 use colored::*;
-use expression_parser::{ExpressionFile, ExpressionValue, Variables};
+use expression_parser::{Environment, ExpressionFile, ExpressionValue};
 use std::io::{self, Error, StdoutLock, Write};
 
 const HELP_TEXT: &'static str = "Expression interactive example
@@ -41,7 +41,7 @@ fn main() -> Result<(), Error> {
         true => return Ok(()),
     };
 
-    let mut vars = Variables::default();
+    let mut env = Environment::default();
 
     let is_debug = parse_debug_env_var();
 
@@ -60,7 +60,7 @@ fn main() -> Result<(), Error> {
             break;
         }
         if !print_help(&buffer) {
-            do_expression(buffer, &mut vars, is_debug);
+            do_expression(buffer, &mut env, is_debug);
         }
 
         buffer = String::new();
@@ -91,7 +91,7 @@ fn print_help(first_arg: &str) -> bool {
     }
 }
 
-fn do_expression(buffer: String, vars: &mut Variables, is_debug: bool) {
+fn do_expression(buffer: String, env: &mut Environment, is_debug: bool) {
     let parsed = match ExpressionFile::parse(buffer.as_ref()) {
         Ok(x) => x,
         Err(e) => return println!("{}: Invalid expression{}", "error".bright_red(), e),
@@ -99,7 +99,7 @@ fn do_expression(buffer: String, vars: &mut Variables, is_debug: bool) {
     if is_debug {
         println!("{}", format!("debug: {:?}", parsed).blue()); // 'ast'
     }
-    match ExpressionFile::eval(parsed, vars) {
+    match ExpressionFile::eval(parsed, env) {
         Ok(x) => {
             match x {
                 ExpressionValue::Null => (),

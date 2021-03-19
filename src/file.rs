@@ -6,7 +6,7 @@ use crate::assignment::{parse_assignment, parse_unassignment};
 use crate::error::ErrorCodes;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Assignment, Error, Expression, ExpressionValue, Unassignment, VariableMap};
+use crate::{Assignment, Env, Error, Expression, ExpressionValue, Unassignment};
 
 /// minimal amount of stacksize needed in bytes
 const MINIMAL_STACKSIZE: usize = 65536;
@@ -44,29 +44,29 @@ impl std::fmt::Display for ExpressionLine {
 }
 
 impl ExpressionLine {
-    pub fn eval<V: VariableMap>(line: Self, vars: &mut V) -> EvalResult {
+    pub fn eval<'a, 'b, E: Env<'a>>(line: Self, env: &'b mut E) -> EvalResult {
         // vars.check_recursion_limit()?;
         check_stack()?;
 
         match line {
             ExpressionLine::Expression(Expression::UserFunction(function)) => {
                 for item in function.iter_variables() {
-                    let val = if let Some(val) = vars.get(&item) {
+                    let val = if let Some(val) = env.variables().get(&item) {
                         val.to_owned()
                     } else {
                         continue;
                     };
-                    vars.insert(&item, val);
+                    env.variables_mut().insert(&item, val);
                 }
-                Expression::eval(Expression::UserFunction(function), vars)
+                Expression::eval(Expression::UserFunction(function), env)
             }
-            ExpressionLine::Expression(ex) => Expression::eval(ex, vars),
+            ExpressionLine::Expression(ex) => Expression::eval(ex, env),
             ExpressionLine::Assignment(ass) => {
-                Assignment::eval(ass, vars)?;
+                Assignment::eval(ass, env)?;
                 Ok(ExpressionValue::Null)
             }
             ExpressionLine::Unassignment(un) => {
-                Unassignment::eval(un, vars)?;
+                Unassignment::eval(un, env)?;
                 Ok(ExpressionValue::Null)
             }
         }
@@ -93,7 +93,7 @@ fn check_stack() -> Result<(), Error> {
     Ok(())
 }
 
-pub fn parse_file(expression: Pairs<Rule>) -> ParseResult {
+pub fn parse_file(expression: Pairs<'_, Rule>) -> ParseResult {
     let mut lines = vec![];
     for pair in expression {
         let line = match pair.as_rule() {
@@ -134,18 +134,18 @@ impl ExpressionFile {
         Box::new(self.lines.iter().flat_map(|x| x.iter_variables()))
     }
 
-    pub fn eval<V: VariableMap>(file: Self, vars: &mut V) -> EvalResult {
+    pub fn eval<'a, 'b, E: Env<'a>>(file: Self, env: &'b mut E) -> EvalResult {
         let mut last = ExpressionValue::Null;
         for line in file.lines {
-            last = ExpressionLine::eval(line, vars)?;
+            last = ExpressionLine::eval(line, env)?;
         }
 
         Ok(last)
     }
 
-    pub fn run<V: VariableMap>(input: &str, vars: &mut V) -> EvalResult {
+    pub fn run<'a, 'b, E: Env<'a>>(input: &str, env: &'b mut E) -> EvalResult {
         let file = Self::parse(input)?;
-        Self::eval(file, vars)
+        Self::eval(file, env)
     }
 }
 
@@ -167,23 +167,23 @@ fn print_expression_file() {
 
 #[test]
 fn simple() {
-    use crate::Variables;
+    use crate::Environment;
     let file = ExpressionFile::parse("a = 1 + 2; a = a + 12 + 123; a - 1").unwrap();
-    let evaluated = ExpressionFile::eval(file, &mut Variables::default());
+    let evaluated = ExpressionFile::eval(file, &mut Environment::default());
     assert_eq!(Ok(137.into()), evaluated);
 }
 
 #[test]
 fn simple_with_default_variables() {
-    use crate::Variables;
+    use crate::Environment;
     let file = ExpressionFile::parse("a = e + pi; a = a + 12; a - e - pi").unwrap();
-    let evaluated = ExpressionFile::eval(file, &mut Variables::default());
+    let evaluated = ExpressionFile::eval(file, &mut Environment::default());
     assert_eq!(Ok(12.into()), evaluated);
 }
 
 #[test]
 fn medium() {
-    use crate::Variables;
+    use crate::Environment;
     let input = r#"
         a = [1, 2, 3];
         b = [3, 2, 1];
@@ -192,7 +192,7 @@ fn medium() {
         concat(c, [4,4], d);
     "#;
     let file = ExpressionFile::parse(input).unwrap();
-    let evaluated = ExpressionFile::eval(file, &mut Variables::default()).unwrap();
+    let evaluated = ExpressionFile::eval(file, &mut Environment::default()).unwrap();
     assert_eq!(
         ExpressionValue::from(vec![1, 2, 3, 3, 2, 1, 4, 4, 3, 2, 1, 1, 2, 3]),
         evaluated
@@ -201,14 +201,14 @@ fn medium() {
 
 #[test]
 fn unassign() {
-    use crate::Variables;
+    use crate::Environment;
     let file = ExpressionFile::parse("a = 1 + 2").unwrap();
-    let mut variables = Variables::default();
-    let _evaluated = ExpressionFile::eval(file, &mut variables);
+    let mut env = Environment::default();
+    let _evaluated = ExpressionFile::eval(file, &mut env);
 
-    assert_eq!(Some(&3.0.into()), variables.get("a"));
+    assert_eq!(Some(&3.0.into()), env.variables().get("a"));
 
     let file = ExpressionFile::parse("unset a").unwrap();
-    let _evaluated = ExpressionFile::eval(file, &mut variables);
-    assert_eq!(None, variables.get("a"));
+    let _evaluated = ExpressionFile::eval(file, &mut env);
+    assert_eq!(None, env.variables().get("a"));
 }

@@ -30,7 +30,7 @@ impl<'a> FormatIter<'a> {
         })
     }
 
-    fn line_replace(&mut self, line: pest::iterators::Pair<Rule>) -> Result<usize, Error> {
+    fn line_replace(&mut self, line: pest::iterators::Pair<'_, Rule>) -> Result<usize, Error> {
         let index = line.as_str().parse::<usize>().ok();
         let replace = if (self.manual || self.automatic) == false {
             self.manual = index.is_some();
@@ -84,7 +84,7 @@ impl<'a> Iterator for FormatIter<'a> {
     }
 }
 
-fn apply_format<T: std::fmt::Display>(iter: FormatIter, vars: Vec<T>) -> Result<String, Error> {
+fn apply_format<T: std::fmt::Display>(iter: FormatIter<'_>, vars: Vec<T>) -> Result<String, Error> {
     let mut out = String::new();
 
     for res in iter {

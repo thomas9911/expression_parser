@@ -1,9 +1,9 @@
-use expression_parser::{Error, ExpressionFile, ExpressionValue, Variables};
+use expression_parser::{Environment, Error, ExpressionFile, ExpressionValue};
 
 type Result = std::result::Result<ExpressionValue, Error>;
 
 fn running_default(input: &str) -> Result {
-    ExpressionFile::run(input, &mut Variables::default())
+    ExpressionFile::run(input, &mut Environment::default())
 }
 
 mod chapter_1 {
@@ -226,7 +226,7 @@ mod chapter_5 {
     #[test]
     fn simple() {
         // ANCHOR: chapter_5_simple
-        use expression_parser::{ExpressionFile, Variables};
+        use expression_parser::{Environment, ExpressionFile};
 
         let input = r#"
         a = 1 + 1;
@@ -240,7 +240,7 @@ mod chapter_5 {
 
         // we will just evaluate it here with default variables.
 
-        let mut vars = Variables::default();
+        let mut vars = Environment::default();
         let output = ExpressionFile::eval(parsed_expression, &mut vars).unwrap();
         assert_eq!(output, 7.into());
         // ANCHOR_END: chapter_5_simple
@@ -249,7 +249,7 @@ mod chapter_5 {
     #[test]
     fn extra_vars() {
         // ANCHOR: chapter_5_extra_vars
-        use expression_parser::{ExpressionFile, VariableMap, Variables};
+        use expression_parser::{Env, Environment, ExpressionFile};
 
         let input = r#"
         5 * DATA     
@@ -257,10 +257,10 @@ mod chapter_5 {
 
         let parsed_expression = ExpressionFile::parse(input).unwrap();
 
-        let mut vars = Variables::default();
-        vars.insert("DATA", 1234.into());
+        let mut env = Environment::default();
+        env.variables_mut().insert("DATA", 1234.into());
 
-        let output = ExpressionFile::eval(parsed_expression, &mut vars).unwrap();
+        let output = ExpressionFile::eval(parsed_expression, &mut env).unwrap();
         assert_eq!(output, 6170.into());
         // ANCHOR_END: chapter_5_extra_vars
     }
@@ -269,18 +269,17 @@ mod chapter_5 {
     fn extra_functions() {
         // ANCHOR: chapter_5_extra_functions
         use expression_parser::{
-            Closure, Error, ExpressionFile, ExpressionValue, VariableMap, Variables,
+            Closure, Env, Environment, Error, ExpressionFile, ExpressionValue,
         };
         use std::sync::Arc;
 
-        let mut vars = Variables::new();
+        let mut env = Environment::default();
 
         // a `Closure` struct is just a container for holding the function.
         // `new` takes a list of the arguments used (only for debugging purposes)
         // and an `Arc` with a `Box`ed function with two arguments.
         // the first is a list containing all the arguments given by the user. These need to be validated yourself.
-        // the second argument is a ScopedVariables struct that acts like a Map that contains all the variables used above the function call.
-        // this can be used for instance for config options.
+        // the second argument is a `Environment` struct that has methods to access variables outside the function and side effects.
         // the return value is a `Result<ExpressionValue, Error>`
         let closure = Closure::new(
             vec!["x".to_string(), "y".to_string()],
@@ -300,14 +299,14 @@ mod chapter_5 {
                 Ok(result.into())
             })),
         );
-        vars.insert("external_func", closure.into());
+        env.variables_mut().insert("external_func", closure.into());
 
         let script = r#"
         external_func.(6, 2)
         "#;
 
         let parsed = ExpressionFile::parse(script).unwrap();
-        let result = ExpressionFile::eval(parsed, &mut vars);
+        let result = ExpressionFile::eval(parsed, &mut env);
         assert_eq!(result, Ok(12.into()))
         // ANCHOR_END: chapter_5_extra_functions
     }
@@ -315,12 +314,8 @@ mod chapter_5 {
     #[test]
     fn extra_functions2() {
         // ANCHOR: chapter_5_extra_functions2
-        use expression_parser::{
-            Closure, Error, Expression, ExpressionFile, VariableMap, Variables,
-        };
+        use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
         use std::sync::Arc;
-
-        let mut vars = Variables::new();
 
         let closure = Closure::new(
             vec!["map".to_string(), "key".to_string()],
@@ -343,12 +338,14 @@ mod chapter_5 {
 
                 // the result is an expression, these can include variables ect.
                 // We can just match on the value or eval the Expression with the current context.
-                let result = Expression::eval(result.clone(), &context)?;
+                let result = Expression::eval(result.clone(), &mut Box::new(context))?;
 
                 Ok(result)
             })),
         );
-        vars.insert("map_get", closure.into());
+
+        let mut env = Environment::default();
+        env.variables_mut().insert("map_get", closure.into());
 
         let script = r#"
         map_get.(
@@ -357,7 +354,7 @@ mod chapter_5 {
         )
         "#;
 
-        let result = ExpressionFile::run(script, &mut vars);
+        let result = ExpressionFile::run(script, &mut env);
         assert_eq!(result, Ok("some_value".into()));
 
         let script = r#"
@@ -368,7 +365,7 @@ mod chapter_5 {
         )
         "#;
 
-        let result = ExpressionFile::run(script, &mut vars);
+        let result = ExpressionFile::run(script, &mut env);
         assert_eq!(result, Ok("some_variable".into()));
         // ANCHOR_END: chapter_5_extra_functions2
     }

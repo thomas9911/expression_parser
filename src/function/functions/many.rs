@@ -1,9 +1,9 @@
 use super::{as_string, evaluate_inputs, ok_string};
-use super::{Input, Output, VariableMap};
+use super::{Env, Input, Output};
 use crate::{Error, ExpressionValue};
 
-pub fn sum<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
-    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+pub fn sum<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, env)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
         return Ok(evaluated_inputs
             .iter()
@@ -13,14 +13,14 @@ pub fn sum<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
     }
     if evaluated_inputs.len() == 1 {
         if let Some(list) = evaluated_inputs[0].as_list() {
-            return sum(list, vars);
+            return sum(list, env);
         }
     }
     Err(Error::new_static("sum contains non number inputs"))
 }
 
-pub fn product<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
-    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+pub fn product<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, env)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
         return Ok(evaluated_inputs
             .iter()
@@ -30,34 +30,34 @@ pub fn product<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
     }
     if evaluated_inputs.len() == 1 {
         if let Some(list) = evaluated_inputs[0].as_list() {
-            return product(list, vars);
+            return product(list, env);
         }
     }
     Err(Error::new_static("product contains non number inputs"))
 }
 
-pub fn all<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
-    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+pub fn all<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, env)?;
     if evaluated_inputs.len() == 1 {
         if let Some(list) = evaluated_inputs[0].as_list() {
-            return all(list, vars);
+            return all(list, env);
         }
     }
     Ok(evaluated_inputs.iter().all(|x| x.is_truthy()).into())
 }
 
-pub fn any<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
-    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+pub fn any<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, env)?;
     if evaluated_inputs.len() == 1 {
         if let Some(list) = evaluated_inputs[0].as_list() {
-            return any(list, vars);
+            return any(list, env);
         }
     }
     Ok(evaluated_inputs.iter().any(|x| x.is_truthy()).into())
 }
 
-pub fn concat<Vars: VariableMap>(inputs: Vec<Input>, vars: &Vars) -> Output {
-    let evaluated_inputs = evaluate_inputs(inputs, vars)?;
+pub fn concat<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
+    let evaluated_inputs = evaluate_inputs(inputs, env)?;
 
     if evaluated_inputs.iter().all(|x| x.is_list()) {
         match evaluated_inputs.iter().try_fold(Vec::new(), |mut acc, x| {

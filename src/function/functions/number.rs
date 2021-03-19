@@ -1,42 +1,42 @@
 use super::{into_number, ok_boolean, ok_number};
-use super::{Input, Output, VariableMap};
+use super::{Env, Input, Output};
 
-pub fn lesser<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_boolean(into_number(lhs, vars)? < into_number(rhs, vars)?)
+pub fn lesser<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    ok_boolean(into_number(lhs, env)? < into_number(rhs, env)?)
 }
 
-pub fn greater<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_boolean(into_number(lhs, vars)? > into_number(rhs, vars)?)
+pub fn greater<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    ok_boolean(into_number(lhs, env)? > into_number(rhs, env)?)
 }
 
-pub fn add<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? + into_number(rhs, vars)?)
+pub fn add<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)? + into_number(rhs, env)?)
 }
 
-pub fn sub<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? - into_number(rhs, vars)?)
+pub fn sub<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)? - into_number(rhs, env)?)
 }
 
-pub fn mul<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? * into_number(rhs, vars)?)
+pub fn mul<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)? * into_number(rhs, env)?)
 }
 
-pub fn div<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)? / into_number(rhs, vars)?)
+pub fn div<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)? / into_number(rhs, env)?)
 }
 
-pub fn pow<Vars: VariableMap>(lhs: Input, rhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.powf(into_number(rhs, vars)?))
+pub fn pow<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)?.powf(into_number(rhs, env)?))
 }
 
-pub fn cos<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.cos())
+pub fn cos<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)?.cos())
 }
 
-pub fn sin<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.sin())
+pub fn sin<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)?.sin())
 }
 
-pub fn tan<Vars: VariableMap>(lhs: Input, vars: &Vars) -> Output {
-    ok_number(into_number(lhs, vars)?.tan())
+pub fn tan<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
+    ok_number(into_number(lhs, env)?.tan())
 }

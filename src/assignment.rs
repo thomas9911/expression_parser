@@ -4,7 +4,7 @@ use pest::Parser;
 
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Error, Expression, VariableMap};
+use crate::{Env, Error, Expression};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ pub type AssignmentParseResult = Result<Assignment, PestError<Rule>>;
 pub type UnassignmentParseResult = Result<Unassignment, PestError<Rule>>;
 pub type EvalResult = Result<(), Error>;
 
-pub fn parse_assignment(mut assignment: Pairs<Rule>) -> AssignmentParseResult {
+pub fn parse_assignment(mut assignment: Pairs<'_, Rule>) -> AssignmentParseResult {
     let var = assignment
         .next()
         .expect("grammar of assignment is incorrect")
@@ -31,7 +31,7 @@ pub fn parse_assignment(mut assignment: Pairs<Rule>) -> AssignmentParseResult {
     })
 }
 
-pub fn parse_unassignment(mut assignment: Pairs<Rule>) -> UnassignmentParseResult {
+pub fn parse_unassignment(mut assignment: Pairs<'_, Rule>) -> UnassignmentParseResult {
     let var = assignment
         .next()
         .expect("grammar of unassignment is incorrect")
@@ -66,9 +66,10 @@ impl Assignment {
         )
     }
 
-    pub fn eval<V: VariableMap>(assigning: Self, vars: &mut V) -> EvalResult {
-        let tmp = Expression::eval(assigning.expression, vars)?;
-        vars.insert(&assigning.variable, tmp);
+    pub fn eval<'a, 'b, V: Env<'a>>(assigning: Self, env: &'b mut V) -> EvalResult {
+        let tmp = Expression::eval(assigning.expression, env)?;
+
+        env.variables_mut().insert(&assigning.variable, tmp);
         Ok(())
     }
 }
@@ -96,8 +97,8 @@ impl Unassignment {
         )
     }
 
-    pub fn eval<V: VariableMap>(assigning: Self, vars: &mut V) -> EvalResult {
-        vars.remove(&assigning.variable);
+    pub fn eval<'a, 'b, V: Env<'a>>(assigning: Self, env: &mut V) -> EvalResult {
+        env.variables_mut().remove(&assigning.variable);
         Ok(())
     }
 }
@@ -123,7 +124,7 @@ fn assignment_parse() {
 
 #[test]
 fn assignment_add_to_variables() {
-    use crate::{Expression, Function, Variables};
+    use crate::{Environment, Expression, Function};
 
     let a = Assignment {
         variable: "a".to_string(),
@@ -133,10 +134,10 @@ fn assignment_add_to_variables() {
         ))),
     };
 
-    let mut vars = Variables::default();
-    Assignment::eval(a, &mut vars).unwrap();
+    let mut env = Environment::default();
+    Assignment::eval(a, &mut env).unwrap();
 
-    assert_eq!(Some(&180.into()), vars.get("a"));
+    assert_eq!(Some(&180.into()), env.variables().get("a"));
 }
 
 #[test]

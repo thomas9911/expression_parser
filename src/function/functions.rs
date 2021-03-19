@@ -50,7 +50,7 @@ pub fn now<'a, 'b, E: Env<'a>>(_env: &'b mut E) -> Output {
 }
 
 pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
-    use rand::distributions::IndependentSample;
+    use rand::Rng;
 
     let a = into_number(lhs, env)?;
     let b = into_number(rhs, env)?;
@@ -59,9 +59,8 @@ pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Out
         a
     } else {
         let (c, d) = if a >= b { (b, a) } else { (a, b) };
-        let between = rand::distributions::range::Range::new(c, d);
         let mut rng = rand::thread_rng();
-        between.ind_sample(&mut rng)
+        rng.gen_range(c..d)
     };
 
     ok_number(value)

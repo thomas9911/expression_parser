@@ -270,9 +270,9 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
             let arg2 = arguments.pop();
             let arg1 = arguments.pop();
 
-            let (a, b) = match arg1 {
+            let (a, b) = match arg2 {
                 None => (default_a, default_b),
-                Some(x) => match arg2 {
+                Some(x) => match arg1 {
                     None => (default_a, x),
                     Some(y) => (x, y),
                 },

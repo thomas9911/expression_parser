@@ -241,6 +241,25 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
                 arguments.remove(0),
             )))
         }
+        Range => {
+            check_arguments(func_name, pair_span, 1, Some(3), &arguments)?;
+
+            let arg3 = arguments.pop();
+            let arg2 = arguments.pop();
+            let arg1 = arguments.pop();
+
+            let zero = Expression::Value(0.0.into());
+            let one = Expression::Value(1.0.into());
+
+            let (a, b, c) = match (arg1, arg2, arg3) {
+                (None, None, Some(c)) => (zero, c, one),
+                (None, Some(b), Some(c)) => (b, c, one),
+                (Some(a), Some(b), Some(c)) => (a, b, c),
+                (_, _, _) => unreachable!(),
+            };
+
+            Expr(Box::new(Function::Range(a, b, c)))
+        }
         Concat => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             Expr(Box::new(Function::Concat(arguments)))

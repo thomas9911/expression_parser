@@ -89,6 +89,8 @@ pub enum Function {
         message = "Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument"
     )]
     Random(Expression, Expression),
+    #[strum(message = "Generate a list")]
+    Range(Expression, Expression, Expression),
     #[strum(message = "Returns the unix timestamp of the current time")]
     Now(),
     #[strum(message = "Returns the type of the argument")]
@@ -123,7 +125,7 @@ impl std::fmt::Display for Function {
             Concat(list) | Sum(list) | Product(list) | All(list) | Any(list) => {
                 write!(f, "{}({})", func_name, list_to_string(list).join(", "))
             }
-            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) => {
+            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) | Range(lhs, mdl, rhs) => {
                 write!(f, "{}({}, {}, {})", func_name, lhs, mdl, rhs)
             }
             Trim(lhs, rhs)
@@ -182,6 +184,7 @@ impl Function {
             Contains(lhs, rhs) => functions::contains(lhs, rhs, env),
             Join(lhs, rhs) => functions::join(lhs, rhs, env),
             If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, env),
+            Range(lhs, mdl, rhs) => functions::range(lhs, mdl, rhs, env),
             Upper(lhs) => functions::upper(lhs, env),
             Lower(lhs) => functions::lower(lhs, env),
             Add(lhs, rhs) => functions::add(lhs, rhs, env),
@@ -231,6 +234,7 @@ impl Function {
                 Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
                 Join(lhs, rhs) => Join(E::compile(lhs)?, E::compile(rhs)?),
                 If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
+                Range(lhs, mdl, rhs) => Range(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
                 Put(lhs, mdl, rhs) => Put(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
                 Upper(lhs) => Upper(E::compile(lhs)?),
                 Lower(lhs) => Lower(E::compile(lhs)?),
@@ -313,7 +317,7 @@ impl Function {
             Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
             | Type(lhs) | Error(lhs) => Box::new(lhs.iter_variables()),
 
-            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) => Box::new(
+            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) | Range(lhs, mdl, rhs) => Box::new(
                 lhs.iter_variables()
                     .chain(mdl.iter_variables())
                     .chain(rhs.iter_variables()),
@@ -609,6 +613,31 @@ impl Function {
     second = put({"test": 23}, "test", 5) == {"test": 5};
     third =  put({"test": 23}, "test", put({"nested": 23}, "nested", 5)) == {"test": {"nested": 5}};
     first and second and third"#
+            }
+            Range => {
+                r#"
+    // generates a list till the given argument
+    first = range(3) == [0,1,2];
+    // generates a list from to the given arguments
+    second = range(1, 4) == [1,2,3];
+    // generate a list from to the given arguments with an additional step argument
+    third = range(0, 15, 5) == [0, 5, 10];
+    four = range(0, 16, 5) == [0, 5, 10, 15];
+
+    // the last argument can also be a function that returns the next value
+    // this will generate the squares of the values in the range
+    five = range(0, 4, {x => x*x}) == [0, 1, 4, 9];
+    // the last argument is just a function so it can also be used with variables
+    filler = 10;
+    six = range(0, 4, {=> filler}) == [10, 10, 10, 10];
+
+    multiplier = {multiply => {number => multiply*number}};
+    times_three = multiplier.(3);
+    times_five = multiplier.(5);
+    seven = range(0, 4, times_three) == [0, 3, 6, 9];
+    eight = range(0, 4, times_five) == [0, 5, 10, 15];
+        
+    all(first, second, third, four, five, six, seven, eight)"#
             }
             Try => {
                 r#"

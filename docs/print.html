@@ -371,20 +371,20 @@ c = a + b;
 unset a;
 </code></pre>
 <h1><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h1>
-<h2><a class="header" href="#add" id="add">add</a></h2>
+<h2><a class="header" href="#add" id="add">Add</a></h2>
 <p>Adds the two arguments together</p>
 <p>Usage:</p>
 <pre><code>    first = 1 + 1 == 2;
     second = 123 + 321 == 444;
     third = -321 + 321 == 0;
 </code></pre>
-<h2><a class="header" href="#all" id="all">all</a></h2>
+<h2><a class="header" href="#all" id="all">All</a></h2>
 <p>Checks if all arguments are truthy</p>
 <p>Usage:</p>
 <pre><code>    first = all([1, true, [1,2,3], {&quot;test&quot;: true}]);
     second = all([1, false, [1,2,3], {&quot;test&quot;: true}]) == false;
 </code></pre>
-<h2><a class="header" href="#and" id="and">and</a></h2>
+<h2><a class="header" href="#and" id="and">And</a></h2>
 <p>If the first argument is truthy returns the second argument, otherwise returns the first argument</p>
 <p>Usage:</p>
 <pre><code>    first = true and true;
@@ -392,14 +392,14 @@ unset a;
     third = [1,2,3] and true;
     fourth = 0 and 1234 == 0;
 </code></pre>
-<h2><a class="header" href="#any" id="any">any</a></h2>
+<h2><a class="header" href="#any" id="any">Any</a></h2>
 <p>Checks if any arguments are truthy</p>
 <p>Usage:</p>
 <pre><code>    first = any([1, false, [1,2,3], {&quot;test&quot;: true}]);
     second = any([0.0, true, [], {}]);
     third = any([0.0, false, [], {}]) == false;
 </code></pre>
-<h2><a class="header" href="#assert" id="assert">assert</a></h2>
+<h2><a class="header" href="#assert" id="assert">Assert</a></h2>
 <p>Raises an error with the given message if the first argument is not truthy</p>
 <p>Usage:</p>
 <pre><code>    one = assert(true == true);
@@ -408,7 +408,7 @@ unset a;
     three = assert(1, &quot;not truthy&quot;) == 1;
     four = try(assert(1 == 0, &quot;panic&quot;), &quot;default&quot;) == &quot;default&quot;;
 </code></pre>
-<h2><a class="header" href="#call" id="call">call</a></h2>
+<h2><a class="header" href="#call" id="call">Call</a></h2>
 <p>Calls the function with given arguments</p>
 <p>Usage:</p>
 <pre><code>    my_function = {x =&gt; x + 25};
@@ -417,45 +417,45 @@ unset a;
     two = call(my_function, 5) == 30;
     one and two  
 </code></pre>
-<h2><a class="header" href="#concat" id="concat">concat</a></h2>
+<h2><a class="header" href="#concat" id="concat">Concat</a></h2>
 <p>Combines two or more lists into one</p>
 <p>Usage:</p>
 <pre><code>    first = concat([1,2], [3,4], [5,6]) == [1,2,3,4,5,6];
     second = concat(&quot;test&quot;, &quot;-&quot;, &quot;test&quot;) == &quot;test-test&quot;;
 </code></pre>
-<h2><a class="header" href="#contains" id="contains">contains</a></h2>
+<h2><a class="header" href="#contains" id="contains">Contains</a></h2>
 <p>Checks if the seconds argument is in the first argument</p>
 <p>Usage:</p>
 <pre><code>    first = contains(&quot;testing&quot;, &quot;test&quot;);
     second = contains([1,2,3,4], 3);
 </code></pre>
-<h2><a class="header" href="#cos" id="cos">cos</a></h2>
+<h2><a class="header" href="#cos" id="cos">Cos</a></h2>
 <p>Calculates the cosine of the number</p>
 <p>Usage:</p>
 <pre><code>    first = cos(0) == 1;
 </code></pre>
-<h2><a class="header" href="#div" id="div">div</a></h2>
+<h2><a class="header" href="#div" id="div">Div</a></h2>
 <p>Divides the second argument from the first argument</p>
 <p>Usage:</p>
 <pre><code>    first = 1 / 5 == 0.2;
     second = 50 / 50 == 1;
     third = 150 / 6 == 25;
 </code></pre>
-<h2><a class="header" href="#equal" id="equal">equal</a></h2>
+<h2><a class="header" href="#equal" id="equal">Equal</a></h2>
 <p>Compares if the two arguments are equal</p>
 <p>Usage:</p>
 <pre><code>    first = 1 == 1; 
     second = [1,2,3] == [1,2,3]; 
     third = {&quot;test&quot;: true} == {&quot;test&quot;: true}; 
 </code></pre>
-<h2><a class="header" href="#error" id="error">error</a></h2>
+<h2><a class="header" href="#error" id="error">Error</a></h2>
 <p>Raises an error with the given message</p>
 <p>Usage:</p>
 <pre><code>    # an error with &quot;something went wrong&quot; will be catched and returns &quot;default&quot;
     one = try(error(&quot;something went wrong&quot;), &quot;default&quot;) == &quot;default&quot;;
 
 </code></pre>
-<h2><a class="header" href="#format" id="format">format</a></h2>
+<h2><a class="header" href="#format" id="format">Format</a></h2>
 <p>Formats the arguments into the template, only positional arguments are supported.</p>
 <p>Usage:</p>
 <pre><code>    one = format(&quot;{} + {} = {}&quot;, 1, 1, 2) == &quot;1 + 1 = 2&quot;;
@@ -464,7 +464,7 @@ unset a;
 
     one and two and three
 </code></pre>
-<h2><a class="header" href="#get" id="get">get</a></h2>
+<h2><a class="header" href="#get" id="get">Get</a></h2>
 <p>Gets the value from a list or a map</p>
 <p>Usage:</p>
 <pre><code>    first = get([1, 2, 3], 1) == 2;
@@ -477,12 +477,12 @@ unset a;
     // get({&quot;test&quot;: 1}, &quot;another&quot;)
 
 </code></pre>
-<h2><a class="header" href="#greater" id="greater">greater</a></h2>
+<h2><a class="header" href="#greater" id="greater">Greater</a></h2>
 <p>Compares if left is greater than right</p>
 <p>Usage:</p>
 <pre><code>    first = 2 &gt; 1; 
 </code></pre>
-<h2><a class="header" href="#help" id="help">help</a></h2>
+<h2><a class="header" href="#help" id="help">Help</a></h2>
 <p>Prints help message</p>
 <p>Usage:</p>
 <pre><code>    // prints general help
@@ -494,7 +494,7 @@ unset a;
     // print all the functions
     help(functions);
 </code></pre>
-<h2><a class="header" href="#if" id="if">if</a></h2>
+<h2><a class="header" href="#if" id="if">If</a></h2>
 <p>If the first argument is truthy returns the second argument, otherwise returns the third argument</p>
 <p>Usage:</p>
 <pre><code>    first = if(1 == 1, &quot;success&quot;, &quot;failed&quot;) == &quot;success&quot;;
@@ -512,56 +512,56 @@ unset a;
     }) == 3;
 
 </code></pre>
-<h2><a class="header" href="#join" id="join">join</a></h2>
+<h2><a class="header" href="#join" id="join">Join</a></h2>
 <p>Combine the first argument into a string with the second argument as is seperator</p>
 <p>Usage:</p>
 <pre><code>    first = join([&quot;1&quot;, &quot;2&quot;, &quot;3&quot;], &quot;, &quot;) == &quot;1, 2, 3&quot;;
     second = join([&quot;test&quot;, &quot;testing&quot;, &quot;test&quot;], &quot;-&quot;) == &quot;test-testing-test&quot;;
 </code></pre>
-<h2><a class="header" href="#lesser" id="lesser">lesser</a></h2>
+<h2><a class="header" href="#lesser" id="lesser">Lesser</a></h2>
 <p>Compares if left is less than right</p>
 <p>Usage:</p>
 <pre><code>    first = 1 &lt; 2; 
 </code></pre>
-<h2><a class="header" href="#lower" id="lower">lower</a></h2>
+<h2><a class="header" href="#lower" id="lower">Lower</a></h2>
 <p>Converts input to lowercase</p>
 <p>Usage:</p>
 <pre><code>    first = lower(&quot;TESTING&quot;) == &quot;testing&quot;;
 </code></pre>
-<h2><a class="header" href="#mul" id="mul">mul</a></h2>
+<h2><a class="header" href="#mul" id="mul">Mul</a></h2>
 <p>Multiplies the two arguments together</p>
 <p>Usage:</p>
 <pre><code>    first = 1 * 1 == 1;
     second = 150 * 0 == 0;
     third = -5 * -5 == 25;
 </code></pre>
-<h2><a class="header" href="#not_equal" id="not_equal">not_equal</a></h2>
+<h2><a class="header" href="#not-equal" id="not-equal">Not equal</a></h2>
 <p>Compares if the two arguments are not equal</p>
 <p>Usage:</p>
 <pre><code>    first = 1 != 2; 
     second = [1,2,3] != [3,2,1]; 
     third = {&quot;test&quot;: true} != {&quot;test&quot;: false}; 
 </code></pre>
-<h2><a class="header" href="#now" id="now">now</a></h2>
+<h2><a class="header" href="#now" id="now">Now</a></h2>
 <p>Returns the unix timestamp of the current time</p>
 <p>Usage:</p>
 <pre><code>    now();
 </code></pre>
-<h2><a class="header" href="#or" id="or">or</a></h2>
+<h2><a class="header" href="#or" id="or">Or</a></h2>
 <p>If the first argument is truthy returns the first argument, otherwise returns the second argument</p>
 <p>Usage:</p>
 <pre><code>    first = false or true;
     second = 0.0 or true;
     third = [] or true;
 </code></pre>
-<h2><a class="header" href="#pow" id="pow">pow</a></h2>
+<h2><a class="header" href="#pow" id="pow">Pow</a></h2>
 <p>Raises the first argument to the second argument</p>
 <p>Usage:</p>
 <pre><code>    first = 1 ** 1 == 1;
     second = 2 ^ 3 == 8;
     third = 16 ** 0.5 == 4;
 </code></pre>
-<h2><a class="header" href="#print" id="print">print</a></h2>
+<h2><a class="header" href="#print" id="print">Print</a></h2>
 <p>Prints value</p>
 <p>Usage:</p>
 <pre><code>    // prints the item to configured logger
@@ -569,19 +569,19 @@ unset a;
             
     one
 </code></pre>
-<h2><a class="header" href="#product" id="product">product</a></h2>
+<h2><a class="header" href="#product" id="product">Product</a></h2>
 <p>Calculates the product of the arguments</p>
 <p>Usage:</p>
 <pre><code>    first = product(1,2,3,4,5) == 120;
     second = product([1,2,3,4,5]) == 120;
 </code></pre>
-<h2><a class="header" href="#push" id="push">push</a></h2>
+<h2><a class="header" href="#push" id="push">Push</a></h2>
 <p>Push value to the list</p>
 <p>Usage:</p>
 <pre><code>    first = push([1, 2, 3], 1) == [1,2,3,1];
     second = push([1, 2, 3], [1, 2, 3]) == [1,2,3,[1,2,3]];
 </code></pre>
-<h2><a class="header" href="#put" id="put">put</a></h2>
+<h2><a class="header" href="#put" id="put">Put</a></h2>
 <p>Put third argument into the map under the second argument</p>
 <p>Usage:</p>
 <pre><code>    first = put({}, &quot;test&quot;, 123) == {&quot;test&quot;: 123};
@@ -589,7 +589,7 @@ unset a;
     second = put({&quot;test&quot;: 23}, &quot;test&quot;, 5) == {&quot;test&quot;: 5};
     third =  put({&quot;test&quot;: 23}, &quot;test&quot;, put({&quot;nested&quot;: 23}, &quot;nested&quot;, 5)) == {&quot;test&quot;: {&quot;nested&quot;: 5}};
 </code></pre>
-<h2><a class="header" href="#random" id="random">random</a></h2>
+<h2><a class="header" href="#random" id="random">Random</a></h2>
 <p>Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument</p>
 <p>Usage:</p>
 <pre><code>    // random() returns a random number between 0 and 1
@@ -597,7 +597,32 @@ unset a;
     second = random(-1, 1) != random(2, 5);
     third = random(-5) != random(5);
 </code></pre>
-<h2><a class="header" href="#remove" id="remove">remove</a></h2>
+<h2><a class="header" href="#range" id="range">Range</a></h2>
+<p>Generate a list</p>
+<p>Usage:</p>
+<pre><code>    // generates a list till the given argument
+    first = range(3) == [0,1,2];
+    // generates a list from to the given arguments
+    second = range(1, 4) == [1,2,3];
+    // generate a list from to the given arguments with an additional step argument
+    third = range(0, 15, 5) == [0, 5, 10];
+    four = range(0, 16, 5) == [0, 5, 10, 15];
+
+    // the last argument can also be a function that returns the next value
+    // this will generate the squares of the values in the range
+    five = range(0, 4, {x =&gt; x*x}) == [0, 1, 4, 9];
+    // the last argument is just a function so it can also be used with variables
+    filler = 10;
+    six = range(0, 4, {=&gt; filler}) == [10, 10, 10, 10];
+
+    multiplier = {multiply =&gt; {number =&gt; multiply*number}};
+    times_three = multiplier.(3);
+    times_five = multiplier.(5);
+    seven = range(0, 4, times_three) == [0, 3, 6, 9];
+    eight = range(0, 4, times_five) == [0, 5, 10, 15];
+        
+</code></pre>
+<h2><a class="header" href="#remove" id="remove">Remove</a></h2>
 <p>Removes index from the list or key from the map</p>
 <p>Usage:</p>
 <pre><code>    // for lists
@@ -608,37 +633,37 @@ unset a;
     four = remove({&quot;test&quot;: 1}, &quot;another&quot;) == {&quot;test&quot;: 1};
     five = remove({&quot;test&quot;: 1, &quot;another&quot;: 123}, &quot;another&quot;) == {&quot;test&quot;: 1};
 </code></pre>
-<h2><a class="header" href="#sin" id="sin">sin</a></h2>
+<h2><a class="header" href="#sin" id="sin">Sin</a></h2>
 <p>Calculates the sine of the number</p>
 <p>Usage:</p>
 <pre><code>    first = sin(0) == 0;
 </code></pre>
-<h2><a class="header" href="#sub" id="sub">sub</a></h2>
+<h2><a class="header" href="#sub" id="sub">Sub</a></h2>
 <p>Subtracts the second argument from the first argument</p>
 <p>Usage:</p>
 <pre><code>    first = 1 - 1 == 0;
     second = 421 - 321 == 100;
     third = -123 - 321 == -444;
 </code></pre>
-<h2><a class="header" href="#sum" id="sum">sum</a></h2>
+<h2><a class="header" href="#sum" id="sum">Sum</a></h2>
 <p>Sums up the arguments</p>
 <p>Usage:</p>
 <pre><code>    first = sum(1,2,3,4,5) == 15;
     second = sum([1,2,3,4,5]) == 15;
 </code></pre>
-<h2><a class="header" href="#tan" id="tan">tan</a></h2>
+<h2><a class="header" href="#tan" id="tan">Tan</a></h2>
 <p>Calculates the tangent of the number</p>
 <p>Usage:</p>
 <pre><code>    first = tan(0) == 0;
 </code></pre>
-<h2><a class="header" href="#trim" id="trim">trim</a></h2>
+<h2><a class="header" href="#trim" id="trim">Trim</a></h2>
 <p>Removes the characters at the start and end of the first argument, second argument is an optional argument that contains the character to remove, defaults to ' '</p>
 <p>Usage:</p>
 <pre><code>    first = trim(&quot;   test    &quot;) == &quot;test&quot;;
     second = trim(&quot;__Testing_Test__&quot;, &quot;_&quot;) == &quot;Testing_Test&quot;;
     third = trim(&quot;A sentence.\n\n\n\n\n&quot;, &quot;\n&quot;) == &quot;A sentence.&quot;;
 </code></pre>
-<h2><a class="header" href="#try" id="try">try</a></h2>
+<h2><a class="header" href="#try" id="try">Try</a></h2>
 <p>Tries the first argument, if that fails returns the second argument</p>
 <p>Usage:</p>
 <pre><code>    // will just return the get function
@@ -650,7 +675,7 @@ unset a;
     invalid_key = 1;
     third = try(put(map, invalid_key, 123), map) == map;
 </code></pre>
-<h2><a class="header" href="#type" id="type">type</a></h2>
+<h2><a class="header" href="#type" id="type">Type</a></h2>
 <p>Returns the type of the argument</p>
 <p>Usage:</p>
 <pre><code>    one = type(1.0) == &quot;number&quot;;
@@ -661,7 +686,7 @@ unset a;
     six = type(true) == &quot;boolean&quot;;
     seven = type(null) == &quot;null&quot;;
 </code></pre>
-<h2><a class="header" href="#upper" id="upper">upper</a></h2>
+<h2><a class="header" href="#upper" id="upper">Upper</a></h2>
 <p>Converts input to uppercase</p>
 <p>Usage:</p>
 <pre><code>    first = upper(&quot;testing&quot;) == &quot;TESTING&quot;;

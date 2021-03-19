@@ -1,4 +1,3 @@
-// use expression_parser::{ExpressionFile, ExpressionValue, Function};
 use expression_parser::function::{functions, FunctionName};
 use expression_parser::{Environment, Expression, Function};
 
@@ -16,11 +15,21 @@ fn function_doc_tests() {
 
     for function in functions {
         let mut env = Environment::default();
-        let a = functions::help(Expression::Var(function.clone()), &mut env);
+        let help_text = functions::help(Expression::Var(function.clone()), &mut env);
+        let mut splitted_name_parts: Vec<String> =
+            function.split('_').map(|x| x.to_owned()).collect();
+        splitted_name_parts
+            .get_mut(0)
+            .unwrap()
+            .get_mut(0..1)
+            .unwrap()
+            .make_ascii_uppercase();
+        let function_name = splitted_name_parts.join(" ");
+
         println!(
             "## {}\n\n{}\n",
-            function,
-            a.unwrap().to_string().trim_matches('"')
+            function_name,
+            help_text.unwrap().to_string().trim_matches('"')
         );
     }
 }

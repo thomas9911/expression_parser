@@ -1,4 +1,4 @@
-use super::{as_string, ok_string};
+use super::{as_string, ok_string, call};
 use super::{Input, Output};
 use crate::{Env, Error, Expression, ExpressionValue};
 
@@ -44,6 +44,57 @@ pub fn remove_list<'a, 'b, E: Env<'a>>(lhs: Vec<Input>, rhs: Input, env: &'b mut
             "second argument is not a valid index value",
         )),
     }
+}
+
+pub fn range<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut E) -> Output {
+    let a = Expression::eval(lhs, env)?
+        .as_number()
+        .ok_or(Error::new_static("first argument should be a number"))?;
+    let b = Expression::eval(mdl, env)?
+        .as_number()
+        .ok_or(Error::new_static("second argument should be a number"))?;
+
+    let from = float_to_index(a)?;
+    let to = float_to_index(b)?;
+
+    let range_object = from..to;
+
+    let data: Vec<_> = match Expression::eval(rhs, env)? {
+        ExpressionValue::Function(func, vars) => {
+            let function = Expression::Value(ExpressionValue::Function(func, vars));
+
+            range_object
+                .into_iter()
+                .try_fold(Vec::new(), |mut acc, x| {
+                    let arg = Expression::Value(ExpressionValue::Number(x as f64));
+
+                    let res =
+                        match call(function.clone(), vec![arg], env) {
+                            Ok(x) => {
+                                acc.push(Expression::Value(x));
+                                Ok(acc)
+                            }
+                            Err(e) => Err(e),
+                        };
+                    res
+                })?
+        }
+        ExpressionValue::Number(x) => {
+            let step_by = float_to_index(x)?;
+            let iter = range_object
+                .step_by(step_by)
+                .map(|x| Expression::Value(x.into()));
+
+            iter.collect()
+        }
+        _ => {
+            return Err(Error::new_static(
+                "last argument should a number or a function",
+            ))
+        }
+    };
+
+    Ok(ExpressionValue::List(data))
 }
 
 fn get_f64<'a, 'b, E: Env<'a>>(list: Vec<Expression>, index: f64, env: &'b mut E) -> Output {
@@ -120,9 +171,10 @@ fn float_to_u32(input: f64) -> Option<u32> {
 }
 
 fn float_to_index(input: f64) -> Result<usize, Error> {
-    Ok(float_to_u32(input).ok_or(Error::new_static(
-        "second argument is not a valid index value",
-    ))? as usize)
+    Ok(
+        float_to_u32(input).ok_or(Error::new_static("argument is not a valid index value"))?
+            as usize,
+    )
 }
 
 fn is_ok_float(input: f64) -> bool {

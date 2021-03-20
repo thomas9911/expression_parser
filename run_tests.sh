@@ -31,14 +31,20 @@ function run_test() {
     run_single_test $1 "STACKOVERFLOW"
     ;;
 
+  ./examples/file/sort.txt)
+    run_single_test $1 "[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]"
+    ;;
+
   *)
     echo "$1 does not have an output"
     ;;
   esac
 }
 
-cargo test -q
-cargo test -q --all-features
+if [ "skip" != "$1" ]; then
+  cargo test -q
+  cargo test -q --all-features
+fi
 
 echo "run file examples"
 for FILE in ./examples/file/*; do

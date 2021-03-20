@@ -622,6 +622,20 @@ unset a;
     eight = range(0, 4, times_five) == [0, 5, 10, 15];
         
 </code></pre>
+<h2><a class="header" href="#reduce" id="reduce">Reduce</a></h2>
+<p>Reduce a list to a single value</p>
+<p>Usage:</p>
+<pre><code>    // sum functionality
+    one = reduce([1,2,3,4], 0, {acc, x =&gt; acc + x}) == 10;
+    // map like functionality
+    two = reduce([1,2], [], {acc, x =&gt; push(acc, x*3)}) == [3,6];
+
+    // generate a map. This example generates a map with odd numbers
+    three = reduce([1,2,3,4], {}, {acc, item =&gt; 
+        put(acc, format(&quot;key-{}&quot;, item), item * 2 + 1)
+    }) == {&quot;key-1&quot;: 3, &quot;key-2&quot;: 5, &quot;key-3&quot;: 7, &quot;key-4&quot;: 9};
+
+</code></pre>
 <h2><a class="header" href="#remove" id="remove">Remove</a></h2>
 <p>Removes index from the list or key from the map</p>
 <p>Usage:</p>

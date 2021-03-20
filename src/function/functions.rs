@@ -95,7 +95,6 @@ pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b mut E) -
     let var = ScopedVariables::new(env.variables());
 
     let mut context = Environment {
-        // original: Box::new(env),
         variables: Box::new(var),
         logger: logger,
     };

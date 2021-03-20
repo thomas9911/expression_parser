@@ -93,6 +93,8 @@ pub enum Function {
     Shuffle(Expression),
     #[strum(message = "Generate a list")]
     Range(Expression, Expression, Expression),
+    #[strum(message = "Reduce a list to a single value")]
+    Reduce(Expression, Expression, Expression),
     #[strum(message = "Returns the unix timestamp of the current time")]
     Now(),
     #[strum(message = "Returns the type of the argument")]
@@ -127,9 +129,10 @@ impl std::fmt::Display for Function {
             Concat(list) | Sum(list) | Product(list) | All(list) | Any(list) => {
                 write!(f, "{}({})", func_name, list_to_string(list).join(", "))
             }
-            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) | Range(lhs, mdl, rhs) => {
-                write!(f, "{}({}, {}, {})", func_name, lhs, mdl, rhs)
-            }
+            If(lhs, mdl, rhs)
+            | Put(lhs, mdl, rhs)
+            | Range(lhs, mdl, rhs)
+            | Reduce(lhs, mdl, rhs) => write!(f, "{}({}, {}, {})", func_name, lhs, mdl, rhs),
             Trim(lhs, rhs)
             | Contains(lhs, rhs)
             | Join(lhs, rhs)
@@ -187,6 +190,7 @@ impl Function {
             Join(lhs, rhs) => functions::join(lhs, rhs, env),
             If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, env),
             Range(lhs, mdl, rhs) => functions::range(lhs, mdl, rhs, env),
+            Reduce(lhs, mdl, rhs) => functions::reduce(lhs, mdl, rhs, env),
             Upper(lhs) => functions::upper(lhs, env),
             Lower(lhs) => functions::lower(lhs, env),
             Add(lhs, rhs) => functions::add(lhs, rhs, env),
@@ -238,6 +242,9 @@ impl Function {
                 Join(lhs, rhs) => Join(E::compile(lhs)?, E::compile(rhs)?),
                 If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
                 Range(lhs, mdl, rhs) => Range(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
+                Reduce(lhs, mdl, rhs) => {
+                    Reduce(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?)
+                }
                 Put(lhs, mdl, rhs) => Put(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
                 Upper(lhs) => Upper(E::compile(lhs)?),
                 Lower(lhs) => Lower(E::compile(lhs)?),
@@ -321,7 +328,10 @@ impl Function {
             Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
             | Type(lhs) | Error(lhs) | Shuffle(lhs) => Box::new(lhs.iter_variables()),
 
-            If(lhs, mdl, rhs) | Put(lhs, mdl, rhs) | Range(lhs, mdl, rhs) => Box::new(
+            If(lhs, mdl, rhs)
+            | Put(lhs, mdl, rhs)
+            | Range(lhs, mdl, rhs)
+            | Reduce(lhs, mdl, rhs) => Box::new(
                 lhs.iter_variables()
                     .chain(mdl.iter_variables())
                     .chain(rhs.iter_variables()),
@@ -649,6 +659,20 @@ impl Function {
         
     all(first, second, third, four, five, six, seven, eight)"#
             }
+            Reduce => {
+                r#"
+    // sum functionality
+    one = reduce([1,2,3,4], 0, {acc, x => acc + x}) == 10;
+    // map like functionality
+    two = reduce([1,2], [], {acc, x => push(acc, x*3)}) == [3,6];
+
+    // generate a map. This example generates a map with odd numbers
+    three = reduce([1,2,3,4], {}, {acc, item => 
+        put(acc, format("key-{}", item), item * 2 + 1)
+    }) == {"key-1": 3, "key-2": 5, "key-3": 7, "key-4": 9};
+
+    one and two and three"#
+            }
             Try => {
                 r#"
     // will just return the get function
@@ -774,6 +798,11 @@ fn function_doc_tests() {
                 .build(),
         ) {
             Ok(ExpressionValue::Bool(true)) => (),
+            Err(e) => panic!(
+                "usage test for \"{}\" fails, with '{}'",
+                FunctionName::from(function),
+                e
+            ),
             _ => panic!("usage test for \"{}\" fails", FunctionName::from(function)),
         }
     }

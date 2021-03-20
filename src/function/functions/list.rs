@@ -96,6 +96,28 @@ pub fn range<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mu
     Ok(ExpressionValue::List(data))
 }
 
+pub fn reduce<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut E) -> Output {
+    let list = Expression::eval(lhs, env)?
+        .as_list()
+        .ok_or(Error::new_static("first argument should be a list"))?;
+
+    let mut accumilator = Expression::eval(mdl, env)?;
+
+    match Expression::eval(rhs, env)? {
+        ExpressionValue::Function(func, vars) => {
+            let function = Expression::Value(ExpressionValue::Function(func, vars));
+
+            for item in list {
+                let args = vec![Expression::Value(accumilator), item];
+                accumilator = call(function.clone(), args, env)?;
+            }
+
+            Ok(accumilator)
+        }
+        _ => Err(Error::new_static("last argument should a function")),
+    }
+}
+
 pub fn shuffle<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
     let mut list = Expression::eval(lhs, env)?
         .as_list()

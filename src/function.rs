@@ -57,6 +57,8 @@ pub enum Function {
         message = "If the first argument is truthy returns the second argument, otherwise returns the third argument"
     )]
     If(Expression, Expression, Expression),
+    #[strum(message = "Returns the length of map of list")]
+    Length(Expression),
     #[strum(message = "Converts input to uppercase")]
     Upper(Expression),
     #[strum(message = "Converts input to lowercase")]
@@ -83,7 +85,7 @@ pub enum Function {
     Push(Expression, Expression),
     #[strum(message = "Removes index from the list or key from the map")]
     Remove(Expression, Expression),
-    #[strum(message = "Put third argument into the map under the second argument")]
+    #[strum(message = "Put third argument into the map or list under the second argument")]
     Put(Expression, Expression, Expression),
     #[strum(
         message = "Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument"
@@ -150,7 +152,9 @@ impl std::fmt::Display for Function {
                 list_to_string(list).join(", ")
             ),
             Upper(lhs) | Lower(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
-            | Type(lhs) | Error(lhs) | Shuffle(lhs) => write!(f, "{}({})", func_name, lhs),
+            | Type(lhs) | Error(lhs) | Shuffle(lhs) | Length(lhs) => {
+                write!(f, "{}({})", func_name, lhs)
+            }
             Now() => write!(f, "{}()", func_name),
 
             // infixes
@@ -188,6 +192,7 @@ impl Function {
             Or(lhs, rhs) => functions::or(lhs, rhs, env),
             Contains(lhs, rhs) => functions::contains(lhs, rhs, env),
             Join(lhs, rhs) => functions::join(lhs, rhs, env),
+            Length(lhs) => functions::length(lhs, env),
             If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, env),
             Range(lhs, mdl, rhs) => functions::range(lhs, mdl, rhs, env),
             Reduce(lhs, mdl, rhs) => functions::reduce(lhs, mdl, rhs, env),
@@ -256,6 +261,7 @@ impl Function {
                 Cos(lhs) => Cos(E::compile(lhs)?),
                 Sin(lhs) => Sin(E::compile(lhs)?),
                 Tan(lhs) => Tan(E::compile(lhs)?),
+                Length(lhs) => Length(E::compile(lhs)?),
                 Get(lhs, rhs) => Get(E::compile(lhs)?, E::compile(rhs)?),
                 Push(lhs, rhs) => Push(E::compile(lhs)?, E::compile(rhs)?),
                 Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
@@ -326,7 +332,7 @@ impl Function {
             | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
 
             Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
-            | Type(lhs) | Error(lhs) | Shuffle(lhs) => Box::new(lhs.iter_variables()),
+            | Type(lhs) | Error(lhs) | Shuffle(lhs) | Length(lhs) => Box::new(lhs.iter_variables()),
 
             If(lhs, mdl, rhs)
             | Put(lhs, mdl, rhs)
@@ -515,6 +521,13 @@ impl Function {
     second = join(["test", "testing", "test"], "-") == "test-testing-test";
     first and second"#
             }
+            Length => {
+                r#"
+    first = length(["1", "2", "3"]) == 3;
+    second = length({"test": 1, "another": 3}) == 2;
+    third = length(range(15)) == 15;
+    first and second and third"#
+            }
             If => {
                 r#"
     first = if(1 == 1, "success", "failed") == "success";
@@ -632,7 +645,10 @@ impl Function {
     // overwrites existing key
     second = put({"test": 23}, "test", 5) == {"test": 5};
     third =  put({"test": 23}, "test", put({"nested": 23}, "nested", 5)) == {"test": {"nested": 5}};
-    first and second and third"#
+    // put replaces the value at the index
+    four = put([1, 2, 3], 2, 15) == [1, 2, 15];
+    
+    first and second and third and four"#
             }
             Range => {
                 r#"

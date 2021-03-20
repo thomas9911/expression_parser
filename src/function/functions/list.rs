@@ -37,6 +37,22 @@ pub fn push<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Outpu
     Ok(ExpressionValue::List(list))
 }
 
+pub fn put_list<'a, 'b, E: Env<'a>>(
+    list: Vec<Input>,
+    mdl: Input,
+    rhs: Input,
+    env: &'b mut E,
+) -> Output {
+    let value = Expression::eval(rhs, env)?;
+
+    match Expression::eval(mdl, env)? {
+        ExpressionValue::Number(x) => put_f64(list, x, Expression::Value(value), env),
+        _ => Err(Error::new_static(
+            "second argument is not a valid index value",
+        )),
+    }
+}
+
 pub fn remove_list<'a, 'b, E: Env<'a>>(lhs: Vec<Input>, rhs: Input, env: &'b mut E) -> Output {
     match Expression::eval(rhs, env)? {
         ExpressionValue::Number(x) => remove_f64(lhs, x),
@@ -144,6 +160,23 @@ fn get_f64<'a, 'b, E: Env<'a>>(list: Vec<Expression>, index: f64, env: &'b mut E
     }
 }
 
+fn put_f64<'a, 'b, E: Env<'a>>(
+    list: Vec<Expression>,
+    index: f64,
+    item: Expression,
+    env: &'b mut E,
+) -> Output {
+    if index < 0.0 {
+        let index = float_to_index(-index)?;
+        let item = put_back_int(list, index, item)?;
+        Expression::eval(item, env)
+    } else {
+        let index = float_to_index(index)?;
+        let item = put_int(list, index, item)?;
+        Expression::eval(item, env)
+    }
+}
+
 fn get_int(list: Vec<Expression>, index: usize) -> Result<Expression, Error> {
     match list.get(index) {
         Some(x) => Ok(x.clone()),
@@ -152,10 +185,30 @@ fn get_int(list: Vec<Expression>, index: usize) -> Result<Expression, Error> {
 }
 
 fn get_back_int(list: Vec<Expression>, index: usize) -> Result<Expression, Error> {
-    match list.get(list.len() - index) {
+    let new_index = from_right_index(&list, index)?;
+    match list.get(new_index) {
         Some(x) => Ok(x.clone()),
         None => Err(Error::new_static("item not found on index below zero")),
     }
+}
+
+fn put_int(mut list: Vec<Expression>, index: usize, item: Expression) -> Result<Expression, Error> {
+    match list.get_mut(index) {
+        Some(x) => {
+            *x = item;
+            Ok(ExpressionValue::List(list).into())
+        }
+        None => Err(Error::new(format!("item not found on index '{}'", index))),
+    }
+}
+
+fn put_back_int(
+    list: Vec<Expression>,
+    index: usize,
+    item: Expression,
+) -> Result<Expression, Error> {
+    let new_index = from_right_index(&list, index)?;
+    put_int(list, new_index, item)
 }
 
 fn remove_f64(mut list: Vec<Expression>, index: f64) -> Output {
@@ -218,4 +271,10 @@ fn is_ok_float(input: f64) -> bool {
         std::num::FpCategory::Zero => true,
         _ => false,
     }
+}
+
+fn from_right_index(list: &Vec<Expression>, index: usize) -> Result<usize, Error> {
+    list.len()
+        .checked_sub(index)
+        .ok_or(Error::new_static("item not found on index below zero"))
 }

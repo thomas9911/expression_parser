@@ -204,6 +204,10 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
                 arguments.remove(0),
             )))
         }
+        Length => {
+            check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
+            Expr(Box::new(Function::Length(arguments.remove(0))))
+        }
         Get => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
             Expr(Box::new(Function::Get(

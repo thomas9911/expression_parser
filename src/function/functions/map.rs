@@ -14,9 +14,13 @@ pub fn get_map<'a, 'b, E: Env<'a>>(map: ExpressionMap, rhs: Input, env: &'b mut 
     }
 }
 
-pub fn put<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut E) -> Output {
+pub fn put_map<'a, 'b, E: Env<'a>>(
+    mut map: ExpressionMap,
+    mdl: Input,
+    rhs: Input,
+    env: &'b mut E,
+) -> Output {
     if let ExpressionValue::String(ref string_key) = Expression::eval(mdl, env)? {
-        let mut map = eval_to_map(lhs, env)?;
         map.insert(string_key, Expression::eval(rhs, env)?);
         Ok(map.into())
     } else {
@@ -36,10 +40,4 @@ pub fn remove_map<'a, 'b, E: Env<'a>>(
         }
         _ => Err(Error::new_static("second argument is not a valid key")),
     }
-}
-
-fn eval_to_map<'a, 'b, E: Env<'a>>(input: Input, env: &'b mut E) -> Result<ExpressionMap, Error> {
-    Expression::eval(input, env)?
-        .as_map()
-        .ok_or(Error::new_static("first argument should be a map"))
 }

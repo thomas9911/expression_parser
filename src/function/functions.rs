@@ -188,12 +188,32 @@ pub fn get<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output
     }
 }
 
+/// overload put function for list and map
+pub fn put<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut E) -> Output {
+    let value = Expression::eval(lhs, env)?;
+    match value {
+        ExpressionValue::List(val) => put_list(val, mdl, rhs, env),
+        ExpressionValue::Map(val) => put_map(val, mdl, rhs, env),
+        _ => Err(Error::new_static("first argument is not a list or a map")),
+    }
+}
+
 /// overload remove function for list and map
 pub fn remove<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     let value = Expression::eval(lhs, env)?;
     match value {
         ExpressionValue::List(val) => remove_list(val, rhs, env),
         ExpressionValue::Map(val) => remove_map(val, rhs, env),
+        _ => Err(Error::new_static("first argument is not a list or a map")),
+    }
+}
+
+/// overload length function for list and map
+pub fn length<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
+    let value = Expression::eval(lhs, env)?;
+    match value {
+        ExpressionValue::List(val) => Ok(val.len().into()),
+        ExpressionValue::Map(val) => Ok(val.0.len().into()),
         _ => Err(Error::new_static("first argument is not a list or a map")),
     }
 }

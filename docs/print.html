@@ -518,6 +518,13 @@ unset a;
 <pre><code>    first = join([&quot;1&quot;, &quot;2&quot;, &quot;3&quot;], &quot;, &quot;) == &quot;1, 2, 3&quot;;
     second = join([&quot;test&quot;, &quot;testing&quot;, &quot;test&quot;], &quot;-&quot;) == &quot;test-testing-test&quot;;
 </code></pre>
+<h2><a class="header" href="#length" id="length">Length</a></h2>
+<p>Returns the length of map of list</p>
+<p>Usage:</p>
+<pre><code>    first = length([&quot;1&quot;, &quot;2&quot;, &quot;3&quot;]) == 3;
+    second = length({&quot;test&quot;: 1, &quot;another&quot;: 3}) == 2;
+    third = length(range(15)) == 15;
+</code></pre>
 <h2><a class="header" href="#lesser" id="lesser">Lesser</a></h2>
 <p>Compares if left is less than right</p>
 <p>Usage:</p>
@@ -582,12 +589,15 @@ unset a;
     second = push([1, 2, 3], [1, 2, 3]) == [1,2,3,[1,2,3]];
 </code></pre>
 <h2><a class="header" href="#put" id="put">Put</a></h2>
-<p>Put third argument into the map under the second argument</p>
+<p>Put third argument into the map or list under the second argument</p>
 <p>Usage:</p>
 <pre><code>    first = put({}, &quot;test&quot;, 123) == {&quot;test&quot;: 123};
     // overwrites existing key
     second = put({&quot;test&quot;: 23}, &quot;test&quot;, 5) == {&quot;test&quot;: 5};
     third =  put({&quot;test&quot;: 23}, &quot;test&quot;, put({&quot;nested&quot;: 23}, &quot;nested&quot;, 5)) == {&quot;test&quot;: {&quot;nested&quot;: 5}};
+    // put replaces the value at the index
+    four = put([1, 2, 3], 2, 15) == [1, 2, 15];
+    
 </code></pre>
 <h2><a class="header" href="#random" id="random">Random</a></h2>
 <p>Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument</p>

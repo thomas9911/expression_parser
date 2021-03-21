@@ -11,100 +11,40 @@ TODO: think of a new name.
 - Immutable
 - Compiled code externaly saveable (using serde)
 - No external calls build-in (you can add those yourself if you want)
-  - Currently `print` is implemented using `println!`, this should change in the future.
 
+### Non Goals
+- Speed, speed is nice but not a goal
 
-Take a look at the calculator example:
+### Examples
+
+Take a look at the expression example:
+
 ```sh
-cargo run --example calculator 1 + 12
-```
-
-Or the expression example:
-```sh
-cargo run --example calculator 1 + 12
+cargo run --example expression 1 + 12
 ```
 
 Or even better use the REPL:
+
 ```sh
 cargo run --example repl
 ```
 
-#### library usage
+For syntax check the [examples page](https://thomas9911.github.io/expression_parser/chapter_5.html) and the rest of the [Github Pages](https://thomas9911.github.io/expression_parser/)
 
-Simple example
+### library usage
+
+Simple example:
+
 ```rust
-use expression_parser::{Environment, Expression};
+use expression_parser::{Environment, ExpressionFile};
 
-let parsed = Expression::parse("1 + 5 - 2")?;
-let result = Expression::eval(parsed, &mut Environment::default());
+let result = ExpressionFile::run("1 + 5 - 2",  &mut Environment::default());
 
 assert_eq!(Ok(4.0.into()), result);
 ```
 
-Another example
-```rust
-use expression_parser::{Environment, Expression};
+Example with variable assignment:
 
-let parsed = Expression::parse("e ^ (1 + 5 - 2)")?;
-let result = Expression::eval(parsed, &mut Environment::default());
-
-assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
-```
-
-Use build-in variables and functions
-```rust
-use expression_parser::{Environment, Expression};
-
-let parsed = Expression::parse("sin(e) + 1")?;
-let result = Expression::eval(parsed, &mut Environment::default());
-
-assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
-```
-
-Use your own variables
-```rust
-use expression_parser::{Env, Environment, Expression, Variables, VariableMap};
-
-let parsed = Expression::parse("x + y + z")?;
-
-let mut vars = std::collections::HashMap::new();
-vars.insert(String::from("x"), 3.0.into());
-vars.insert(String::from("y"), 3.0.into());
-vars.insert(String::from("z"), 10.0.into());
-
-let mut env = Environment::builder()
-            .with_variables(Box::new(vars))
-            .build();
-
-let result = Expression::eval(parsed.clone(), &mut env);
-
-assert_eq!(Ok(16.0.into()), result);
-
-let mut vars = Variables::default();
-vars.insert("x", 3.0.into());
-vars.insert("y", 3.0.into());
-vars.insert("z", 10.0.into());
-
-let mut env = Environment::builder()
-            .with_variables(Box::new(vars))
-            .build();
-
-let result = Expression::eval(parsed, &mut env);
-assert_eq!(Ok(16.0.into()), result);
-```
-
-Simple String example
-```rust
-use expression_parser::{Environment, Expression, ExpressionValue};
-
-let parsed = Expression::parse(r#"concat("1", "2", "3", "4")"#)?;
-let result = Expression::eval(parsed, &mut Environment::default());
-
-assert_eq!(Ok(ExpressionValue::from("1234")), result);
-assert_eq!("\"1234\"", result.unwrap().to_string());
-```
-
-Multi-line example with variable assigment
 ```rust
 use expression_parser::{Environment, ExpressionFile, ExpressionValue};
 
@@ -125,4 +65,6 @@ assert_eq!(
     evaluated.unwrap()
 );
 ```
+
+For better examples take a look at [the library usage page](https://thomas9911.github.io/expression_parser/chapter_6.html)
 

@@ -222,10 +222,10 @@ factorial.(8) // returns 40320
     }
 }
 
-mod chapter_5 {
+mod chapter_6 {
     #[test]
     fn simple() {
-        // ANCHOR: chapter_5_simple
+        // ANCHOR: chapter_6_simple
         use expression_parser::{Environment, ExpressionFile};
 
         let input = r#"
@@ -243,12 +243,12 @@ mod chapter_5 {
         let mut vars = Environment::default();
         let output = ExpressionFile::eval(parsed_expression, &mut vars).unwrap();
         assert_eq!(output, 7.into());
-        // ANCHOR_END: chapter_5_simple
+        // ANCHOR_END: chapter_6_simple
     }
 
     #[test]
     fn extra_vars() {
-        // ANCHOR: chapter_5_extra_vars
+        // ANCHOR: chapter_6_extra_vars
         use expression_parser::{Env, Environment, ExpressionFile};
 
         let input = r#"
@@ -262,12 +262,12 @@ mod chapter_5 {
 
         let output = ExpressionFile::eval(parsed_expression, &mut env).unwrap();
         assert_eq!(output, 6170.into());
-        // ANCHOR_END: chapter_5_extra_vars
+        // ANCHOR_END: chapter_6_extra_vars
     }
 
     #[test]
     fn extra_functions() {
-        // ANCHOR: chapter_5_extra_functions
+        // ANCHOR: chapter_6_extra_functions
         use expression_parser::{
             Closure, Env, Environment, Error, ExpressionFile, ExpressionValue,
         };
@@ -308,12 +308,12 @@ mod chapter_5 {
         let parsed = ExpressionFile::parse(script).unwrap();
         let result = ExpressionFile::eval(parsed, &mut env);
         assert_eq!(result, Ok(12.into()))
-        // ANCHOR_END: chapter_5_extra_functions
+        // ANCHOR_END: chapter_6_extra_functions
     }
 
     #[test]
     fn extra_functions2() {
-        // ANCHOR: chapter_5_extra_functions2
+        // ANCHOR: chapter_6_extra_functions2
         use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
         use std::sync::Arc;
 
@@ -367,6 +367,66 @@ mod chapter_5 {
 
         let result = ExpressionFile::run(script, &mut env);
         assert_eq!(result, Ok("some_variable".into()));
-        // ANCHOR_END: chapter_5_extra_functions2
+        // ANCHOR_END: chapter_6_extra_functions2
+    }
+
+    #[test]
+    fn own_variables() {
+        // ANCHOR: chapter_6_own_variables
+        use expression_parser::{Environment, ExpressionFile, ExpressionValue};
+        use std::collections::HashMap;
+
+        // if you like python keywords better than the names I picked
+        let mut my_variables = HashMap::new();
+        my_variables.insert(String::from("True"), ExpressionValue::Bool(true));
+        my_variables.insert(String::from("False"), ExpressionValue::Bool(false));
+        my_variables.insert(String::from("None"), ExpressionValue::Null);
+
+        // `Environment::builder` lets you configure your environment yourself.
+        let mut env = Environment::builder()
+            .with_variables(Box::new(my_variables))
+            .build();
+
+        let input = r#"
+            a = True and True;
+            b = False or True;
+            c = None or True;
+            all(a, b, c)
+        "#;
+
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        let output = ExpressionFile::eval(parsed_expression, &mut env).unwrap();
+        assert_eq!(output, true.into());
+        // ANCHOR_END: chapter_6_own_variables
+    }
+
+    #[test]
+    fn extend_variables() {
+        // ANCHOR: chapter_6_extend_variables
+        use expression_parser::{Environment, ExpressionFile, VariableMap, Variables};
+
+        // `Variables::default` returns a `VariableMap` with all the default variables
+        let mut my_variables = Variables::default();
+        // so this allready exists in the variables.
+        assert!(my_variables.insert("true", true.into()).is_some());
+        my_variables.insert("DATA", vec![1, 5, 1].into());
+        my_variables.insert("SOME", true.into());
+
+        // `Environment::builder` lets you configure your environment yourself.
+        let mut env = Environment::builder()
+            .with_variables(Box::new(my_variables))
+            .build();
+
+        let input = r#"
+            // returns DATA because SOME is true 
+            if(SOME, DATA, error("data not found"))
+        "#;
+
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        let output = ExpressionFile::eval(parsed_expression, &mut env).unwrap();
+        assert_eq!(output, vec![1, 5, 1].into());
+        // ANCHOR_END: chapter_6_extend_variables
     }
 }

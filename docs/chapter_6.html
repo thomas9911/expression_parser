@@ -197,6 +197,7 @@
         let output = ExpressionFile::eval(parsed_expression, &amp;mut env).unwrap();
         assert_eq!(output, 6170.into());
 </code></pre>
+<p>Define your own functions in Rust like:</p>
 <pre><code class="language-rust ignore">        use expression_parser::{
             Closure, Env, Environment, Error, ExpressionFile, ExpressionValue,
         };
@@ -291,6 +292,58 @@
 
         let result = ExpressionFile::run(script, &amp;mut env);
         assert_eq!(result, Ok(&quot;some_variable&quot;.into()));
+</code></pre>
+<p>Use your own variables:</p>
+<pre><code class="language-rust ignore">        use expression_parser::{Environment, ExpressionFile, ExpressionValue};
+        use std::collections::HashMap;
+
+        // if you like python keywords better than the names I picked
+        let mut my_variables = HashMap::new();
+        my_variables.insert(String::from(&quot;True&quot;), ExpressionValue::Bool(true));
+        my_variables.insert(String::from(&quot;False&quot;), ExpressionValue::Bool(false));
+        my_variables.insert(String::from(&quot;None&quot;), ExpressionValue::Null);
+
+        // `Environment::builder` lets you configure your environment yourself.
+        let mut env = Environment::builder()
+            .with_variables(Box::new(my_variables))
+            .build();
+
+        let input = r#&quot;
+            a = True and True;
+            b = False or True;
+            c = None or True;
+            all(a, b, c)
+        &quot;#;
+
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        let output = ExpressionFile::eval(parsed_expression, &amp;mut env).unwrap();
+        assert_eq!(output, true.into());
+</code></pre>
+<p>Or extend the default variables:</p>
+<pre><code class="language-rust ignore">        use expression_parser::{Environment, ExpressionFile, VariableMap, Variables};
+
+        // `Variables::default` returns a `VariableMap` with all the default variables
+        let mut my_variables = Variables::default();
+        // so this allready exists in the variables.
+        assert!(my_variables.insert(&quot;true&quot;, true.into()).is_some());
+        my_variables.insert(&quot;DATA&quot;, vec![1, 5, 1].into());
+        my_variables.insert(&quot;SOME&quot;, true.into());
+
+        // `Environment::builder` lets you configure your environment yourself.
+        let mut env = Environment::builder()
+            .with_variables(Box::new(my_variables))
+            .build();
+
+        let input = r#&quot;
+            // returns DATA because SOME is true 
+            if(SOME, DATA, error(&quot;data not found&quot;))
+        &quot;#;
+
+        let parsed_expression = ExpressionFile::parse(input).unwrap();
+
+        let output = ExpressionFile::eval(parsed_expression, &amp;mut env).unwrap();
+        assert_eq!(output, vec![1, 5, 1].into());
 </code></pre>
 
                     </main>

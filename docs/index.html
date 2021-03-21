@@ -172,106 +172,33 @@
 <li>JSON support (copy paste your json, should be valid code)</li>
 <li>Immutable</li>
 <li>Compiled code externaly saveable (using serde)</li>
-<li>No external calls build-in (you can add those yourself if you want)
+<li>No external calls build-in (you can add those yourself if you want)</li>
+</ul>
+<h3><a class="header" href="#non-goals" id="non-goals">Non Goals</a></h3>
 <ul>
-<li>Currently <code>print</code> is implemented using <code>println!</code>, this should change in the future.</li>
+<li>Speed, speed is nice but not a goal</li>
 </ul>
-</li>
-</ul>
-<p>Take a look at the calculator example:</p>
-<pre><code class="language-sh">cargo run --example calculator 1 + 12
-</code></pre>
-<p>Or the expression example:</p>
-<pre><code class="language-sh">cargo run --example calculator 1 + 12
+<h3><a class="header" href="#examples" id="examples">Examples</a></h3>
+<p>Take a look at the expression example:</p>
+<pre><code class="language-sh">cargo run --example expression 1 + 12
 </code></pre>
 <p>Or even better use the REPL:</p>
 <pre><code class="language-sh">cargo run --example repl
 </code></pre>
-<h4><a class="header" href="#library-usage" id="library-usage">library usage</a></h4>
-<p>Simple example</p>
+<p>For syntax check the <a href="https://thomas9911.github.io/expression_parser/chapter_5.html">examples page</a> and the rest of the <a href="https://thomas9911.github.io/expression_parser/">Github Pages</a></p>
+<h3><a class="header" href="#library-usage" id="library-usage">library usage</a></h3>
+<p>Simple example:</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use expression_parser::{Environment, Expression};
+</span>use expression_parser::{Environment, ExpressionFile};
 
-let parsed = Expression::parse(&quot;1 + 5 - 2&quot;)?;
-let result = Expression::eval(parsed, &amp;mut Environment::default());
+let result = ExpressionFile::run(&quot;1 + 5 - 2&quot;,  &amp;mut Environment::default());
 
 assert_eq!(Ok(4.0.into()), result);
 <span class="boring">}
 </span></code></pre></pre>
-<p>Another example</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Environment, Expression};
-
-let parsed = Expression::parse(&quot;e ^ (1 + 5 - 2)&quot;)?;
-let result = Expression::eval(parsed, &amp;mut Environment::default());
-
-assert_eq!(Ok(std::f64::consts::E.powf(4.0).into()), result);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Use build-in variables and functions</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Environment, Expression};
-
-let parsed = Expression::parse(&quot;sin(e) + 1&quot;)?;
-let result = Expression::eval(parsed, &amp;mut Environment::default());
-
-assert_eq!(Ok((std::f64::consts::E.sin() + 1.0).into()), result);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Use your own variables</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Env, Environment, Expression, Variables, VariableMap};
-
-let parsed = Expression::parse(&quot;x + y + z&quot;)?;
-
-let mut vars = std::collections::HashMap::new();
-vars.insert(String::from(&quot;x&quot;), 3.0.into());
-vars.insert(String::from(&quot;y&quot;), 3.0.into());
-vars.insert(String::from(&quot;z&quot;), 10.0.into());
-
-let mut env = Environment::builder()
-            .with_variables(Box::new(vars))
-            .build();
-
-let result = Expression::eval(parsed.clone(), &amp;mut env);
-
-assert_eq!(Ok(16.0.into()), result);
-
-let mut vars = Variables::default();
-vars.insert(&quot;x&quot;, 3.0.into());
-vars.insert(&quot;y&quot;, 3.0.into());
-vars.insert(&quot;z&quot;, 10.0.into());
-
-let mut env = Environment::builder()
-            .with_variables(Box::new(vars))
-            .build();
-
-let result = Expression::eval(parsed, &amp;mut env);
-assert_eq!(Ok(16.0.into()), result);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Simple String example</p>
-<pre><pre class="playground"><code class="language-rust edition2018">
-<span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use expression_parser::{Environment, Expression, ExpressionValue};
-
-let parsed = Expression::parse(r#&quot;concat(&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;)&quot;#)?;
-let result = Expression::eval(parsed, &amp;mut Environment::default());
-
-assert_eq!(Ok(ExpressionValue::from(&quot;1234&quot;)), result);
-assert_eq!(&quot;\&quot;1234\&quot;&quot;, result.unwrap().to_string());
-<span class="boring">}
-</span></code></pre></pre>
-<p>Multi-line example with variable assigment</p>
+<p>Example with variable assignment:</p>
 <pre><pre class="playground"><code class="language-rust edition2018">
 <span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -295,6 +222,7 @@ assert_eq!(
 );
 <span class="boring">}
 </span></code></pre></pre>
+<p>For better examples take a look at <a href="https://thomas9911.github.io/expression_parser/chapter_6.html">the library usage page</a></p>
 
                     </main>
 

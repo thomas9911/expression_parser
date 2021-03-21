@@ -97,7 +97,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> README</a></li><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">2.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">3.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">4.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">5.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">6.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">7.</strong> Library Usage</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> README</a></li><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">2.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">3.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">4.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">5.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">6.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html"><strong aria-hidden="true">7.</strong> Examples</a></li><li class="chapter-item expanded "><a href="chapter_6.html"><strong aria-hidden="true">8.</strong> Library Usage</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -748,6 +748,96 @@ generated_function.(12) // returns 16
     if((n == 0) or (n == 1), 1, n * factorial.(n-1))
 };
 factorial.(8) // returns 40320
+</code></pre>
+<h1><a class="header" href="#examples" id="examples">Examples</a></h1>
+<h2><a class="header" href="#recursion" id="recursion">Recursion</a></h2>
+<pre><code>createList = {list, index =&gt; 
+    newList = push(list, index);
+    newIndex = index+1;
+    if(newIndex == 15, newList, {=&gt; createList.(newList, newIndex)})
+};
+
+// using range(15) is ofcourse better
+createList.([], 0);
+
+</code></pre>
+<h2><a class="header" href="#script" id="script">Script</a></h2>
+<pre><code>Test::new = {=&gt; 
+    {
+        &quot;y&quot;: [1,2,3],
+        &quot;x&quot;: {
+            &quot;x&quot;: 123
+        }
+    }
+};
+
+Test::get =  {map, key =&gt; 
+    inner = get(map, key);
+    get(inner, key)
+};
+
+my_map = Test::new.();
+
+Test::get.(my_map, &quot;x&quot;)
+
+</code></pre>
+<h2><a class="header" href="#sort" id="sort">Sort</a></h2>
+<pre><code>MergeSort::sort = {list =&gt; 
+    if(length(list) &lt; 2, list, {=&gt; 
+        lists = MergeSort::split_middle.(list);
+        left = get(lists, &quot;left&quot;);
+        right = get(lists, &quot;right&quot;);
+        left = MergeSort::sort.(left);
+        right = MergeSort::sort.(right);
+        MergeSort::merge.(left, right)
+    })
+};
+
+MergeSort::merge = {left, right =&gt;
+    result = reduce(range(length(left) + length(right)), {&quot;left&quot;: left, &quot;right&quot;: right, &quot;sorted&quot;: []}, {acc =&gt;
+        left = get(acc, &quot;left&quot;);
+        right = get(acc, &quot;right&quot;);
+        sorted = get(acc, &quot;sorted&quot;);
+
+        if(length(left) == 0, {&quot;left&quot;: [], &quot;right&quot;: [], &quot;sorted&quot;: concat(sorted, right)}, {=&gt;
+            if(length(right) == 0, {&quot;left&quot;: [], &quot;right&quot;: [], &quot;sorted&quot;: concat(sorted, left)}, {=&gt;
+                left_first = get(left, 0);
+                right_first = get(right, 0);
+                if(left_first &lt; right_first, {=&gt;
+                    left = remove(left, 0);
+                    sorted = push(sorted, left_first);
+                    {&quot;left&quot;: left, &quot;right&quot;: right, &quot;sorted&quot;: sorted}
+                }, {=&gt;
+                    right = remove(right, 0);
+                    sorted = push(sorted, right_first);
+                    {&quot;left&quot;: left, &quot;right&quot;: right, &quot;sorted&quot;: sorted}
+                })
+            })
+        })     
+    });
+    get(result, &quot;sorted&quot;)
+};
+
+MergeSort::split_middle = {list =&gt; 
+    middle = length(list) / 2;
+    lists = reduce(list, {&quot;left&quot;: [], &quot;right&quot;: []}, {acc, x =&gt; 
+        left = get(acc, &quot;left&quot;);
+        right = get(acc, &quot;right&quot;);
+        if(
+            length(left) &lt; middle, 
+            {&quot;left&quot;: push(left, x), &quot;right&quot;: right}, 
+            {&quot;left&quot;: left, &quot;right&quot;: push(right, x)}
+        );
+    });
+    lists
+};
+
+
+data_list = shuffle(range(15));
+// check if data is not already sorted
+assert(data_list != range(15));
+MergeSort::sort.(data_list)
+
 </code></pre>
 <h1><a class="header" href="#library-usage-1" id="library-usage-1">Library Usage</a></h1>
 <pre><code class="language-rust ignore">        use expression_parser::{Environment, ExpressionFile};

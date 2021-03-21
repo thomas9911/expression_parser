@@ -4,4 +4,5 @@ createList = {list, index =>
     if(newIndex == 15, newList, {=> createList.(newList, newIndex)})
 };
 
+// using range(15) is ofcourse better
 createList.([], 0);

@@ -22,3 +22,5 @@ jobs:
       run: cargo test --verbose
     - name: Run tests all features
       run: cargo test --all-features --verbose
+    - name: Run tests examples
+      run: sh run_tests.sh skip

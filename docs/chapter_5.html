@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Library Usage - expression_parser</title>
+        <title>Examples - expression_parser</title>
         
         
 
@@ -95,7 +95,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> README</a></li><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">2.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">3.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">4.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">5.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">6.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html" class="active"><strong aria-hidden="true">7.</strong> Library Usage</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> README</a></li><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">2.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="chapter_1.html"><strong aria-hidden="true">3.</strong> Basic Types</a></li><li class="chapter-item expanded "><a href="chapter_2.html"><strong aria-hidden="true">4.</strong> Variables</a></li><li class="chapter-item expanded "><a href="chapter_3.html"><strong aria-hidden="true">5.</strong> Built-in Functions</a></li><li class="chapter-item expanded "><a href="chapter_4.html"><strong aria-hidden="true">6.</strong> User Functions</a></li><li class="chapter-item expanded "><a href="chapter_5.html" class="active"><strong aria-hidden="true">7.</strong> Examples</a></li><li class="chapter-item expanded "><a href="chapter_6.html"><strong aria-hidden="true">8.</strong> Library Usage</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -163,134 +163,95 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#library-usage" id="library-usage">Library Usage</a></h1>
-<pre><code class="language-rust ignore">        use expression_parser::{Environment, ExpressionFile};
+                        <h1><a class="header" href="#examples" id="examples">Examples</a></h1>
+<h2><a class="header" href="#recursion" id="recursion">Recursion</a></h2>
+<pre><code>createList = {list, index =&gt; 
+    newList = push(list, index);
+    newIndex = index+1;
+    if(newIndex == 15, newList, {=&gt; createList.(newList, newIndex)})
+};
 
-        let input = r#&quot;
-        a = 1 + 1;
-        a + 5        
-        &quot;#;
+// using range(15) is ofcourse better
+createList.([], 0);
 
-        // ofcourse handle this better in you code
-        let parsed_expression = ExpressionFile::parse(input).unwrap();
-
-        // you can now decide what to do with the expression
-
-        // we will just evaluate it here with default variables.
-
-        let mut vars = Environment::default();
-        let output = ExpressionFile::eval(parsed_expression, &amp;mut vars).unwrap();
-        assert_eq!(output, 7.into());
 </code></pre>
-<p>Add extra variables you can use in your code:</p>
-<pre><code class="language-rust ignore">        use expression_parser::{Env, Environment, ExpressionFile};
+<h2><a class="header" href="#script" id="script">Script</a></h2>
+<pre><code>Test::new = {=&gt; 
+    {
+        &quot;y&quot;: [1,2,3],
+        &quot;x&quot;: {
+            &quot;x&quot;: 123
+        }
+    }
+};
 
-        let input = r#&quot;
-        5 * DATA     
-        &quot;#;
+Test::get =  {map, key =&gt; 
+    inner = get(map, key);
+    get(inner, key)
+};
 
-        let parsed_expression = ExpressionFile::parse(input).unwrap();
+my_map = Test::new.();
 
-        let mut env = Environment::default();
-        env.variables_mut().insert(&quot;DATA&quot;, 1234.into());
+Test::get.(my_map, &quot;x&quot;)
 
-        let output = ExpressionFile::eval(parsed_expression, &amp;mut env).unwrap();
-        assert_eq!(output, 6170.into());
 </code></pre>
-<pre><code class="language-rust ignore">        use expression_parser::{
-            Closure, Env, Environment, Error, ExpressionFile, ExpressionValue,
-        };
-        use std::sync::Arc;
+<h2><a class="header" href="#sort" id="sort">Sort</a></h2>
+<pre><code>MergeSort::sort = {list =&gt; 
+    if(length(list) &lt; 2, list, {=&gt; 
+        lists = MergeSort::split_middle.(list);
+        left = get(lists, &quot;left&quot;);
+        right = get(lists, &quot;right&quot;);
+        left = MergeSort::sort.(left);
+        right = MergeSort::sort.(right);
+        MergeSort::merge.(left, right)
+    })
+};
 
-        let mut env = Environment::default();
+MergeSort::merge = {left, right =&gt;
+    result = reduce(range(length(left) + length(right)), {&quot;left&quot;: left, &quot;right&quot;: right, &quot;sorted&quot;: []}, {acc =&gt;
+        left = get(acc, &quot;left&quot;);
+        right = get(acc, &quot;right&quot;);
+        sorted = get(acc, &quot;sorted&quot;);
 
-        // a `Closure` struct is just a container for holding the function.
-        // `new` takes a list of the arguments used (only for debugging purposes)
-        // and an `Arc` with a `Box`ed function with two arguments.
-        // the first is a list containing all the arguments given by the user. These need to be validated yourself.
-        // the second argument is a `Environment` struct that has methods to access variables outside the function and side effects.
-        // the return value is a `Result&lt;ExpressionValue, Error&gt;`
-        let closure = Closure::new(
-            vec![&quot;x&quot;.to_string(), &quot;y&quot;.to_string()],
-            Arc::new(Box::new(|vars, _| {
-                /// validate the arguments or return an error
-                fn validate_number(x: Option&lt;&amp;ExpressionValue&gt;) -&gt; Result&lt;f64, Error&gt; {
-                    x.ok_or(Error::new_static(&quot;missing arguments&quot;))?
-                        .as_number()
-                        .ok_or(Error::new_static(&quot;argument not a number&quot;))
-                }
+        if(length(left) == 0, {&quot;left&quot;: [], &quot;right&quot;: [], &quot;sorted&quot;: concat(sorted, right)}, {=&gt;
+            if(length(right) == 0, {&quot;left&quot;: [], &quot;right&quot;: [], &quot;sorted&quot;: concat(sorted, left)}, {=&gt;
+                left_first = get(left, 0);
+                right_first = get(right, 0);
+                if(left_first &lt; right_first, {=&gt;
+                    left = remove(left, 0);
+                    sorted = push(sorted, left_first);
+                    {&quot;left&quot;: left, &quot;right&quot;: right, &quot;sorted&quot;: sorted}
+                }, {=&gt;
+                    right = remove(right, 0);
+                    sorted = push(sorted, right_first);
+                    {&quot;left&quot;: left, &quot;right&quot;: right, &quot;sorted&quot;: sorted}
+                })
+            })
+        })     
+    });
+    get(result, &quot;sorted&quot;)
+};
 
-                let x = validate_number(vars.get(0))?;
-                let y = validate_number(vars.get(1))?;
-                let result = x * y;
-
-                // the `into` casts the rust value into a `ExpressionValue` enum
-                Ok(result.into())
-            })),
+MergeSort::split_middle = {list =&gt; 
+    middle = length(list) / 2;
+    lists = reduce(list, {&quot;left&quot;: [], &quot;right&quot;: []}, {acc, x =&gt; 
+        left = get(acc, &quot;left&quot;);
+        right = get(acc, &quot;right&quot;);
+        if(
+            length(left) &lt; middle, 
+            {&quot;left&quot;: push(left, x), &quot;right&quot;: right}, 
+            {&quot;left&quot;: left, &quot;right&quot;: push(right, x)}
         );
-        env.variables_mut().insert(&quot;external_func&quot;, closure.into());
+    });
+    lists
+};
 
-        let script = r#&quot;
-        external_func.(6, 2)
-        &quot;#;
 
-        let parsed = ExpressionFile::parse(script).unwrap();
-        let result = ExpressionFile::eval(parsed, &amp;mut env);
-        assert_eq!(result, Ok(12.into()))
-</code></pre>
-<pre><code class="language-rust ignore">        use expression_parser::{Closure, Env, Environment, Error, Expression, ExpressionFile};
-        use std::sync::Arc;
+data_list = shuffle(range(15));
+// check if data is not already sorted
+assert(data_list != range(15));
+MergeSort::sort.(data_list)
 
-        let closure = Closure::new(
-            vec![&quot;map&quot;.to_string(), &quot;key&quot;.to_string()],
-            Arc::new(Box::new(|vars, context| {
-                let map = vars
-                    .get(0)
-                    .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?
-                    // probably do something more smart than just clone
-                    .clone()
-                    .as_map()
-                    .ok_or(Error::new_static(&quot;expect a map as the first argument&quot;))?;
-                let key = vars
-                    .get(1)
-                    .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?
-                    .as_string()
-                    .ok_or(Error::new_static(&quot;expect a key as the second argument&quot;))?;
-
-                // get access to the underlying HashMap
-                let result = map.0.get(&amp;key).ok_or(Error::new_static(&quot;key not found&quot;))?;
-
-                // the result is an expression, these can include variables ect.
-                // We can just match on the value or eval the Expression with the current context.
-                let result = Expression::eval(result.clone(), &amp;mut Box::new(context))?;
-
-                Ok(result)
-            })),
-        );
-
-        let mut env = Environment::default();
-        env.variables_mut().insert(&quot;map_get&quot;, closure.into());
-
-        let script = r#&quot;
-        map_get.(
-            {&quot;test&quot;: &quot;some_value&quot;},
-            &quot;test&quot;
-        )
-        &quot;#;
-
-        let result = ExpressionFile::run(script, &amp;mut env);
-        assert_eq!(result, Ok(&quot;some_value&quot;.into()));
-
-        let script = r#&quot;
-        text = &quot;some_variable&quot;;
-        map_get.(
-            {&quot;test&quot;: text},
-            &quot;test&quot;
-        )
-        &quot;#;
-
-        let result = ExpressionFile::run(script, &amp;mut env);
-        assert_eq!(result, Ok(&quot;some_variable&quot;.into()));
 </code></pre>
 
                     </main>
@@ -303,6 +264,10 @@
                             </a>
                         
 
+                        
+                            <a rel="next" href="chapter_6.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
                         
 
                         <div style="clear: both"></div>
@@ -317,6 +282,10 @@
                     </a>
                 
 
+                
+                    <a rel="next" href="chapter_6.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
                 
             </nav>
 

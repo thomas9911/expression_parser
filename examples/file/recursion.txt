@@ -1,8 +1,8 @@
-createList = {list, index => 
+createList = {list, index, till => 
     newList = push(list, index);
     newIndex = index+1;
-    if(newIndex == 15, newList, {=> createList.(newList, newIndex)})
+    if(newIndex == till, newList, {=> createList.(newList, newIndex, till)})
 };
 
-// using range(15) is ofcourse better
-createList.([], 0);
+// using range(80) is ofcourse better, because this will overflow to stack
+createList.([], 0, 80);

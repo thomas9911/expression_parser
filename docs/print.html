@@ -751,14 +751,14 @@ factorial.(8) // returns 40320
 </code></pre>
 <h1><a class="header" href="#examples" id="examples">Examples</a></h1>
 <h2><a class="header" href="#recursion" id="recursion">Recursion</a></h2>
-<pre><code>createList = {list, index =&gt; 
+<pre><code>createList = {list, index, till =&gt; 
     newList = push(list, index);
     newIndex = index+1;
-    if(newIndex == 15, newList, {=&gt; createList.(newList, newIndex)})
+    if(newIndex == till, newList, {=&gt; createList.(newList, newIndex, till)})
 };
 
-// using range(15) is ofcourse better
-createList.([], 0);
+// using range(80) is ofcourse better, because this will overflow to stack
+createList.([], 0, 80);
 
 </code></pre>
 <h2><a class="header" href="#script" id="script">Script</a></h2>

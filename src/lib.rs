@@ -1,9 +1,11 @@
-//!
+//! # expression_parser
+//! 
 //! TODO: think of a new name.
 //!
 //! [Github Pages](https://thomas9911.github.io/expression_parser/)
 //!
 //! ## Why
+//! 
 //! - Library first
 //! - JSON support (copy paste your json, should be valid code)
 //! - Immutable
@@ -11,6 +13,7 @@
 //! - No external calls build-in (you can add those yourself if you want)
 //!
 //! ## Non Goals
+//! 
 //! - Speed, speed is nice but not a goal
 //!
 //! ## Examples
@@ -73,7 +76,6 @@
 //! ```
 //! 
 //! For better examples take a look at [the library usage page](https://thomas9911.github.io/expression_parser/chapter_6.html)
-//!
 // #![recursion_limit = "1024"]
 
 #![deny(rust_2018_idioms)]

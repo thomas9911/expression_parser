@@ -1,21 +1,22 @@
 # expression_parser
 
-
 TODO: think of a new name.
 
 [Github Pages](https://thomas9911.github.io/expression_parser/)
 
-### Why
+## Why
+
 - Library first
 - JSON support (copy paste your json, should be valid code)
 - Immutable
 - Compiled code externaly saveable (using serde)
 - No external calls build-in (you can add those yourself if you want)
 
-### Non Goals
+## Non Goals
+
 - Speed, speed is nice but not a goal
 
-### Examples
+## Examples
 
 Take a look at the expression example:
 
@@ -31,7 +32,7 @@ cargo run --example repl
 
 For syntax check the [examples page](https://thomas9911.github.io/expression_parser/chapter_5.html) and the rest of the [Github Pages](https://thomas9911.github.io/expression_parser/)
 
-### library usage
+## library usage
 
 Simple example:
 
@@ -67,4 +68,3 @@ assert_eq!(
 ```
 
 For better examples take a look at [the library usage page](https://thomas9911.github.io/expression_parser/chapter_6.html)
-

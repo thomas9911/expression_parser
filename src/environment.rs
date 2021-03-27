@@ -1,10 +1,15 @@
+use std::fs::read_to_string;
+
 use crate::statics::DEFAULT_VARIABLES;
-use crate::VariableMap;
+use crate::{Error, ExpressionFile, ScopedVariables, VariableMap, Variables};
+
+pub type VariableImportList = Vec<(String, Vec<(String, String)>)>;
 
 pub trait Env<'a>: std::fmt::Debug {
     fn variables(&self) -> &Box<dyn VariableMap + 'a>;
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a>;
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>>;
+    fn import(&mut self, input: &VariableImportList) -> Result<(), Error>;
 }
 
 impl<'a, T> Env<'a> for &mut T
@@ -21,6 +26,10 @@ where
 
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
         (*self).logger()
+    }
+
+    fn import(&mut self, input: &VariableImportList) -> Result<(), Error> {
+        (*self).import(input)
     }
 }
 
@@ -39,6 +48,10 @@ where
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
         (**self).logger()
     }
+
+    fn import(&mut self, input: &VariableImportList) -> Result<(), Error> {
+        (**self).import(input)
+    }
 }
 
 impl<'a, T> Env<'a> for &T
@@ -56,6 +69,10 @@ where
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
         panic!("cannot mutate when not defined as mutatable")
     }
+
+    fn import(&mut self, _input: &VariableImportList) -> Result<(), Error> {
+        panic!("cannot mutate when not defined as mutatable")
+    }
 }
 
 use std::sync::{Arc, RwLock};
@@ -64,6 +81,7 @@ use std::sync::{Arc, RwLock};
 pub struct Environment<'a> {
     pub(crate) variables: Box<dyn VariableMap + 'a>,
     pub(crate) logger: Arc<RwLock<dyn std::io::Write + 'a>>,
+    pub(crate) allow_import: bool,
 }
 
 impl std::fmt::Debug for Environment<'_> {
@@ -78,6 +96,7 @@ impl std::fmt::Debug for Environment<'_> {
 pub struct EnvironmentBuilder<'a> {
     variables: Option<Box<dyn VariableMap + 'a>>,
     logger: Option<Box<dyn std::io::Write + 'a>>,
+    allow_import: Option<bool>,
 }
 
 impl<'a> Environment<'a> {
@@ -97,6 +116,46 @@ impl<'a> Env<'a> for Environment<'a> {
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>> {
         self.logger.clone()
     }
+
+    fn import(&mut self, input: &VariableImportList) -> Result<(), Error> {
+        if !self.allow_import {
+            return Err(Error::new_static("import not allowed"));
+        };
+
+        let mut new_variables = Variables::new();
+
+        {
+            let logger = self.logger();
+            let var = ScopedVariables::new(self.variables());
+
+            let mut scoped_env = Environment {
+                variables: Box::new(var),
+                logger: logger,
+                allow_import: true,
+            };
+
+            for (import_from, requested) in input {
+                let file_text = read_to_string(import_from)?;
+                ExpressionFile::run(&file_text, &mut scoped_env)?;
+
+                for (var, name) in requested {
+                    let imported = scoped_env
+                        .variables()
+                        .get(&var)
+                        .cloned()
+                        .unwrap_or_default();
+                    new_variables.insert(&name, imported);
+                }
+            }
+        }
+
+        let variables = self.variables_mut();
+        for (k, v) in new_variables {
+            variables.insert(&k, v);
+        }
+
+        Ok(())
+    }
 }
 
 impl<'a> Default for Environment<'a> {
@@ -111,9 +170,11 @@ impl<'a> EnvironmentBuilder<'a> {
             .variables
             .unwrap_or(Box::new(DEFAULT_VARIABLES.to_owned()));
         let logger = self.logger.unwrap_or(Box::new(std::io::stdout()));
+        let allow_import = self.allow_import.unwrap_or(true);
         Environment {
             variables,
             logger: Arc::new(RwLock::new(logger)),
+            allow_import,
         }
     }
 
@@ -136,6 +197,7 @@ impl<'a> Default for EnvironmentBuilder<'a> {
         EnvironmentBuilder {
             variables: None,
             logger: None,
+            allow_import: None,
         }
     }
 }

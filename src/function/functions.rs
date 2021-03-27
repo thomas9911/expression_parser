@@ -97,6 +97,7 @@ pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b mut E) -
     let mut context = Environment {
         variables: Box::new(var),
         logger: logger,
+        allow_import: false,
     };
 
     {

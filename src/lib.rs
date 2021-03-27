@@ -1,11 +1,11 @@
 //! # expression_parser
-//! 
+//!
 //! TODO: think of a new name.
 //!
 //! [Github Pages](https://thomas9911.github.io/expression_parser/)
 //!
 //! ## Why
-//! 
+//!
 //! - Library first
 //! - JSON support (copy paste your json, should be valid code)
 //! - Immutable
@@ -13,19 +13,19 @@
 //! - No external calls build-in (you can add those yourself if you want)
 //!
 //! ## Non Goals
-//! 
+//!
 //! - Speed, speed is nice but not a goal
 //!
 //! ## Examples
 //!
 //! Take a look at the expression example:
-//! 
+//!
 //! ```sh
 //! cargo run --example expression 1 + 12
 //! ```
 //!
 //! Or even better use the REPL:
-//! 
+//!
 //! ```sh
 //! cargo run --example repl
 //! ```
@@ -35,7 +35,7 @@
 //! ## library usage
 //!
 //! Simple example:
-//! 
+//!
 //! ```
 //! # use expression_parser::Error;
 //! use expression_parser::{Environment, ExpressionFile};
@@ -49,7 +49,7 @@
 //! ```
 //!
 //! Example with variable assignment:
-//! 
+//!
 //! ```
 //! # use expression_parser::Error;
 //! use expression_parser::{Environment, ExpressionFile, ExpressionValue};
@@ -74,7 +74,7 @@
 //! # Ok(())
 //! # }
 //! ```
-//! 
+//!
 //! For better examples take a look at [the library usage page](https://thomas9911.github.io/expression_parser/chapter_6.html)
 // #![recursion_limit = "1024"]
 
@@ -87,7 +87,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate strum_macros;
 
-pub mod assignment;
 pub mod closure;
 pub mod environment;
 pub mod error;
@@ -100,11 +99,12 @@ pub mod string_expression;
 pub mod user_function;
 pub mod variables;
 
-pub use assignment::{Assignment, Unassignment};
 pub use closure::Closure;
 pub use environment::{Env, Environment, EnvironmentBuilder};
 pub use error::Error;
 pub use expression_value::{ExpressionMap, ExpressionValue};
+pub use file::assignment::{Assignment, Unassignment};
+pub use file::import::Import;
 pub use file::ExpressionFile;
 pub use function::Function;
 pub use string_expression::Expression;

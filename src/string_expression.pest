@@ -1,6 +1,6 @@
 file = _{SOI ~ file_inner ~ EOI}
 file_inner = _{ (line ~ (seperator ~ line)* ~ seperator?) }
-line = _{ unassign | assign | expr }
+line = _{ unassign | assign | importing | expr }
 seperator = _{";"+}
 
 // // Function
@@ -13,6 +13,12 @@ assignment = _{ SOI ~ (unassign | assign) ~ EOI }
 unassign = {"unset" ~ var }
 assign = {var ~ "=" ~ expr}
 
+// // Import
+importing = {"import" ~ import_map ~ "from" ~ import_from}
+    import_map = {"{" ~ map_assignment ~ ("," ~ map_assignment)* ~ "}"}
+    map_assignment = { (var ~ ": " ~ var) | var }
+    import_from = { string }
+
 // // Expression
 
 calculation = _{ SOI ~ expr ~ EOI }
@@ -20,7 +26,9 @@ calculation = _{ SOI ~ expr ~ EOI }
 num = @{ int ~ ("." ~ ASCII_DIGIT*)? ~ (^"e" ~ int)? }
     int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 
-var = @{ ('a'..'z' | 'A'..'Z' | '0'..'9'  | ":" | "_")+ }
+var = @{ (var_char)+ }
+    var_char = { 'a'..'z' | 'A'..'Z' | '0'..'9' | "_" | colon }
+    colon = { ":" ~ var_char }
 
 string  = ${ "\"" ~ inner ~ "\"" }
     inner   = _{ char ~ (escape ~ inner)? }

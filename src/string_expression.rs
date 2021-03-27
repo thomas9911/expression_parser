@@ -1,10 +1,10 @@
-use pest::error::{Error as PestError, ErrorVariant};
+use pest::error::Error as PestError;
 use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
 use std::collections::HashMap;
 
 use crate::function::FunctionName;
-use crate::grammar::{ExpressionessionParser, Rule};
+use crate::grammar::{create_string, make_pest_error, ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
 use crate::user_function::{parse_user_function, UserFunction};
 use crate::{Env, Error, ExpressionMap, ExpressionValue, Function, VariableMap, Variables};
@@ -54,7 +54,7 @@ fn parse_single_pair(pair: Pair<'_, Rule>) -> ParseResult {
 
     match pair.as_rule() {
         Rule::num => Ok(Value(pair.as_str().parse::<f64>().unwrap().into())),
-        Rule::string => match snailquote::unescape(&make_string(pair.clone().into_inner())) {
+        Rule::string => match create_string(pair.clone()) {
             Ok(x) => Ok(Value(ExpressionValue::String(x))),
             Err(e) => Err(make_pest_error(pair.as_span(), e.to_string())),
         },
@@ -116,18 +116,6 @@ fn make_dot_function(mut pairs: Pairs<'_, Rule>) -> ParseResult {
 
 fn make_var(pair: Pair<'_, Rule>) -> Expression {
     Expression::Var(pair.as_str().trim().to_string())
-}
-
-fn make_string(string: Pairs<'_, Rule>) -> String {
-    let mut buffer = String::from("\"");
-    for pair in string {
-        match pair.as_rule() {
-            Rule::unicode_code => buffer.push_str(&format!(r"\u{{{}}}", pair.as_str())),
-            _ => buffer.push_str(pair.as_str()),
-        }
-    }
-    buffer.push('"');
-    buffer
 }
 
 fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
@@ -396,11 +384,6 @@ fn check_arguments(
     };
 
     Ok(())
-}
-
-fn make_pest_error(span: Span<'_>, message: String) -> PestError<Rule> {
-    let variant = ErrorVariant::<Rule>::CustomError { message: message };
-    PestError::new_from_span(variant, span)
 }
 
 #[derive(Debug, Clone, PartialEq)]

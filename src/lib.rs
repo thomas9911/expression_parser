@@ -94,6 +94,7 @@ pub mod expression_value;
 pub mod file;
 pub mod function;
 pub mod grammar;
+pub mod import;
 pub mod statics;
 pub mod string_expression;
 pub mod user_function;
@@ -101,12 +102,15 @@ pub mod variables;
 
 pub use closure::Closure;
 pub use environment::{Env, Environment, EnvironmentBuilder};
-pub use error::Error;
+pub use error::{Error, ErrorCodes};
 pub use expression_value::{ExpressionMap, ExpressionValue};
 pub use file::assignment::{Assignment, Unassignment};
 pub use file::import::Import;
 pub use file::ExpressionFile;
 pub use function::Function;
+pub use import::{
+    CollectionImporter, FileImporter, ImportFetch, Importer, MapImporter, NullImporter,
+};
 pub use string_expression::Expression;
 pub use user_function::UserFunction;
 pub use variables::{ScopedVariables, VariableMap, Variables};

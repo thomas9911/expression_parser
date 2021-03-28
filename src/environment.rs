@@ -1,7 +1,10 @@
-use std::fs::read_to_string;
+use std::sync::{Arc, RwLock};
 
 use crate::statics::DEFAULT_VARIABLES;
-use crate::{Error, ExpressionFile, ScopedVariables, VariableMap, Variables};
+use crate::{
+    Error, ExpressionFile, ImportFetch, Importer, NullImporter, ScopedVariables, VariableMap,
+    Variables,
+};
 
 pub type VariableImportList = Vec<(String, Vec<(String, String)>)>;
 
@@ -9,6 +12,7 @@ pub trait Env<'a>: std::fmt::Debug {
     fn variables(&self) -> &Box<dyn VariableMap + 'a>;
     fn variables_mut(&mut self) -> &mut Box<dyn VariableMap + 'a>;
     fn logger(&mut self) -> Arc<RwLock<dyn std::io::Write + 'a>>;
+    fn importer(&self) -> Arc<Box<dyn Importer + 'a>>;
     fn import(&mut self, input: &VariableImportList) -> Result<(), Error>;
 }
 
@@ -31,6 +35,10 @@ where
     fn import(&mut self, input: &VariableImportList) -> Result<(), Error> {
         (*self).import(input)
     }
+
+    fn importer(&self) -> Arc<Box<dyn Importer + 'a>> {
+        (**self).importer()
+    }
 }
 
 impl<'a, T> Env<'a> for Box<T>
@@ -51,6 +59,10 @@ where
 
     fn import(&mut self, input: &VariableImportList) -> Result<(), Error> {
         (**self).import(input)
+    }
+
+    fn importer(&self) -> Arc<Box<dyn Importer + 'a>> {
+        (**self).importer()
     }
 }
 
@@ -73,15 +85,18 @@ where
     fn import(&mut self, _input: &VariableImportList) -> Result<(), Error> {
         panic!("cannot mutate when not defined as mutatable")
     }
-}
 
-use std::sync::{Arc, RwLock};
+    fn importer(&self) -> Arc<Box<dyn Importer + 'a>> {
+        (*self).importer()
+    }
+}
 
 /// Environment holding all the connections to side effects.
 pub struct Environment<'a> {
     pub(crate) variables: Box<dyn VariableMap + 'a>,
     pub(crate) logger: Arc<RwLock<dyn std::io::Write + 'a>>,
     pub(crate) allow_import: bool,
+    pub(crate) importer: Arc<Box<dyn Importer + 'a>>,
 }
 
 impl std::fmt::Debug for Environment<'_> {
@@ -97,6 +112,7 @@ pub struct EnvironmentBuilder<'a> {
     variables: Option<Box<dyn VariableMap + 'a>>,
     logger: Option<Box<dyn std::io::Write + 'a>>,
     allow_import: Option<bool>,
+    importer: Option<Box<dyn Importer + 'a>>,
 }
 
 impl<'a> Environment<'a> {
@@ -117,9 +133,14 @@ impl<'a> Env<'a> for Environment<'a> {
         self.logger.clone()
     }
 
+    fn importer(&self) -> Arc<Box<dyn Importer + 'a>> {
+        self.importer.clone()
+    }
+
     fn import(&mut self, input: &VariableImportList) -> Result<(), Error> {
         if !self.allow_import {
-            return Err(Error::new_static("import not allowed"));
+            // this will always fail
+            NullImporter.fetch("")?;
         };
 
         let mut new_variables = Variables::new();
@@ -132,11 +153,27 @@ impl<'a> Env<'a> for Environment<'a> {
                 variables: Box::new(var),
                 logger: logger,
                 allow_import: true,
+                importer: self.importer(),
             };
 
             for (import_from, requested) in input {
-                let file_text = read_to_string(import_from)?;
-                ExpressionFile::run(&file_text, &mut scoped_env)?;
+                match self.importer.fetch(import_from)? {
+                    ImportFetch::Text(file_text) => {
+                        ExpressionFile::run(&file_text, &mut scoped_env)?;
+                    }
+                    ImportFetch::EvaluatedOwned(variables) => {
+                        let variables_into = scoped_env.variables_mut();
+                        for (key, value) in variables {
+                            variables_into.insert(&key, value);
+                        }
+                    }
+                    ImportFetch::Evaluated(variables) => {
+                        let variables_into = scoped_env.variables_mut();
+                        for (key, value) in variables.iter() {
+                            variables_into.insert(key, value.to_owned());
+                        }
+                    }
+                }
 
                 for (var, name) in requested {
                     let imported = scoped_env
@@ -171,10 +208,12 @@ impl<'a> EnvironmentBuilder<'a> {
             .unwrap_or(Box::new(DEFAULT_VARIABLES.to_owned()));
         let logger = self.logger.unwrap_or(Box::new(std::io::stdout()));
         let allow_import = self.allow_import.unwrap_or(true);
+        let importer = self.importer.unwrap_or(Box::new(NullImporter));
         Environment {
             variables,
             logger: Arc::new(RwLock::new(logger)),
             allow_import,
+            importer: Arc::new(importer),
         }
     }
 
@@ -190,6 +229,16 @@ impl<'a> EnvironmentBuilder<'a> {
         self.logger = Some(logger);
         self
     }
+
+    pub fn with_importer(mut self, importer: Box<dyn Importer + 'a>) -> EnvironmentBuilder<'a> {
+        self.importer = Some(importer);
+        self
+    }
+
+    pub fn set_allow_import(mut self, allow_import: bool) -> EnvironmentBuilder<'a> {
+        self.allow_import = Some(allow_import);
+        self
+    }
 }
 
 impl<'a> Default for EnvironmentBuilder<'a> {
@@ -198,6 +247,7 @@ impl<'a> Default for EnvironmentBuilder<'a> {
             variables: None,
             logger: None,
             allow_import: None,
+            importer: None,
         }
     }
 }

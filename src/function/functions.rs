@@ -92,12 +92,14 @@ pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b mut E) -
     let list = evaluate_inputs(list, env)?;
 
     let logger = env.logger();
+    let importer = env.importer();
     let var = ScopedVariables::new(env.variables());
 
     let mut context = Environment {
         variables: Box::new(var),
         logger: logger,
         allow_import: false,
+        importer,
     };
 
     {

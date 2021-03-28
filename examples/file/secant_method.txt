@@ -1,0 +1,19 @@
+// port from the python method used on https://en.wikipedia.org/wiki/Secant_method
+
+secant_method = {f, x0, x1, iterations =>
+    result = reduce(range(iterations), [x0, x1], {prev_numbers =>
+        x0 = get(prev_numbers, 0);
+        x1 = get(prev_numbers, 1);
+
+        x2 = x1 - f.(x1) * (x1 - x0) / (f.(x1) - f.(x0));
+        [x1, x2]
+    });
+
+    get(result, 1)
+};
+
+my_func = {x => 
+    x ** 2 - 612
+};
+
+secant_method.(my_func, 10, 30, 5) == 24.738633748750722

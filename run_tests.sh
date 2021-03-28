@@ -43,6 +43,10 @@ function run_test() {
     run_single_test $1 "null"
     ;;
 
+  ./examples/file/secant_method.txt)
+    run_single_test $1 "true"
+    ;;
+
   *)
     echo "$1 does not have an output"
     ;;

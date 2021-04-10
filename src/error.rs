@@ -72,12 +72,19 @@ impl From<ErrorCodes> for Error {
 }
 
 #[derive(Debug, PartialEq)]
+#[allow(non_camel_case_types)]
 pub enum ErrorCodes {
     STACKOVERFLOW,
+    IMPORT_ERROR,
 }
 
 impl std::fmt::Display for ErrorCodes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        use ErrorCodes::*;
+
+        match self {
+            IMPORT_ERROR => write!(f, "{:?}, not allowed to import", self),
+            _ => write!(f, "{:?}", self),
+        }
     }
 }

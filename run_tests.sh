@@ -35,6 +35,18 @@ function run_test() {
     run_single_test $1 "[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]"
     ;;
 
+  ./examples/file/import.txt)
+    run_single_test $1 "\"testing 123\""
+    ;;
+
+  ./examples/file/import_from.txt)
+    run_single_test $1 "null"
+    ;;
+
+  ./examples/file/secant_method.txt)
+    run_single_test $1 "true"
+    ;;
+
   *)
     echo "$1 does not have an output"
     ;;

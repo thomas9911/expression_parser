@@ -1,0 +1,11 @@
+value = {
+    "text": "testing",
+    "number": 123
+};
+
+
+func = { data => 
+    text = get(data, "text");
+    number = get(data, "number");
+    format("{} {}", text, number)
+};

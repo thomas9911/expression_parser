@@ -2,11 +2,15 @@ use pest::error::Error as PestError;
 use pest::iterators::Pairs;
 use pest::Parser;
 
-use crate::assignment::{parse_assignment, parse_unassignment};
+pub mod assignment;
+pub mod import;
+
 use crate::error::ErrorCodes;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
-use crate::{Assignment, Env, Error, Expression, ExpressionValue, Unassignment};
+use crate::{Assignment, Env, Error, Expression, ExpressionValue, Import, Unassignment};
+use assignment::{parse_assignment, parse_unassignment};
+use import::parse_import;
 
 /// minimal amount of stacksize needed in bytes
 const MINIMAL_STACKSIZE: usize = 65536;
@@ -29,6 +33,7 @@ pub enum ExpressionLine {
     Expression(Expression),
     Assignment(Assignment),
     Unassignment(Unassignment),
+    Import(Import),
 }
 
 impl std::fmt::Display for ExpressionLine {
@@ -38,6 +43,7 @@ impl std::fmt::Display for ExpressionLine {
         match self {
             Expression(x) => write!(f, "{}", x),
             Assignment(x) => write!(f, "{}", x),
+            Import(x) => write!(f, "{}", x),
             Unassignment(x) => write!(f, "{}", x),
         }
     }
@@ -69,6 +75,11 @@ impl ExpressionLine {
                 Unassignment::eval(un, env)?;
                 Ok(ExpressionValue::Null)
             }
+
+            ExpressionLine::Import(im) => {
+                Import::eval(im, env)?;
+                Ok(ExpressionValue::Null)
+            }
         }
     }
 
@@ -76,7 +87,7 @@ impl ExpressionLine {
         use ExpressionLine::*;
         match self {
             Expression(ex) => ex.iter_variables(),
-            Assignment(_) | Unassignment(_) => Box::new(std::iter::empty::<String>()),
+            Assignment(_) | Unassignment(_) | Import(_) => Box::new(std::iter::empty::<String>()),
         }
     }
 }
@@ -100,6 +111,7 @@ pub fn parse_file(expression: Pairs<'_, Rule>) -> ParseResult {
             Rule::expr => ExpressionLine::Expression(parse_expression(pair.into_inner())?),
             Rule::assign => ExpressionLine::Assignment(parse_assignment(pair.into_inner())?),
             Rule::unassign => ExpressionLine::Unassignment(parse_unassignment(pair.into_inner())?),
+            Rule::importing => ExpressionLine::Import(parse_import(pair.into_inner())?),
             Rule::EOI => continue,
             rule => {
                 println!("{:?}", rule);

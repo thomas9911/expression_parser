@@ -1,4 +1,4 @@
-use expression_parser::{Environment, ExpressionFile};
+use expression_parser::{Environment, ExpressionFile, FileImporter};
 
 fn print_help() {
     print!(
@@ -37,7 +37,11 @@ fn main() {
         Err(e) => return println!("{}", e),
     };
 
-    match ExpressionFile::eval(parsed, &mut Environment::default()) {
+    let mut env = Environment::builder()
+        .with_importer(Box::new(FileImporter))
+        .build();
+
+    match ExpressionFile::eval(parsed, &mut env) {
         Ok(x) => return println!("{}", x),
         Err(e) => return println!("{}", e),
     };

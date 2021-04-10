@@ -39,20 +39,20 @@ impl Importer for NullImporter {
 }
 
 #[derive(Debug, PartialEq)]
-/// Importer that always returns the same map
-pub struct MapImporter {
+/// Importer that always returns the same map. Mostly used for tests.
+pub struct SingleCollectionImporter {
     data: Variables,
 }
 
-impl Importer for MapImporter {
+impl Importer for SingleCollectionImporter {
     fn fetch<'a>(&'a self, _from: &str) -> Result<ImportFetch<'a>, Error> {
         Ok(ImportFetch::Evaluated(&self.data))
     }
 }
 
-impl MapImporter {
+impl SingleCollectionImporter {
     pub fn new(variables: Variables) -> Self {
-        MapImporter { data: variables }
+        SingleCollectionImporter { data: variables }
     }
 }
 
@@ -74,5 +74,26 @@ impl Importer for CollectionImporter {
 impl CollectionImporter {
     pub fn new(variables: HashMap<String, Variables>) -> Self {
         CollectionImporter { data: variables }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+/// Importer that uses the given HashMap to resolve the import
+pub struct MapImporter {
+    data: HashMap<String, String>,
+}
+
+impl Importer for MapImporter {
+    fn fetch<'a>(&'a self, from: &str) -> Result<ImportFetch<'a>, Error> {
+        match self.data.get(from) {
+            None => Err(Error::new(format!("file '{}' not found", from))),
+            Some(variables) => Ok(ImportFetch::Text(variables.clone())),
+        }
+    }
+}
+
+impl MapImporter {
+    pub fn new(variables: HashMap<String, String>) -> Self {
+        MapImporter { data: variables }
     }
 }

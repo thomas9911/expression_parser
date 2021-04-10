@@ -164,6 +164,27 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#examples" id="examples">Examples</a></h1>
+<h2><a class="header" href="#import" id="import">Import</a></h2>
+<pre><code>import { value, func } from &quot;./examples/file/import_from.txt&quot;;
+
+
+func.(value)
+
+</code></pre>
+<h2><a class="header" href="#import_from" id="import_from">Import_from</a></h2>
+<pre><code>value = {
+    &quot;text&quot;: &quot;testing&quot;,
+    &quot;number&quot;: 123
+};
+
+
+func = { data =&gt; 
+    text = get(data, &quot;text&quot;);
+    number = get(data, &quot;number&quot;);
+    format(&quot;{} {}&quot;, text, number)
+};
+
+</code></pre>
 <h2><a class="header" href="#recursion" id="recursion">Recursion</a></h2>
 <pre><code>createList = {list, index, till =&gt; 
     newList = push(list, index);
@@ -193,6 +214,28 @@ Test::get =  {map, key =&gt;
 my_map = Test::new.();
 
 Test::get.(my_map, &quot;x&quot;)
+
+</code></pre>
+<h2><a class="header" href="#secant_method" id="secant_method">Secant_method</a></h2>
+<pre><code>// port from the python method used on https://en.wikipedia.org/wiki/Secant_method
+
+secant_method = {f, x0, x1, iterations =&gt;
+    result = reduce(range(iterations), [x0, x1], {prev_numbers =&gt;
+        x0 = get(prev_numbers, 0);
+        x1 = get(prev_numbers, 1);
+
+        x2 = x1 - f.(x1) * (x1 - x0) / (f.(x1) - f.(x0));
+        [x1, x2]
+    });
+
+    get(result, 1)
+};
+
+my_func = {x =&gt; 
+    x ** 2 - 612
+};
+
+secant_method.(my_func, 10, 30, 5) == 24.738633748750722
 
 </code></pre>
 <h2><a class="header" href="#sort" id="sort">Sort</a></h2>

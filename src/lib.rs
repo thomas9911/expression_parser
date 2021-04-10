@@ -110,6 +110,7 @@ pub use file::ExpressionFile;
 pub use function::Function;
 pub use import::{
     CollectionImporter, FileImporter, ImportFetch, Importer, MapImporter, NullImporter,
+    SingleCollectionImporter,
 };
 pub use string_expression::Expression;
 pub use user_function::UserFunction;

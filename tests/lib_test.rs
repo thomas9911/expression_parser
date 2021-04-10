@@ -1010,7 +1010,7 @@ mod print {
 mod environment {
     use expression_parser::{
         CollectionImporter, Environment, Error, ErrorCodes, ExpressionFile, MapImporter,
-        VariableMap, Variables,
+        SingleCollectionImporter, VariableMap, Variables,
     };
     use std::collections::HashMap;
 
@@ -1040,12 +1040,12 @@ mod environment {
     }
 
     #[test]
-    fn map_importer() {
+    fn single_collection_importer() {
         let mut import_file = Variables::new();
         import_file.insert("data", vec![9, 8, 7, 6].into());
 
         let mut env = Environment::builder()
-            .with_importer(Box::new(MapImporter::new(import_file)))
+            .with_importer(Box::new(SingleCollectionImporter::new(import_file)))
             .build();
 
         let script = r#"
@@ -1056,6 +1056,38 @@ mod environment {
 
         let result = ExpressionFile::run(script, &mut env);
         assert_eq!(result, Ok(vec![9, 8, 7, 6, 5].into()));
+    }
+
+    #[test]
+    fn map_importer() {
+        let mut import_file = HashMap::new();
+        import_file.insert(
+            String::from("test"),
+            String::from(
+                r#"
+        data = [1, 2, 3, 4];
+        more_data = [5, 6, 7, 8];
+        // returns list 0 to 4
+        even_more_data = range(5);
+        "#,
+            ),
+        );
+
+        let mut env = Environment::builder()
+            .with_importer(Box::new(MapImporter::new(import_file)))
+            .build();
+
+        let script = r#"
+            import { data, more_data, even_more_data: foo } from "test";
+
+            concat(data, more_data, foo)
+        "#;
+
+        let result = ExpressionFile::run(script, &mut env);
+        assert_eq!(
+            result,
+            Ok(vec![1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 2, 3, 4].into())
+        );
     }
 
     #[test]

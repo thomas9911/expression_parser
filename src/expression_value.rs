@@ -1,7 +1,9 @@
 use crate::user_function::UserFunction;
 use crate::{Closure, Expression, Variables};
+use either::Either;
 use std::collections::{BinaryHeap, HashMap};
 use std::iter::FromIterator;
+use std::sync::Arc;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -10,20 +12,20 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum ExpressionValue {
-    Function(UserFunction, Variables),
+    Function(Arc<UserFunction>, Variables),
     String(String),
     Bool(bool),
     Number(f64),
-    List(Vec<Expression>),
+    List(Vec<Arc<Expression>>),
     Map(ExpressionMap),
     #[cfg_attr(feature = "serde", serde(skip))]
-    ExternalFunction(Closure),
+    ExternalFunction(Arc<Closure>),
     Null,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct ExpressionMap(pub HashMap<String, Expression>);
+pub struct ExpressionMap(pub HashMap<String, Arc<Expression>>);
 
 impl std::fmt::Display for ExpressionValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -52,7 +54,7 @@ impl std::fmt::Display for ExpressionMap {
     }
 }
 
-fn list_to_string(input: &Vec<Expression>) -> Vec<String> {
+fn list_to_string(input: &Vec<Arc<Expression>>) -> Vec<String> {
     input.iter().map(|x| format!("{}", x)).collect()
 }
 
@@ -94,7 +96,7 @@ where
     fn from(input: Vec<T>) -> ExpressionValue {
         let expressions = input
             .into_iter()
-            .map(|x| Expression::Value(x.into()))
+            .map(|x| Arc::new(Expression::Value(x.into().into())))
             .collect();
         ExpressionValue::List(expressions)
     }
@@ -117,7 +119,7 @@ impl From<ExpressionMap> for ExpressionValue {
 
 impl From<Closure> for ExpressionValue {
     fn from(input: Closure) -> ExpressionValue {
-        ExpressionValue::ExternalFunction(input)
+        ExpressionValue::ExternalFunction(Arc::new(input))
     }
 }
 
@@ -143,6 +145,13 @@ impl Default for ExpressionValue {
 }
 
 impl ExpressionValue {
+    pub fn into_arc<T>(input: T) -> std::sync::Arc<ExpressionValue>
+    where
+        T: Into<ExpressionValue>,
+    {
+        std::sync::Arc::new(input.into())
+    }
+
     /// casts value as a number
     pub fn as_number(&self) -> Option<f64> {
         use ExpressionValue::*;
@@ -186,7 +195,7 @@ impl ExpressionValue {
     }
 
     /// casts value as a list
-    pub fn as_list(&self) -> Option<Vec<Expression>> {
+    pub fn as_list(&self) -> Option<Vec<Arc<Expression>>> {
         use ExpressionValue::*;
 
         match self {
@@ -205,12 +214,45 @@ impl ExpressionValue {
         }
     }
 
+    pub fn as_either_list_map(
+        self
+    ) -> Option<Either<ExpressionMap, Vec<Arc<Expression>>>> {
+        use ExpressionValue::*;
+
+        match self {
+            Map(map) => Some(Either::Left(map)),
+            List(list) => Some(Either::Right(list)),
+            _ => None,
+        }
+    }
+
     /// casts value as a function
-    pub fn as_function(self) -> Option<(UserFunction, Variables)> {
+    pub fn as_function(self) -> Option<(Arc<UserFunction>, Variables)> {
         use ExpressionValue::*;
 
         match self {
             Function(x, y) => Some((x, y)),
+            _ => None,
+        }
+    }
+
+    pub fn as_closure(self) -> Option<Arc<Closure>> {
+        use ExpressionValue::*;
+
+        match self {
+            ExternalFunction(x) => Some(x),
+            _ => None,
+        }
+    }
+
+    pub fn as_either_function(
+        self,
+    ) -> Option<Either<(Arc<UserFunction>, Variables), Arc<Closure>>> {
+        use ExpressionValue::*;
+
+        match self {
+            Function(x, y) => Some(Either::Left((x, y))),
+            ExternalFunction(x) => Some(Either::Right(x)),
             _ => None,
         }
     }
@@ -296,7 +338,7 @@ impl ExpressionValue {
         !self.is_falsy()
     }
 
-    pub fn and(self, other: ExpressionValue) -> ExpressionValue {
+    pub fn and(self: Arc<Self>, other: Arc<ExpressionValue>) -> Arc<ExpressionValue> {
         if self.is_truthy() {
             other
         } else {
@@ -304,7 +346,7 @@ impl ExpressionValue {
         }
     }
 
-    pub fn or(self, other: ExpressionValue) -> ExpressionValue {
+    pub fn or(self: Arc<Self>, other: Arc<ExpressionValue>) -> Arc<ExpressionValue> {
         if self.is_truthy() {
             self
         } else {
@@ -343,16 +385,24 @@ impl ExpressionMap {
         ExpressionMap(HashMap::new())
     }
 
-    pub fn get(&self, key: &str) -> Option<Expression> {
+    pub fn get(&self, key: &str) -> Option<Arc<Expression>> {
         self.0.get(key).cloned()
     }
 
-    pub fn remove(&mut self, key: &str) -> Option<Expression> {
+    pub fn remove(&mut self, key: &str) -> Option<Arc<Expression>> {
         self.0.remove(key)
     }
 
-    pub fn insert<T: Into<ExpressionValue>>(&mut self, k: &str, v: T) -> Option<Expression> {
-        self.0.insert(String::from(k), Expression::Value(v.into()))
+    pub fn insert<T: Into<ExpressionValue>>(&mut self, k: &str, v: T) -> Option<Arc<Expression>> {
+        self.0.insert(
+            String::from(k),
+            Arc::new(Expression::Value(v.into().into())),
+        )
+    }
+
+    pub fn insert_arc(&mut self, k: &str, v: Arc<ExpressionValue>) -> Option<Arc<Expression>> {
+        self.0
+            .insert(String::from(k), Arc::new(Expression::Value(v)))
     }
 }
 
@@ -364,7 +414,7 @@ where
         let map = HashMap::from_iter(
             input
                 .into_iter()
-                .map(|(k, v)| (k, Expression::Value(v.into()))),
+                .map(|(k, v)| (k, Arc::new(Expression::Value(v.into().into())))),
         );
         ExpressionMap { 0: map }
     }

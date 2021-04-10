@@ -1,10 +1,10 @@
-use super::{as_string, ok_string};
+use super::{as_string, ok_boolean, ok_string};
 use super::{Env, Input, Output};
 use crate::Expression;
 
 pub fn trim<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
-    let string = as_string(Expression::eval(lhs, env)?);
-    let trim_with = as_string(Expression::eval(rhs, env)?);
+    let string = as_string(Expression::eval_rc(lhs, env)?);
+    let trim_with = as_string(Expression::eval_rc(rhs, env)?);
 
     ok_string(
         string
@@ -15,15 +15,15 @@ pub fn trim<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Outpu
 }
 
 pub fn contains<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
-    let string = as_string(Expression::eval(lhs, env)?);
-    let contains = as_string(Expression::eval(rhs, env)?);
-    Ok(string.contains(&contains).into())
+    let string = as_string(Expression::eval_rc(lhs, env)?);
+    let contains = as_string(Expression::eval_rc(rhs, env)?);
+    ok_boolean(string.contains(&contains))
 }
 
 pub fn upper<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
-    ok_string(as_string(Expression::eval(lhs, env)?).to_uppercase())
+    ok_string(as_string(Expression::eval_rc(lhs, env)?).to_uppercase())
 }
 
 pub fn lower<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
-    ok_string(as_string(Expression::eval(lhs, env)?).to_lowercase())
+    ok_string(as_string(Expression::eval_rc(lhs, env)?).to_lowercase())
 }

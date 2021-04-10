@@ -2,6 +2,7 @@ use pest::error::Error as PestError;
 use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::function::FunctionName;
 use crate::grammar::{create_string, make_pest_error, ExpressionessionParser, Rule};
@@ -12,7 +13,7 @@ use crate::{Env, Error, ExpressionMap, ExpressionValue, Function, VariableMap, V
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-pub type EvalResult = Result<ExpressionValue, Error>;
+pub type EvalResult = Result<Arc<ExpressionValue>, Error>;
 pub type ParseResult = Result<Expression, PestError<Rule>>;
 
 pub fn parse_expression(expression: Pairs<'_, Rule>) -> ParseResult {
@@ -22,22 +23,22 @@ pub fn parse_expression(expression: Pairs<'_, Rule>) -> ParseResult {
         expression,
         parse_single_pair,
         |lhs: ParseResult, op: Pair<'_, Rule>, rhs: ParseResult| {
-            let lhs = lhs?;
-            let rhs = rhs?;
+            let lhs = Arc::new(lhs?);
+            let rhs = Arc::new(rhs?);
 
             match op.as_rule() {
-                Rule::concat_op => Ok(Expr(Box::new(Function::Concat(vec![lhs, rhs])))),
-                Rule::equal => Ok(Expr(Box::new(Function::Equal(lhs, rhs)))),
-                Rule::not_equal => Ok(Expr(Box::new(Function::NotEqual(lhs, rhs)))),
-                Rule::lesser => Ok(Expr(Box::new(Function::Lesser(lhs, rhs)))),
-                Rule::greater => Ok(Expr(Box::new(Function::Greater(lhs, rhs)))),
-                Rule::and => Ok(Expr(Box::new(Function::And(lhs, rhs)))),
-                Rule::or => Ok(Expr(Box::new(Function::Or(lhs, rhs)))),
-                Rule::add => Ok(Expr(Box::new(Function::Add(lhs, rhs)))),
-                Rule::subtract => Ok(Expr(Box::new(Function::Sub(lhs, rhs)))),
-                Rule::multiply => Ok(Expr(Box::new(Function::Mul(lhs, rhs)))),
-                Rule::divide => Ok(Expr(Box::new(Function::Div(lhs, rhs)))),
-                Rule::power => Ok(Expr(Box::new(Function::Pow(lhs, rhs)))),
+                Rule::concat_op => Ok(Expr(Arc::new(Function::Concat(vec![lhs, rhs])))),
+                Rule::equal => Ok(Expr(Arc::new(Function::Equal(lhs, rhs)))),
+                Rule::not_equal => Ok(Expr(Arc::new(Function::NotEqual(lhs, rhs)))),
+                Rule::lesser => Ok(Expr(Arc::new(Function::Lesser(lhs, rhs)))),
+                Rule::greater => Ok(Expr(Arc::new(Function::Greater(lhs, rhs)))),
+                Rule::and => Ok(Expr(Arc::new(Function::And(lhs, rhs)))),
+                Rule::or => Ok(Expr(Arc::new(Function::Or(lhs, rhs)))),
+                Rule::add => Ok(Expr(Arc::new(Function::Add(lhs, rhs)))),
+                Rule::subtract => Ok(Expr(Arc::new(Function::Sub(lhs, rhs)))),
+                Rule::multiply => Ok(Expr(Arc::new(Function::Mul(lhs, rhs)))),
+                Rule::divide => Ok(Expr(Arc::new(Function::Div(lhs, rhs)))),
+                Rule::power => Ok(Expr(Arc::new(Function::Pow(lhs, rhs)))),
                 // _ => unreachable!(),
                 rule => {
                     println!("{:?}", rule);
@@ -53,39 +54,41 @@ fn parse_single_pair(pair: Pair<'_, Rule>) -> ParseResult {
     use Expression::*;
 
     match pair.as_rule() {
-        Rule::num => Ok(Value(pair.as_str().parse::<f64>().unwrap().into())),
+        Rule::num => Ok(Value(
+            ExpressionValue::from(pair.as_str().parse::<f64>().unwrap()).into(),
+        )),
         Rule::string => match create_string(pair.clone()) {
-            Ok(x) => Ok(Value(ExpressionValue::String(x))),
+            Ok(x) => Ok(Value(ExpressionValue::String(x).into())),
             Err(e) => Err(make_pest_error(pair.as_span(), e.to_string())),
         },
         Rule::list => {
-            let arguments: Vec<Expression> =
-                pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
-                    let p = parse_expression(x.into_inner())?;
-                    acc.push(p);
-                    Ok(acc)
-                })?;
-            Ok(Value(ExpressionValue::List(arguments)))
+            let arguments: Vec<_> = pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
+                let p = parse_expression(x.into_inner())?;
+                acc.push(Arc::new(p));
+                Ok(acc)
+            })?;
+            Ok(Value(ExpressionValue::List(arguments).into()))
         }
         Rule::map => {
             let iter: Vec<_> = pair.into_inner().collect();
             let mut data = HashMap::new();
             for p in iter.chunks(2) {
-                if let Expression::Value(ExpressionValue::String(key)) =
-                    parse_expression(Pairs::single(p[0].clone()))?
-                {
+                if let Expression::Value(value) = parse_expression(Pairs::single(p[0].clone()))? {
+                    let key = value.as_string().unwrap();
                     let val = parse_expression(Pairs::single(p[1].clone()))?;
-                    data.insert(key, val);
+                    data.insert(key, Arc::new(val));
                 } else {
                     unreachable!()
                 }
             }
-            Ok(Expression::Value(ExpressionValue::Map(ExpressionMap(data))))
+            Ok(Expression::Value(
+                ExpressionValue::Map(ExpressionMap(data)).into(),
+            ))
         }
         Rule::expr => parse_expression(pair.into_inner()),
         Rule::var => Ok(make_var(pair)),
         Rule::func => make_function(pair),
-        Rule::function => Ok(UserFunction(parse_user_function(pair.into_inner())?)),
+        Rule::function => Ok(UserFunction(parse_user_function(pair.into_inner())?.into())),
         Rule::dot_function => make_dot_function(pair.into_inner()),
         rule => {
             println!("{:?}", rule);
@@ -98,20 +101,25 @@ fn make_dot_function(mut pairs: Pairs<'_, Rule>) -> ParseResult {
     let first_pair = pairs.next().expect("invalid dot function grammar");
 
     let lhs = match first_pair.as_rule() {
-        Rule::function => Expression::UserFunction(parse_user_function(first_pair.into_inner())?),
+        Rule::function => {
+            Expression::UserFunction(parse_user_function(first_pair.into_inner())?.into())
+        }
         Rule::var => make_var(first_pair),
         Rule::func => make_function(first_pair)?,
-        _ => panic!("ivalid dot function grammar"),
+        _ => panic!("invalid dot function grammar"),
     };
 
     let _dot_operator = pairs.next().expect("invalid dot function grammar");
 
     let mut arguments = Vec::new();
     for pair in pairs {
-        arguments.push(parse_single_pair(pair)?)
+        arguments.push(Arc::new(parse_single_pair(pair)?))
     }
 
-    Ok(Expression::Expr(Box::new(Function::Call(lhs, arguments))))
+    Ok(Expression::Expr(Arc::new(Function::Call(
+        Arc::new(lhs),
+        arguments,
+    ))))
 }
 
 fn make_var(pair: Pair<'_, Rule>) -> Expression {
@@ -127,8 +135,8 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
     let mut inner_pairs = pair.into_inner();
     let function_name = inner_pairs.next().expect("function always has a name");
 
-    let mut arguments: Vec<Expression> = inner_pairs.try_fold(Vec::new(), |mut acc, x| {
-        acc.push(parse_expression(x.into_inner())?);
+    let mut arguments: Vec<Arc<Expression>> = inner_pairs.try_fold(Vec::new(), |mut acc, x| {
+        acc.push(Arc::new(parse_expression(x.into_inner())?));
         Ok(acc)
     })?;
     let func_name = match FunctionName::from_str(function_name.as_str()) {
@@ -144,82 +152,84 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
     Ok(match func_name {
         Upper => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Upper(arguments.remove(0))))
+            Expr(Arc::new(Function::Upper(arguments.remove(0))))
         }
         Lower => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Lower(arguments.remove(0))))
+            Expr(Arc::new(Function::Lower(arguments.remove(0))))
         }
         Print => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Print(arguments.remove(0))))
+            Expr(Arc::new(Function::Print(arguments.remove(0))))
         }
         Help => {
             check_arguments(func_name, pair_span, 0, Some(1), &arguments)?;
             let argument = arguments.pop().unwrap_or_default();
-            Expr(Box::new(Function::Help(argument)))
+            Expr(Arc::new(Function::Help(argument)))
         }
         Cos => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Cos(arguments.remove(0))))
+            Expr(Arc::new(Function::Cos(arguments.remove(0))))
         }
         Sin => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Sin(arguments.remove(0))))
+            Expr(Arc::new(Function::Sin(arguments.remove(0))))
         }
         Tan => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Tan(arguments.remove(0))))
+            Expr(Arc::new(Function::Tan(arguments.remove(0))))
         }
         Trim => {
             check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
-            Expr(Box::new(Function::Trim(
+            Expr(Arc::new(Function::Trim(
                 arguments.remove(0),
-                arguments.pop().unwrap_or(Expression::Value(" ".into())),
+                arguments
+                    .pop()
+                    .unwrap_or(Arc::new(Expression::Value(Arc::new(" ".into())))),
             )))
         }
         Contains => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
-            Expr(Box::new(Function::Contains(
+            Expr(Arc::new(Function::Contains(
                 arguments.remove(0),
                 arguments.remove(0),
             )))
         }
         Join => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
-            Expr(Box::new(Function::Join(
+            Expr(Arc::new(Function::Join(
                 arguments.remove(0),
                 arguments.remove(0),
             )))
         }
         Length => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Length(arguments.remove(0))))
+            Expr(Arc::new(Function::Length(arguments.remove(0))))
         }
         Get => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
-            Expr(Box::new(Function::Get(
+            Expr(Arc::new(Function::Get(
                 arguments.remove(0),
                 arguments.remove(0),
             )))
         }
         Push => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
-            Expr(Box::new(Function::Push(
+            Expr(Arc::new(Function::Push(
                 arguments.remove(0),
                 arguments.remove(0),
             )))
         }
         Remove => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
-            Expr(Box::new(Function::Remove(
+            Expr(Arc::new(Function::Remove(
                 arguments.remove(0),
                 arguments.remove(0),
             )))
         }
         Put => {
             check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
-            Expr(Box::new(Function::Put(
+            Expr(Arc::new(Function::Put(
                 arguments.remove(0),
                 arguments.remove(0),
                 arguments.remove(0),
@@ -227,7 +237,7 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
         }
         If => {
             check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
-            Expr(Box::new(Function::If(
+            Expr(Arc::new(Function::If(
                 arguments.remove(0),
                 arguments.remove(0),
                 arguments.remove(0),
@@ -240,8 +250,8 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
             let arg2 = arguments.pop();
             let arg1 = arguments.pop();
 
-            let zero = Expression::Value(0.0.into());
-            let one = Expression::Value(1.0.into());
+            let zero = Arc::new(Expression::Value(Arc::new(0.0.into())));
+            let one = Arc::new(Expression::Value(Arc::new(1.0.into())));
 
             let (a, b, c) = match (arg1, arg2, arg3) {
                 (None, None, Some(c)) => (zero, c, one),
@@ -250,11 +260,11 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
                 (_, _, _) => unreachable!(),
             };
 
-            Expr(Box::new(Function::Range(a, b, c)))
+            Expr(Arc::new(Function::Range(a, b, c)))
         }
         Reduce => {
             check_arguments(func_name, pair_span, 3, Some(3), &arguments)?;
-            Expr(Box::new(Function::Reduce(
+            Expr(Arc::new(Function::Reduce(
                 arguments.remove(0),
                 arguments.remove(0),
                 arguments.remove(0),
@@ -262,33 +272,33 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
         }
         Shuffle => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Shuffle(arguments.remove(0))))
+            Expr(Arc::new(Function::Shuffle(arguments.remove(0))))
         }
         Concat => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
-            Expr(Box::new(Function::Concat(arguments)))
+            Expr(Arc::new(Function::Concat(arguments)))
         }
         Sum => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
-            Expr(Box::new(Function::Sum(arguments)))
+            Expr(Arc::new(Function::Sum(arguments)))
         }
         Product => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
-            Expr(Box::new(Function::Product(arguments)))
+            Expr(Arc::new(Function::Product(arguments)))
         }
         All => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
-            Expr(Box::new(Function::All(arguments)))
+            Expr(Arc::new(Function::All(arguments)))
         }
         Any => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
-            Expr(Box::new(Function::Any(arguments)))
+            Expr(Arc::new(Function::Any(arguments)))
         }
         Random => {
             check_arguments(func_name, pair_span, 0, Some(2), &arguments)?;
 
-            let default_a = Expression::Value(0.0.into());
-            let default_b = Expression::Value(1.0.into());
+            let default_a = Arc::new(Expression::Value(Arc::new(0.0.into())));
+            let default_b = Arc::new(Expression::Value(Arc::new(1.0.into())));
 
             let arg2 = arguments.pop();
             let arg1 = arguments.pop();
@@ -301,47 +311,49 @@ fn make_function(pair: Pair<'_, Rule>) -> ParseResult {
                 },
             };
 
-            Expr(Box::new(Function::Random(a, b)))
+            Expr(Arc::new(Function::Random(a, b)))
         }
         Try => {
             check_arguments(func_name, pair_span, 2, Some(2), &arguments)?;
-            Expr(Box::new(Function::Try(
+            Expr(Arc::new(Function::Try(
                 arguments.remove(0),
                 arguments.remove(0),
             )))
         }
         Type => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Type(arguments.remove(0))))
+            Expr(Arc::new(Function::Type(arguments.remove(0))))
         }
         Error => {
             check_arguments(func_name, pair_span, 1, Some(1), &arguments)?;
-            Expr(Box::new(Function::Error(arguments.remove(0))))
+            Expr(Arc::new(Function::Error(arguments.remove(0))))
         }
         Assert => {
             check_arguments(func_name, pair_span, 1, Some(2), &arguments)?;
-            Expr(Box::new(Function::Assert(
+            Expr(Arc::new(Function::Assert(
                 arguments.remove(0),
                 arguments
                     .pop()
-                    .unwrap_or(Expression::Value("assertion failed".into())),
+                    .unwrap_or(Arc::new(Expression::Value(Arc::new(
+                        "assertion failed".into(),
+                    )))),
             )))
         }
         Now => {
             check_arguments(func_name, pair_span, 0, Some(0), &arguments)?;
-            Expr(Box::new(Function::Now()))
+            Expr(Arc::new(Function::Now()))
         }
         Format => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             let template = arguments.remove(0);
 
-            Expr(Box::new(Function::Format(template, arguments)))
+            Expr(Arc::new(Function::Format(template, arguments)))
         }
         Call => {
             check_arguments(func_name, pair_span, 1, None, &arguments)?;
             let func = arguments.remove(0);
 
-            Expr(Box::new(Function::Call(func, arguments)))
+            Expr(Arc::new(Function::Call(func, arguments)))
         }
 
         // infix functions
@@ -359,7 +371,7 @@ fn check_arguments(
     span: Span<'_>,
     min_args: usize,
     max_args: Option<usize>,
-    args: &Vec<Expression>,
+    args: &Vec<Arc<Expression>>,
 ) -> Result<(), PestError<Rule>> {
     if min_args > args.len() {
         return Err(make_pest_error(
@@ -389,10 +401,10 @@ fn check_arguments(
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Expression {
-    Value(ExpressionValue),
-    Expr(Box<Function>),
+    Value(Arc<ExpressionValue>),
+    Expr(Arc<Function>),
     Var(String),
-    UserFunction(UserFunction),
+    UserFunction(Arc<UserFunction>),
 }
 
 impl std::fmt::Display for Expression {
@@ -419,33 +431,43 @@ impl Expression {
         expression: Expression,
         env: &'b mut E,
     ) -> EvalResult {
-        match expression {
-            Expression::Expr(op) => Function::eval(*op, env),
-            Expression::Value(value) => match value {
-                ExpressionValue::List(list) => Ok(ExpressionValue::List(
-                    list.into_iter().try_fold::<_, _, Result<_, Error>>(
+        Self::eval_rc(Arc::new(expression), env)
+    }
+
+    pub fn eval_rc<'a, 'b, E: Env<'a> + std::fmt::Debug>(
+        expression: Arc<Expression>,
+        env: &'b mut E,
+    ) -> EvalResult {
+        match &*expression {
+            Expression::Expr(op) => Function::eval_rc(op.clone(), env),
+            Expression::Value(value) => match &**value {
+                ExpressionValue::List(list) => {
+                    let value_list = list.clone().into_iter().try_fold::<_, _, Result<_, Error>>(
                         Vec::new(),
                         |mut acc, x| {
-                            acc.push(Expression::Value(Expression::eval(x, env)?));
+                            acc.push(Arc::new(Expression::Value(Expression::eval_rc(x, env)?)));
                             Ok(acc)
                         },
-                    )?,
-                )),
-                ExpressionValue::Map(ExpressionMap(map)) => {
-                    Ok(ExpressionValue::Map(ExpressionMap({
-                        map.into_iter().try_fold::<_, _, Result<_, Error>>(
-                            HashMap::new(),
-                            |mut acc, (k, v)| {
-                                acc.insert(k, Expression::Value(Expression::eval(v, env)?));
-                                Ok(acc)
-                            },
-                        )?
-                    })))
+                    )?;
+                    Ok(ExpressionValue::List(value_list).into())
                 }
-                x => Ok(x),
+                ExpressionValue::Map(ExpressionMap(map)) => {
+                    let value_map = map.clone().into_iter().try_fold::<_, _, Result<_, Error>>(
+                        HashMap::new(),
+                        |mut acc, (k, v)| {
+                            acc.insert(
+                                k,
+                                Arc::new(Expression::Value(Expression::eval_rc(v, env)?)),
+                            );
+                            Ok(acc)
+                        },
+                    )?;
+                    Ok(ExpressionValue::Map(ExpressionMap(value_map)).into())
+                }
+                _ => Ok(value.clone()),
             },
-            Expression::Var(s) => match env.variables().get(&s) {
-                Some(x) => Ok(x.clone()),
+            Expression::Var(s) => match env.variables().get_arc(&s) {
+                Some(x) => Ok(x),
                 None => Err(Error::new(format!("Variable {} not found", &s))),
             },
             Expression::UserFunction(function) => {
@@ -462,7 +484,7 @@ impl Expression {
                     }
                 }
 
-                Ok(ExpressionValue::Function(function, compiled))
+                Ok(ExpressionValue::Function(function.clone(), compiled).into())
             }
         }
     }
@@ -473,22 +495,24 @@ impl Expression {
     }
 
     pub fn compile(expression: Expression) -> Result<Expression, Error> {
-        match expression {
-            Expression::Value(value) => match value {
-                ExpressionValue::List(list) => Ok(Expression::Value(ExpressionValue::List(
-                    list.into_iter().try_fold::<_, _, Result<_, Error>>(
-                        Vec::new(),
-                        |mut acc, x| {
-                            acc.push(Expression::compile(x)?);
-                            Ok(acc)
-                        },
-                    )?,
-                ))),
-                x => Ok(Expression::Value(x)),
-            },
-            Expression::Expr(op) => Function::compile(*op),
-            other => Ok(other),
-        }
+        // match expression {
+        //     Expression::Value(value) => match &*value {
+        //         ExpressionValue::List(list) => Ok(Expression::Value(
+        //             ExpressionValue::List(list.into_iter().try_fold::<_, _, Result<_, Error>>(
+        //                 Vec::new(),
+        //                 |mut acc, x| {
+        //                     acc.push(Expression::compile(*x)?.into());
+        //                     Ok(acc)
+        //                 },
+        //             )?)
+        //             .into(),
+        //         )),
+        //         x => Ok(Expression::Value(value)),
+        //     },
+        //     Expression::Expr(op) => Function::compile(*op),
+        //     other => Ok(other),
+        // }
+        Ok(Expression::default())
     }
 
     /// returns all variables defined in the expression
@@ -520,13 +544,13 @@ impl Expression {
 
 impl From<ExpressionValue> for Expression {
     fn from(input: ExpressionValue) -> Expression {
-        Expression::Value(input)
+        Expression::Value(Arc::new(input))
     }
 }
 
 impl From<ExpressionMap> for Expression {
     fn from(input: ExpressionMap) -> Expression {
-        Expression::Value(ExpressionValue::Map(input))
+        Expression::Value(Arc::new(ExpressionValue::Map(input)))
     }
 }
 

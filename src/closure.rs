@@ -3,7 +3,10 @@ use std::sync::Arc;
 
 type Fp = Arc<
     Box<
-        dyn Fn(Vec<ExpressionValue>, &mut Environment<'_>) -> Result<ExpressionValue, Error>
+        dyn Fn(
+                Vec<Arc<ExpressionValue>>,
+                &mut Environment<'_>,
+            ) -> Result<Arc<ExpressionValue>, Error>
             + Send
             + Sync,
     >,

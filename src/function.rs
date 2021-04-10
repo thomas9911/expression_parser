@@ -1,6 +1,7 @@
 use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
 use crate::{Env, Environment, Error, Expression};
+use std::sync::Arc;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -18,107 +19,107 @@ pub mod functions;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Function {
     #[strum(message = "Combines two or more lists into one")]
-    Concat(Vec<Expression>),
+    Concat(Vec<Arc<Expression>>),
     #[strum(message = "Sums up the arguments")]
-    Sum(Vec<Expression>),
+    Sum(Vec<Arc<Expression>>),
     #[strum(message = "Calculates the product of the arguments")]
-    Product(Vec<Expression>),
+    Product(Vec<Arc<Expression>>),
     #[strum(message = "Checks if all arguments are truthy")]
-    All(Vec<Expression>),
+    All(Vec<Arc<Expression>>),
     #[strum(message = "Checks if any arguments are truthy")]
-    Any(Vec<Expression>),
+    Any(Vec<Arc<Expression>>),
     #[strum(message = "Compares if the two arguments are equal")]
-    Equal(Expression, Expression),
+    Equal(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Compares if the two arguments are not equal")]
-    NotEqual(Expression, Expression),
+    NotEqual(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Compares if left is less than right")]
-    Lesser(Expression, Expression),
+    Lesser(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Compares if left is greater than right")]
-    Greater(Expression, Expression),
+    Greater(Arc<Expression>, Arc<Expression>),
     #[strum(
         message = "If the first argument is truthy returns the second argument, otherwise returns the first argument"
     )]
-    And(Expression, Expression),
+    And(Arc<Expression>, Arc<Expression>),
     #[strum(
         message = "If the first argument is truthy returns the first argument, otherwise returns the second argument"
     )]
-    Or(Expression, Expression),
+    Or(Arc<Expression>, Arc<Expression>),
     #[strum(
         message = "Removes the characters at the start and end of the first argument, second argument is an optional argument that contains the character to remove, defaults to ' '"
     )]
-    Trim(Expression, Expression),
+    Trim(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Checks if the seconds argument is in the first argument")]
-    Contains(Expression, Expression),
+    Contains(Arc<Expression>, Arc<Expression>),
     #[strum(
         message = "Combine the first argument into a string with the second argument as is seperator"
     )]
-    Join(Expression, Expression),
+    Join(Arc<Expression>, Arc<Expression>),
     #[strum(
         message = "If the first argument is truthy returns the second argument, otherwise returns the third argument"
     )]
-    If(Expression, Expression, Expression),
+    If(Arc<Expression>, Arc<Expression>, Arc<Expression>),
     #[strum(message = "Returns the length of map of list")]
-    Length(Expression),
+    Length(Arc<Expression>),
     #[strum(message = "Converts input to uppercase")]
-    Upper(Expression),
+    Upper(Arc<Expression>),
     #[strum(message = "Converts input to lowercase")]
-    Lower(Expression),
+    Lower(Arc<Expression>),
     #[strum(message = "Adds the two arguments together")]
-    Add(Expression, Expression),
+    Add(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Subtracts the second argument from the first argument")]
-    Sub(Expression, Expression),
+    Sub(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Multiplies the two arguments together")]
-    Mul(Expression, Expression),
+    Mul(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Divides the second argument from the first argument")]
-    Div(Expression, Expression),
+    Div(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Raises the first argument to the second argument")]
-    Pow(Expression, Expression),
+    Pow(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Calculates the cosine of the number")]
-    Cos(Expression),
+    Cos(Arc<Expression>),
     #[strum(message = "Calculates the sine of the number")]
-    Sin(Expression),
+    Sin(Arc<Expression>),
     #[strum(message = "Calculates the tangent of the number")]
-    Tan(Expression),
+    Tan(Arc<Expression>),
     #[strum(message = "Gets the value from a list or a map")]
-    Get(Expression, Expression),
+    Get(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Push value to the list")]
-    Push(Expression, Expression),
+    Push(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Removes index from the list or key from the map")]
-    Remove(Expression, Expression),
+    Remove(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Put third argument into the map or list under the second argument")]
-    Put(Expression, Expression, Expression),
+    Put(Arc<Expression>, Arc<Expression>, Arc<Expression>),
     #[strum(
         message = "Generate a random number. Defaults to a number between 0 and 1, but the range can be set as argument"
     )]
-    Random(Expression, Expression),
+    Random(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Shuffles the given list")]
-    Shuffle(Expression),
+    Shuffle(Arc<Expression>),
     #[strum(message = "Generate a list")]
-    Range(Expression, Expression, Expression),
+    Range(Arc<Expression>, Arc<Expression>, Arc<Expression>),
     #[strum(message = "Reduce a list to a single value")]
-    Reduce(Expression, Expression, Expression),
+    Reduce(Arc<Expression>, Arc<Expression>, Arc<Expression>),
     #[strum(message = "Returns the unix timestamp of the current time")]
     Now(),
     #[strum(message = "Returns the type of the argument")]
-    Type(Expression),
+    Type(Arc<Expression>),
     #[strum(message = "Tries the first argument, if that fails returns the second argument")]
-    Try(Expression, Expression),
+    Try(Arc<Expression>, Arc<Expression>),
     #[strum(
         message = "Formats the arguments into the template, only positional arguments are supported."
     )]
-    Format(Expression, Vec<Expression>),
+    Format(Arc<Expression>, Vec<Arc<Expression>>),
     #[strum(message = "Prints value")]
-    Print(Expression),
+    Print(Arc<Expression>),
     #[strum(message = "Raises an error with the given message")]
-    Error(Expression),
+    Error(Arc<Expression>),
     #[strum(
         message = "Raises an error with the given message if the first argument is not truthy"
     )]
-    Assert(Expression, Expression),
+    Assert(Arc<Expression>, Arc<Expression>),
     #[strum(message = "Prints help message")]
-    Help(Expression),
+    Help(Arc<Expression>),
     #[strum(message = "Calls the function with given arguments")]
-    Call(Expression, Vec<Expression>),
+    Call(Arc<Expression>, Vec<Arc<Expression>>),
 }
 
 impl std::fmt::Display for Function {
@@ -174,117 +175,168 @@ impl std::fmt::Display for Function {
 }
 
 impl Function {
-    pub fn eval<'a, 'b, E: Env<'a>>(operator: Function, env: &'b mut E) -> EvalResult {
+    // pub fn eval<'a, 'b, E: Env<'a>>(operator: Function, env: &'b mut E) -> EvalResult {
+    //     use Function::*;
+
+    //     match operator {
+    //         Concat(list) => functions::concat(list, env),
+    //         Sum(list) => functions::sum(list, env),
+    //         Product(list) => functions::product(list, env),
+    //         All(list) => functions::all(list, env),
+    //         Any(list) => functions::any(list, env),
+    //         Trim(lhs, rhs) => functions::trim(lhs, rhs, env),
+    //         Equal(lhs, rhs) => functions::equal(lhs, rhs, env),
+    //         NotEqual(lhs, rhs) => functions::not_equal(lhs, rhs, env),
+    //         Greater(lhs, rhs) => functions::greater(lhs, rhs, env),
+    //         Lesser(lhs, rhs) => functions::lesser(lhs, rhs, env),
+    //         And(lhs, rhs) => functions::and(lhs, rhs, env),
+    //         Or(lhs, rhs) => functions::or(lhs, rhs, env),
+    //         Contains(lhs, rhs) => functions::contains(lhs, rhs, env),
+    //         Join(lhs, rhs) => functions::join(lhs, rhs, env),
+    //         Length(lhs) => functions::length(lhs, env),
+    //         If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, env),
+    //         Range(lhs, mdl, rhs) => functions::range(lhs, mdl, rhs, env),
+    //         Reduce(lhs, mdl, rhs) => functions::reduce(lhs, mdl, rhs, env),
+    //         Upper(lhs) => functions::upper(lhs, env),
+    //         Lower(lhs) => functions::lower(lhs, env),
+    //         Add(lhs, rhs) => functions::add(lhs, rhs, env),
+    //         Sub(lhs, rhs) => functions::sub(lhs, rhs, env),
+    //         Mul(lhs, rhs) => functions::mul(lhs, rhs, env),
+    //         Div(lhs, rhs) => functions::div(lhs, rhs, env),
+    //         Pow(lhs, rhs) => functions::pow(lhs, rhs, env),
+    //         Cos(lhs) => functions::cos(lhs, env),
+    //         Sin(lhs) => functions::sin(lhs, env),
+    //         Tan(lhs) => functions::tan(lhs, env),
+    //         Get(lhs, rhs) => functions::get(lhs, rhs, env),
+    //         Push(lhs, rhs) => functions::push(lhs, rhs, env),
+    //         Remove(lhs, rhs) => functions::remove(lhs, rhs, env),
+    //         Put(lhs, mdl, rhs) => functions::put(lhs, mdl, rhs, env),
+    //         Random(lhs, rhs) => functions::random(lhs, rhs, env),
+    //         Shuffle(lhs) => functions::shuffle(lhs, env),
+    //         Now() => functions::now(env),
+    //         Type(lhs) => functions::type_function(lhs, env),
+    //         Print(lhs) => functions::print(lhs, env),
+    //         Error(lhs) => functions::error(lhs, env),
+    //         Assert(lhs, rhs) => functions::assert(lhs, rhs, env),
+    //         Try(lhs, rhs) => functions::try_function(lhs, rhs, env),
+    //         Call(func, list) => functions::call(func, list, env),
+    //         Format(lhs, list) => functions::format(lhs, list, env),
+    //         Help(lhs) => functions::help(lhs, env),
+    //     }
+    // }
+
+    pub fn eval_rc<'a, 'b, E: Env<'a>>(operator: Arc<Function>, env: &'b mut E) -> EvalResult {
         use Function::*;
 
-        match operator {
-            Concat(list) => functions::concat(list, env),
-            Sum(list) => functions::sum(list, env),
-            Product(list) => functions::product(list, env),
-            All(list) => functions::all(list, env),
-            Any(list) => functions::any(list, env),
-            Trim(lhs, rhs) => functions::trim(lhs, rhs, env),
-            Equal(lhs, rhs) => functions::equal(lhs, rhs, env),
-            NotEqual(lhs, rhs) => functions::not_equal(lhs, rhs, env),
-            Greater(lhs, rhs) => functions::greater(lhs, rhs, env),
-            Lesser(lhs, rhs) => functions::lesser(lhs, rhs, env),
-            And(lhs, rhs) => functions::and(lhs, rhs, env),
-            Or(lhs, rhs) => functions::or(lhs, rhs, env),
-            Contains(lhs, rhs) => functions::contains(lhs, rhs, env),
-            Join(lhs, rhs) => functions::join(lhs, rhs, env),
-            Length(lhs) => functions::length(lhs, env),
-            If(lhs, mdl, rhs) => functions::if_function(lhs, mdl, rhs, env),
-            Range(lhs, mdl, rhs) => functions::range(lhs, mdl, rhs, env),
-            Reduce(lhs, mdl, rhs) => functions::reduce(lhs, mdl, rhs, env),
-            Upper(lhs) => functions::upper(lhs, env),
-            Lower(lhs) => functions::lower(lhs, env),
-            Add(lhs, rhs) => functions::add(lhs, rhs, env),
-            Sub(lhs, rhs) => functions::sub(lhs, rhs, env),
-            Mul(lhs, rhs) => functions::mul(lhs, rhs, env),
-            Div(lhs, rhs) => functions::div(lhs, rhs, env),
-            Pow(lhs, rhs) => functions::pow(lhs, rhs, env),
-            Cos(lhs) => functions::cos(lhs, env),
-            Sin(lhs) => functions::sin(lhs, env),
-            Tan(lhs) => functions::tan(lhs, env),
-            Get(lhs, rhs) => functions::get(lhs, rhs, env),
-            Push(lhs, rhs) => functions::push(lhs, rhs, env),
-            Remove(lhs, rhs) => functions::remove(lhs, rhs, env),
-            Put(lhs, mdl, rhs) => functions::put(lhs, mdl, rhs, env),
-            Random(lhs, rhs) => functions::random(lhs, rhs, env),
-            Shuffle(lhs) => functions::shuffle(lhs, env),
+        match &*operator {
+            Concat(list) => functions::concat(list.clone(), env),
+            Sum(list) => functions::sum(list.clone(), env),
+            Product(list) => functions::product(list.clone(), env),
+            All(list) => functions::all(list.clone(), env),
+            Any(list) => functions::any(list.clone(), env),
+            Trim(lhs, rhs) => functions::trim(lhs.clone(), rhs.clone(), env),
+            Equal(lhs, rhs) => functions::equal(lhs.clone(), rhs.clone(), env),
+            NotEqual(lhs, rhs) => functions::not_equal(lhs.clone(), rhs.clone(), env),
+            Greater(lhs, rhs) => functions::greater(lhs.clone(), rhs.clone(), env),
+            Lesser(lhs, rhs) => functions::lesser(lhs.clone(), rhs.clone(), env),
+            And(lhs, rhs) => functions::and(lhs.clone(), rhs.clone(), env),
+            Or(lhs, rhs) => functions::or(lhs.clone(), rhs.clone(), env),
+            Contains(lhs, rhs) => functions::contains(lhs.clone(), rhs.clone(), env),
+            Join(lhs, rhs) => functions::join(lhs.clone(), rhs.clone(), env),
+            Length(lhs) => functions::length(lhs.clone(), env),
+            If(lhs, mdl, rhs) => functions::if_function(lhs.clone(), mdl.clone(), rhs.clone(), env),
+            Range(lhs, mdl, rhs) => functions::range(lhs.clone(), mdl.clone(), rhs.clone(), env),
+            Reduce(lhs, mdl, rhs) => functions::reduce(lhs.clone(), mdl.clone(), rhs.clone(), env),
+            Upper(lhs) => functions::upper(lhs.clone(), env),
+            Lower(lhs) => functions::lower(lhs.clone(), env),
+            Add(lhs, rhs) => functions::add(lhs.clone(), rhs.clone(), env),
+            Sub(lhs, rhs) => functions::sub(lhs.clone(), rhs.clone(), env),
+            Mul(lhs, rhs) => functions::mul(lhs.clone(), rhs.clone(), env),
+            Div(lhs, rhs) => functions::div(lhs.clone(), rhs.clone(), env),
+            Pow(lhs, rhs) => functions::pow(lhs.clone(), rhs.clone(), env),
+            Cos(lhs) => functions::cos(lhs.clone(), env),
+            Sin(lhs) => functions::sin(lhs.clone(), env),
+            Tan(lhs) => functions::tan(lhs.clone(), env),
+            Get(lhs, rhs) => functions::get(lhs.clone(), rhs.clone(), env),
+            Push(lhs, rhs) => functions::push(lhs.clone(), rhs.clone(), env),
+            Remove(lhs, rhs) => functions::remove(lhs.clone(), rhs.clone(), env),
+            Put(lhs, mdl, rhs) => functions::put(lhs.clone(), mdl.clone(), rhs.clone(), env),
+            Random(lhs, rhs) => functions::random(lhs.clone(), rhs.clone(), env),
+            Shuffle(lhs) => functions::shuffle(lhs.clone(), env),
             Now() => functions::now(env),
-            Type(lhs) => functions::type_function(lhs, env),
-            Print(lhs) => functions::print(lhs, env),
-            Error(lhs) => functions::error(lhs, env),
-            Assert(lhs, rhs) => functions::assert(lhs, rhs, env),
-            Try(lhs, rhs) => functions::try_function(lhs, rhs, env),
-            Call(func, list) => functions::call(func, list, env),
-            Format(lhs, list) => functions::format(lhs, list, env),
-            Help(lhs) => functions::help(lhs, env),
+            Type(lhs) => functions::type_function(lhs.clone(), env),
+            Print(lhs) => functions::print(lhs.clone(), env),
+            Error(lhs) => functions::error(lhs.clone(), env),
+            Assert(lhs, rhs) => functions::assert(lhs.clone(), rhs.clone(), env),
+            Try(lhs, rhs) => functions::try_function(lhs.clone(), rhs.clone(), env),
+            Call(func, list) => functions::call(func.clone(), list.clone(), env),
+            Format(lhs, list) => functions::format(lhs.clone(), list.clone(), env),
+            Help(lhs) => functions::help(lhs.clone(), env),
         }
     }
 
     pub fn compile(operator: Function) -> Result<Expression, Error> {
-        use Expression as E;
-        use Expression::*;
-        use Function::*;
+        Ok(Expression::default())
+        // use Expression as E;
+        // use Expression::*;
+        // use Function::*;
 
-        if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
-            let funcs = match operator.to_owned() {
-                Concat(list) => Concat(Function::compile_list(list)?),
-                Sum(list) => Sum(Function::compile_list(list)?),
-                Product(list) => Product(Function::compile_list(list)?),
-                All(list) => All(Function::compile_list(list)?),
-                Any(list) => Any(Function::compile_list(list)?),
-                Trim(lhs, rhs) => Trim(E::compile(lhs)?, E::compile(rhs)?),
-                Equal(lhs, rhs) => Equal(E::compile(lhs)?, E::compile(rhs)?),
-                NotEqual(lhs, rhs) => NotEqual(E::compile(lhs)?, E::compile(rhs)?),
-                Greater(lhs, rhs) => Greater(E::compile(lhs)?, E::compile(rhs)?),
-                Lesser(lhs, rhs) => Lesser(E::compile(lhs)?, E::compile(rhs)?),
-                And(lhs, rhs) => And(E::compile(lhs)?, E::compile(rhs)?),
-                Or(lhs, rhs) => Or(E::compile(lhs)?, E::compile(rhs)?),
-                Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
-                Join(lhs, rhs) => Join(E::compile(lhs)?, E::compile(rhs)?),
-                If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
-                Range(lhs, mdl, rhs) => Range(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
-                Reduce(lhs, mdl, rhs) => {
-                    Reduce(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?)
-                }
-                Put(lhs, mdl, rhs) => Put(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
-                Upper(lhs) => Upper(E::compile(lhs)?),
-                Lower(lhs) => Lower(E::compile(lhs)?),
-                Add(lhs, rhs) => Add(E::compile(lhs)?, E::compile(rhs)?),
-                Sub(lhs, rhs) => Sub(E::compile(lhs)?, E::compile(rhs)?),
-                Mul(lhs, rhs) => Mul(E::compile(lhs)?, E::compile(rhs)?),
-                Div(lhs, rhs) => Div(E::compile(lhs)?, E::compile(rhs)?),
-                Pow(lhs, rhs) => Pow(E::compile(lhs)?, E::compile(rhs)?),
-                Cos(lhs) => Cos(E::compile(lhs)?),
-                Sin(lhs) => Sin(E::compile(lhs)?),
-                Tan(lhs) => Tan(E::compile(lhs)?),
-                Length(lhs) => Length(E::compile(lhs)?),
-                Get(lhs, rhs) => Get(E::compile(lhs)?, E::compile(rhs)?),
-                Push(lhs, rhs) => Push(E::compile(lhs)?, E::compile(rhs)?),
-                Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
-                Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
-                Shuffle(lhs) => Shuffle(E::compile(lhs)?),
-                Now() => Now(),
-                Type(lhs) => Type(E::compile(lhs)?),
-                Error(lhs) => Error(E::compile(lhs)?),
-                Assert(lhs, rhs) => Assert(E::compile(lhs)?, E::compile(rhs)?),
-                Try(lhs, rhs) => Try(E::compile(lhs)?, E::compile(rhs)?),
-                Call(func, list) => Call(E::compile(func)?, Function::compile_list(list)?),
-                Format(lhs, list) => Format(E::compile(lhs)?, Function::compile_list(list)?),
-                Print(lhs) => Print(E::compile(lhs)?),
-                Help(lhs) => Help(E::compile(lhs)?),
-            };
+        // if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
+        //     let funcs = match operator.to_owned() {
+        //         Concat(list) => Concat(Function::compile_list(list)?),
+        //         Sum(list) => Sum(Function::compile_list(list)?),
+        //         Product(list) => Product(Function::compile_list(list)?),
+        //         All(list) => All(Function::compile_list(list)?),
+        //         Any(list) => Any(Function::compile_list(list)?),
+        //         Trim(lhs, rhs) => Trim(E::compile(lhs)?, E::compile(rhs)?),
+        //         Equal(lhs, rhs) => Equal(E::compile(lhs)?, E::compile(rhs)?),
+        //         NotEqual(lhs, rhs) => NotEqual(E::compile(lhs)?, E::compile(rhs)?),
+        //         Greater(lhs, rhs) => Greater(E::compile(lhs)?, E::compile(rhs)?),
+        //         Lesser(lhs, rhs) => Lesser(E::compile(lhs)?, E::compile(rhs)?),
+        //         And(lhs, rhs) => And(E::compile(lhs)?, E::compile(rhs)?),
+        //         Or(lhs, rhs) => Or(E::compile(lhs)?, E::compile(rhs)?),
+        //         Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
+        //         Join(lhs, rhs) => Join(E::compile(lhs)?, E::compile(rhs)?),
+        //         If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
+        //         Range(lhs, mdl, rhs) => Range(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
+        //         Reduce(lhs, mdl, rhs) => {
+        //             Reduce(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?)
+        //         }
+        //         Put(lhs, mdl, rhs) => Put(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
+        //         Upper(lhs) => Upper(E::compile(lhs)?),
+        //         Lower(lhs) => Lower(E::compile(lhs)?),
+        //         Add(lhs, rhs) => Add(E::compile(lhs)?, E::compile(rhs)?),
+        //         Sub(lhs, rhs) => Sub(E::compile(lhs)?, E::compile(rhs)?),
+        //         Mul(lhs, rhs) => Mul(E::compile(lhs)?, E::compile(rhs)?),
+        //         Div(lhs, rhs) => Div(E::compile(lhs)?, E::compile(rhs)?),
+        //         Pow(lhs, rhs) => Pow(E::compile(lhs)?, E::compile(rhs)?),
+        //         Cos(lhs) => Cos(E::compile(lhs)?),
+        //         Sin(lhs) => Sin(E::compile(lhs)?),
+        //         Tan(lhs) => Tan(E::compile(lhs)?),
+        //         Length(lhs) => Length(E::compile(lhs)?),
+        //         Get(lhs, rhs) => Get(E::compile(lhs)?, E::compile(rhs)?),
+        //         Push(lhs, rhs) => Push(E::compile(lhs)?, E::compile(rhs)?),
+        //         Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
+        //         Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
+        //         Shuffle(lhs) => Shuffle(E::compile(lhs)?),
+        //         Now() => Now(),
+        //         Type(lhs) => Type(E::compile(lhs)?),
+        //         Error(lhs) => Error(E::compile(lhs)?),
+        //         Assert(lhs, rhs) => Assert(E::compile(lhs)?, E::compile(rhs)?),
+        //         Try(lhs, rhs) => Try(E::compile(lhs)?, E::compile(rhs)?),
+        //         Call(func, list) => Call(E::compile(func)?, Function::compile_list(list)?),
+        //         Format(lhs, list) => Format(E::compile(lhs)?, Function::compile_list(list)?),
+        //         Print(lhs) => Print(E::compile(lhs)?),
+        //         Help(lhs) => Help(E::compile(lhs)?),
+        //     };
 
-            Ok(Expr(Box::new(funcs)))
-        } else {
-            Ok(Value(Function::eval(
-                operator,
-                &mut Environment::default(),
-            )?))
-        }
+        //     Ok(Expr(Arc::new(funcs)))
+        // } else {
+        //     Ok(Value(Function::eval(
+        //         operator,
+        //         &mut Environment::default(),
+        //     )?.into()))
+        // }
     }
 
     fn compile_list(list: Vec<Expression>) -> Result<Vec<Expression>, Error> {
@@ -775,7 +827,7 @@ impl Function {
     }
 }
 
-fn list_to_string(input: &Vec<Expression>) -> Vec<String> {
+fn list_to_string(input: &Vec<Arc<Expression>>) -> Vec<String> {
     input.iter().map(|x| format!("{}", x)).collect()
 }
 
@@ -807,19 +859,36 @@ fn function_doc_tests() {
             ),
         };
 
-        match ExpressionFile::eval(
+        // match ExpressionFile::eval(
+        //     expr,
+        //     &mut Environment::builder()
+        //         .with_logger(Box::new(std::io::sink()))
+        //         .build(),
+        // ) {
+        //     Ok(ExpressionValue::Bool(true)) => (),
+        //     Err(e) => panic!(
+        //         "usage test for \"{}\" fails, with '{}'",
+        //         FunctionName::from(function),
+        //         e
+        //     ),
+        //     _ => panic!("usage test for \"{}\" fails", FunctionName::from(function)),
+        // }
+        let res = ExpressionFile::eval(
             expr,
             &mut Environment::builder()
                 .with_logger(Box::new(std::io::sink()))
                 .build(),
-        ) {
-            Ok(ExpressionValue::Bool(true)) => (),
-            Err(e) => panic!(
+        );
+        if res.is_err() {
+            panic!(
                 "usage test for \"{}\" fails, with '{}'",
                 FunctionName::from(function),
-                e
-            ),
-            _ => panic!("usage test for \"{}\" fails", FunctionName::from(function)),
+                res.unwrap_err()
+            )
+        };
+        let val = res.unwrap();
+        if val.as_bool().is_none() {
+            panic!("usage test for \"{}\" fails", FunctionName::from(function))
         }
     }
 }

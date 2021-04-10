@@ -1,6 +1,7 @@
 use pest::error::Error as PestError;
 use pest::iterators::Pairs;
 use pest::Parser;
+use std::sync::Arc;
 
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
@@ -27,7 +28,7 @@ pub fn parse_assignment(mut assignment: Pairs<'_, Rule>) -> AssignmentParseResul
 
     Ok(Assignment {
         variable: String::from(var),
-        expression: expression,
+        expression: Arc::new(expression),
     })
 }
 
@@ -46,7 +47,7 @@ pub fn parse_unassignment(mut assignment: Pairs<'_, Rule>) -> UnassignmentParseR
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Assignment {
     variable: String,
-    expression: Expression,
+    expression: Arc<Expression>,
 }
 
 impl std::fmt::Display for Assignment {
@@ -66,11 +67,22 @@ impl Assignment {
         )
     }
 
-    pub fn eval<'a, 'b, V: Env<'a>>(assigning: Self, env: &'b mut V) -> EvalResult {
-        let tmp = Expression::eval(assigning.expression, env)?;
+    pub fn eval_rc<'a, 'b, V: Env<'a>>(assigning: Arc<Self>, env: &'b mut V) -> EvalResult {
+        let tmp = Expression::eval_rc(assigning.clone().expression(), env)?;
 
-        env.variables_mut().insert(&assigning.variable, tmp);
+        env.variables_mut().insert_arc(&assigning.variable, tmp);
         Ok(())
+    }
+
+    pub fn eval<'a, 'b, V: Env<'a>>(assigning: Self, env: &'b mut V) -> EvalResult {
+        let tmp = Expression::eval_rc(assigning.expression, env)?;
+
+        env.variables_mut().insert_arc(&assigning.variable, tmp);
+        Ok(())
+    }
+
+    fn expression(self: Arc<Self>) -> Arc<Expression> {
+        self.expression.clone()
     }
 }
 
@@ -101,11 +113,16 @@ impl Unassignment {
         env.variables_mut().remove(&assigning.variable);
         Ok(())
     }
+
+    pub fn eval_rc<'a, 'b, V: Env<'a>>(assigning: Arc<Self>, env: &mut V) -> EvalResult {
+        env.variables_mut().remove(&assigning.variable);
+        Ok(())
+    }
 }
 
 #[test]
 fn assignment_parse() {
-    use crate::{Expression, Function};
+    use crate::{Expression, ExpressionValue, Function};
 
     let a = Assignment::parse("a = 12 * 15").unwrap();
 
@@ -113,10 +130,10 @@ fn assignment_parse() {
 
     let expected = Assignment {
         variable: "a".to_string(),
-        expression: Expression::Expr(Box::new(Function::Mul(
-            Expression::Value(12.0.into()),
-            Expression::Value(15.0.into()),
-        ))),
+        expression: Arc::new(Expression::Expr(Arc::new(Function::Mul(
+            Expression::Value(ExpressionValue::from(12.0).into()).into(),
+            Expression::Value(ExpressionValue::from(15.0).into()).into(),
+        )))),
     };
 
     assert_eq!(expected, a);
@@ -124,14 +141,14 @@ fn assignment_parse() {
 
 #[test]
 fn assignment_add_to_variables() {
-    use crate::{Environment, Expression, Function};
+    use crate::{Environment, Expression, ExpressionValue, Function};
 
     let a = Assignment {
         variable: "a".to_string(),
-        expression: Expression::Expr(Box::new(Function::Mul(
-            Expression::Value(12.0.into()),
-            Expression::Value(15.0.into()),
-        ))),
+        expression: Arc::new(Expression::Expr(Arc::new(Function::Mul(
+            Expression::Value(ExpressionValue::from(12.0).into()).into(),
+            Expression::Value(ExpressionValue::from(15.0).into()).into(),
+        )))),
     };
 
     let mut env = Environment::default();

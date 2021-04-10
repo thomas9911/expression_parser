@@ -3,9 +3,11 @@ use crate::{
     Closure, Env, Environment, Error, Expression, ExpressionFile, ExpressionValue, Function,
     ScopedVariables, UserFunction, Variables,
 };
+use either::Either;
+use std::sync::Arc;
 
-pub type Input = Expression;
-pub type Output = Result<ExpressionValue, Error>;
+pub type Input = Arc<Expression>;
+pub type Output = Result<Arc<ExpressionValue>, Error>;
 
 mod binary;
 pub(crate) mod format;
@@ -28,12 +30,12 @@ pub fn if_function<'a, 'b, E: Env<'a>>(
     rhs: Input,
     env: &'b mut E,
 ) -> Output {
-    let condition = Expression::eval(lhs, env)?;
+    let condition = Expression::eval_rc(lhs, env)?;
 
     let res = if condition.is_truthy() {
-        Expression::eval(mdl, env)?
+        Expression::eval_rc(mdl, env)?
     } else {
-        Expression::eval(rhs, env)?
+        Expression::eval_rc(rhs, env)?
     };
 
     evaluate_lazy_function(res, env)
@@ -46,7 +48,7 @@ pub fn now<'a, 'b, E: Env<'a>>(_env: &'b mut E) -> Output {
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap();
 
-    Ok(now.as_secs_f64().into())
+    Ok(Arc::new(now.as_secs_f64().into()))
 }
 
 pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
@@ -67,7 +69,7 @@ pub fn random<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Out
 }
 
 pub fn print<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
+    let value = Expression::eval_rc(lhs, env)?;
     let env_logger = env.logger();
     let mut logger = env_logger.try_write()?;
     writeln!(logger, "{}", value)?;
@@ -75,15 +77,15 @@ pub fn print<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
 }
 
 pub fn try_function<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
-    match Expression::eval(lhs, env) {
+    match Expression::eval_rc(lhs, env) {
         Ok(x) => Ok(x),
-        Err(_) => Expression::eval(rhs, env),
+        Err(_) => Expression::eval_rc(rhs, env),
     }
 }
 
 pub fn help<'a, 'b, E: Env<'a>>(lhs: Input, _env: &'b mut E) -> Output {
-    match &lhs {
-        x if x == &Expression::default() => ok_string(Function::help()),
+    match lhs {
+        x if *x == Expression::default() => ok_string(Function::help()),
         _ => normal_help(lhs),
     }
 }
@@ -103,12 +105,12 @@ pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b mut E) -
     };
 
     {
-        match Expression::eval(func, &mut context)? {
+        match &*Expression::eval_rc(func, &mut context)? {
             ExpressionValue::ExternalFunction(closure) => {
-                call_external_function(closure, list, &mut context)
+                call_external_function(closure.clone(), list, &mut context)
             }
             ExpressionValue::Function(function, compiled_vars) => {
-                call_function(function, compiled_vars, list, &mut context)
+                call_function(function.clone(), compiled_vars.clone(), list, &mut context)
             }
             _ => Err(Error::new_static("input should be a function")),
         }
@@ -116,9 +118,9 @@ pub fn call<'a, 'b, E: Env<'a>>(func: Input, list: Vec<Input>, env: &'b mut E) -
 }
 
 pub fn call_function<'a, 'b>(
-    user_func: UserFunction,
+    user_func: Arc<UserFunction>,
     compiled_vars: Variables,
-    args: Vec<ExpressionValue>,
+    args: Vec<Arc<ExpressionValue>>,
     context: &'b mut Environment<'a>,
 ) -> Output {
     let vars = context.variables_mut();
@@ -127,25 +129,25 @@ pub fn call_function<'a, 'b>(
     }
 
     for (key, value) in user_func.arguments.iter().zip(args) {
-        vars.insert(key, value);
+        vars.insert_arc(key, value);
     }
 
-    let result = ExpressionFile::eval(user_func.expression, context)?;
+    let result = ExpressionFile::eval_rc(user_func.expression(), context)?;
 
     Ok(result)
 }
 
 pub fn call_external_function<'a, 'b>(
-    closure: Closure,
-    args: Vec<ExpressionValue>,
+    closure: Arc<Closure>,
+    args: Vec<Arc<ExpressionValue>>,
     context: &'b mut Environment<'a>,
 ) -> Output {
-    let f = closure.function;
+    let f = &closure.function;
     f(args, context)
 }
 
 pub fn format<'a, 'b, E: Env<'a>>(lhs: Input, list: Vec<Input>, env: &'b mut E) -> Output {
-    let template = Expression::eval(lhs, env)?
+    let template = Expression::eval_rc(lhs, env)?
         .as_string()
         .ok_or(Error::new_static("template is not a string"))?;
 
@@ -155,26 +157,26 @@ pub fn format<'a, 'b, E: Env<'a>>(lhs: Input, list: Vec<Input>, env: &'b mut E) 
         .collect();
 
     let result = format::format(&template, args)?;
-    Ok(result.into())
+    Ok(ExpressionValue::from(result).into())
 }
 
 pub fn type_function<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
-    Ok(value.what_type().into())
+    let value = Expression::eval_rc(lhs, env)?;
+    Ok(ExpressionValue::from(value.what_type()).into())
 }
 
 pub fn error<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
+    let value = Expression::eval_rc(lhs, env)?;
     Err(Error::new(value.to_string()))
 }
 
 pub fn assert<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
+    let value = Expression::eval_rc(lhs, env)?;
 
     if value.is_truthy() {
         Ok(value)
     } else {
-        let error_message = Expression::eval(rhs, env)?
+        let error_message = Expression::eval_rc(rhs, env)?
             .as_string()
             .ok_or(Error::new_static("error message is not a string"))?;
         Err(Error::new(error_message))
@@ -183,18 +185,18 @@ pub fn assert<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Out
 
 /// overload get function for list and map
 pub fn get<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
-    match value {
-        ExpressionValue::List(val) => get_list(val, rhs, env),
-        ExpressionValue::Map(val) => get_map(val, rhs, env),
+    let value = Expression::eval_rc(lhs, env)?;
+    match (*value).clone().as_either_list_map() {
+        Some(Either::Right(val)) => get_list(val, rhs, env),
+        Some(Either::Left(val)) => get_map(val, rhs, env),
         _ => Err(Error::new_static("first argument is not a list or a map")),
     }
 }
 
 /// overload put function for list and map
 pub fn put<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
-    match value {
+    let value = Expression::eval_rc(lhs, env)?;
+    match (*value).clone() {
         ExpressionValue::List(val) => put_list(val, mdl, rhs, env),
         ExpressionValue::Map(val) => put_map(val, mdl, rhs, env),
         _ => Err(Error::new_static("first argument is not a list or a map")),
@@ -203,8 +205,8 @@ pub fn put<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut 
 
 /// overload remove function for list and map
 pub fn remove<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
-    match value {
+    let value = Expression::eval_rc(lhs, env)?;
+    match (*value).clone() {
         ExpressionValue::List(val) => remove_list(val, rhs, env),
         ExpressionValue::Map(val) => remove_map(val, rhs, env),
         _ => Err(Error::new_static("first argument is not a list or a map")),
@@ -213,10 +215,10 @@ pub fn remove<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Out
 
 /// overload length function for list and map
 pub fn length<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
-    let value = Expression::eval(lhs, env)?;
-    match value {
-        ExpressionValue::List(val) => Ok(val.len().into()),
-        ExpressionValue::Map(val) => Ok(val.0.len().into()),
+    let value = Expression::eval_rc(lhs, env)?;
+    match &*value {
+        ExpressionValue::List(val) => Ok(ExpressionValue::from(val.len()).into()),
+        ExpressionValue::Map(val) => Ok(ExpressionValue::from(val.0.len()).into()),
         _ => Err(Error::new_static("first argument is not a list or a map")),
     }
 }
@@ -229,10 +231,13 @@ fn normal_help(lhs: Input) -> Output {
         "functions" => {
             let d: Vec<_> = Function::iter_without_infixes()
                 .map(|x| {
-                    Expression::Value(ExpressionValue::String(FunctionName::from(x).to_string()))
+                    Expression::Value(
+                        ExpressionValue::String(FunctionName::from(x).to_string()).into(),
+                    )
+                    .into()
                 })
                 .collect();
-            return Ok(ExpressionValue::List(d));
+            return Ok(ExpressionValue::List(d).into());
         }
         _ => (),
     };
@@ -266,7 +271,7 @@ fn print_function_help(func: Function) -> String {
 //     ok_string(result?)
 // }
 
-pub(crate) fn as_string(val: ExpressionValue) -> String {
+pub(crate) fn as_string(val: Arc<ExpressionValue>) -> String {
     let mut res = val.to_string();
     if res.starts_with('"') && res.ends_with('"') {
         res.remove(0);
@@ -275,28 +280,28 @@ pub(crate) fn as_string(val: ExpressionValue) -> String {
     res
 }
 
-pub(crate) fn as_variable_or_string(expr: Expression) -> Result<String, Error> {
-    match expr {
-        Expression::Value(x) => Ok(as_string(x)),
-        Expression::Var(x) => Ok(x),
+pub(crate) fn as_variable_or_string(expr: Arc<Expression>) -> Result<String, Error> {
+    match &*expr {
+        Expression::Value(x) => Ok(as_string(x.clone())),
+        Expression::Var(x) => Ok(x.clone()),
         _ => Err(Error::new(format!("cannot call help on '{}'", expr))),
     }
 }
 
 pub(crate) fn ok_string(string: String) -> Output {
-    Ok(ExpressionValue::String(string))
+    Ok(ExpressionValue::String(string).into())
 }
 
 pub(crate) fn ok_number(number: f64) -> Output {
-    Ok(ExpressionValue::Number(number))
+    Ok(ExpressionValue::Number(number).into())
 }
 
 pub(crate) fn ok_boolean(boolean: bool) -> Output {
-    Ok(ExpressionValue::Bool(boolean))
+    Ok(ExpressionValue::Bool(boolean).into())
 }
 
 pub(crate) fn into_number<'a, 'b, E: Env<'a>>(input: Input, env: &'b mut E) -> Result<f64, Error> {
-    Expression::eval(input, env)?
+    Expression::eval_rc(input, env)?
         .as_number()
         .ok_or(Error::new_static("input should be a number"))
 }
@@ -304,51 +309,70 @@ pub(crate) fn into_number<'a, 'b, E: Env<'a>>(input: Input, env: &'b mut E) -> R
 pub(crate) fn evaluate_inputs<'a, 'b, E: Env<'a>>(
     inputs: Vec<Input>,
     env: &'b mut E,
-) -> Result<Vec<ExpressionValue>, Error> {
+) -> Result<Vec<Arc<ExpressionValue>>, Error> {
     inputs.into_iter().try_fold(Vec::new(), |mut acc, x| {
-        acc.push(Expression::eval(x, env)?);
+        acc.push(Expression::eval_rc(x, env)?);
         Ok(acc)
     })
 }
 
 pub(crate) fn evaluate_lazy_function<'a, 'b, E: Env<'a>>(
-    result: ExpressionValue,
+    result: Arc<ExpressionValue>,
     env: &'b mut E,
 ) -> Output {
-    match result {
-        // if function doesn't take arguments evaluate it now
-        ExpressionValue::Function(
-            UserFunction {
-                arguments,
-                expression,
-            },
-            local_vars,
-        ) if arguments.len() == 0 => {
-            let val = ExpressionValue::Function(
-                UserFunction {
-                    arguments,
-                    expression,
-                },
-                local_vars,
-            );
-            call(val.into(), Vec::new(), env)
+    // match *result {
+    //     // if function doesn't take arguments evaluate it now
+    //     ExpressionValue::Function(
+    //         UserFunction {
+    //             arguments,
+    //             expression,
+    //         },
+    //         local_vars,
+    //     ) if arguments.len() == 0 => {
+    //         let val = ExpressionValue::Function(
+    //             UserFunction {
+    //                 arguments,
+    //                 expression,
+    //             },
+    //             local_vars,
+    //         );
+    //         call(val.into(), Vec::new(), env)
+    //     }
+    //     ExpressionValue::Function(func, local_vars) => {
+    //         Ok(ExpressionValue::Function(func, local_vars))
+    //     }
+    //     ExpressionValue::ExternalFunction(Closure {
+    //         function,
+    //         input_variables,
+    //     }) if input_variables.len() == 0 => {
+    //         let val = ExpressionValue::ExternalFunction(Closure {
+    //             function,
+    //             input_variables,
+    //         });
+    //         call(val.into(), Vec::new(), env)
+    //     }
+    //     ExpressionValue::ExternalFunction(closure) => {
+    //         Ok(ExpressionValue::ExternalFunction(closure))
+    //     }
+    //     val => Ok(val),
+    // }
+
+    // match result.clone().as_either_function() {
+    //     Some(Either::Left((func, _))) if func.arguments.len() == 0 => {
+    //         call(Arc::new(Expression::Value(result)), Vec::new(), env)
+    //     }
+    //     Some(Either::Right(func)) if func.input_variables.len() == 0 => {
+    //         call(Arc::new(Expression::Value(result)), Vec::new(), env)
+    //     }
+    //     _ => Ok(result),
+    // }
+    match &*result {
+        ExpressionValue::Function(func, _) if func.arguments.len() == 0 => {
+            call(Arc::new(Expression::Value(result)), Vec::new(), env)
         }
-        ExpressionValue::Function(func, local_vars) => {
-            Ok(ExpressionValue::Function(func, local_vars))
+        ExpressionValue::ExternalFunction(func) if func.input_variables.len() == 0 => {
+            call(Arc::new(Expression::Value(result)), Vec::new(), env)
         }
-        ExpressionValue::ExternalFunction(Closure {
-            function,
-            input_variables,
-        }) if input_variables.len() == 0 => {
-            let val = ExpressionValue::ExternalFunction(Closure {
-                function,
-                input_variables,
-            });
-            call(val.into(), Vec::new(), env)
-        }
-        ExpressionValue::ExternalFunction(closure) => {
-            Ok(ExpressionValue::ExternalFunction(closure))
-        }
-        val => Ok(val),
+        _ => Ok(result),
     }
 }

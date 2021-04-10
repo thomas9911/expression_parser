@@ -1,5 +1,6 @@
 use pest::error::Error as PestError;
 use pest::iterators::Pairs;
+use std::sync::Arc;
 
 use crate::grammar::{create_string, make_pest_error, Rule};
 use crate::{Env, Error};
@@ -31,6 +32,13 @@ impl std::fmt::Display for Import {
 impl Import {
     pub fn eval<'a, 'b, V: Env<'a>>(import: Self, env: &'b mut V) -> EvalResult {
         let data = vec![(import.from, import.imported)];
+        env.import(&data)?;
+        Ok(())
+    }
+
+    pub fn eval_rc<'a, 'b, V: Env<'a>>(import: Arc<Self>, env: &'b mut V) -> EvalResult {
+        let xd = (*import).clone();
+        let data = vec![(xd.from, xd.imported)];
         env.import(&data)?;
         Ok(())
     }
@@ -84,14 +92,14 @@ fn var_importing() {
     .lines
     .remove(0);
 
-    let expected = crate::file::ExpressionLine::Import(Import {
+    let expected = crate::file::ExpressionLine::Import(Arc::new(Import {
         from: String::from("testing"),
         imported: vec![
             (String::from("test"), String::from("test")),
             (String::from("variable"), String::from("my_var")),
             (String::from("exported"), String::from("exported")),
         ],
-    });
+    }));
 
     assert_eq!(import, expected);
 }

@@ -15,7 +15,7 @@ fn function_doc_tests() {
 
     for function in functions {
         let mut env = Environment::default();
-        let help_text = functions::help(Expression::Var(function.clone()), &mut env);
+        let help_text = functions::help(Expression::Var(function.clone()).into(), &mut env);
         let mut splitted_name_parts: Vec<String> =
             function.split('_').map(|x| x.to_owned()).collect();
         splitted_name_parts

@@ -1,17 +1,20 @@
 use super::{as_string, call, ok_string};
 use super::{Input, Output};
 use crate::{Env, Error, Expression, ExpressionValue};
+use std::sync::Arc;
+
+pub type ExpressionItem = Result<Arc<Expression>, Error>;
 
 pub fn join<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     let list = eval_to_list(lhs, env)?;
-    let join_with = Expression::eval(rhs, env)?
+    let join_with = Expression::eval_rc(rhs, env)?
         .as_string()
         .ok_or(Error::new_static("second argument is not a string"))?;
 
     let string_list = list
         .into_iter()
         .try_fold(Vec::new(), |mut acc, x| -> Result<Vec<String>, Error> {
-            let value: ExpressionValue = Expression::eval(x, env)?;
+            let value = Expression::eval_rc(x, env)?;
             acc.push(as_string(value));
             Ok(acc)
         })
@@ -21,7 +24,7 @@ pub fn join<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Outpu
 }
 
 pub fn get_list<'a, 'b, E: Env<'a>>(list: Vec<Input>, rhs: Input, env: &'b mut E) -> Output {
-    match Expression::eval(rhs, env)? {
+    match *Expression::eval_rc(rhs, env)? {
         ExpressionValue::Number(x) => get_f64(list, x, env),
         _ => Err(Error::new_static(
             "second argument is not a valid index value",
@@ -31,10 +34,10 @@ pub fn get_list<'a, 'b, E: Env<'a>>(list: Vec<Input>, rhs: Input, env: &'b mut E
 
 pub fn push<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     let mut list = eval_to_list(lhs, env)?;
-    let item = Expression::eval(rhs, env)?;
-    list.push(Expression::Value(item));
+    let item = Expression::eval_rc(rhs, env)?;
+    list.push(Arc::new(Expression::Value(item)));
 
-    Ok(ExpressionValue::List(list))
+    Ok(ExpressionValue::List(list).into())
 }
 
 pub fn put_list<'a, 'b, E: Env<'a>>(
@@ -43,18 +46,24 @@ pub fn put_list<'a, 'b, E: Env<'a>>(
     rhs: Input,
     env: &'b mut E,
 ) -> Output {
-    let value = Expression::eval(rhs, env)?;
+    let value = Expression::eval_rc(rhs, env)?;
 
-    match Expression::eval(mdl, env)? {
-        ExpressionValue::Number(x) => put_f64(list, x, Expression::Value(value), env),
-        _ => Err(Error::new_static(
+    // match Expression::eval_rc(mdl, env)? {
+    //     ExpressionValue::Number(x) => put_f64(list, x, Expression::Value(value), env),
+    //     _ => Err(Error::new_static(
+    //         "second argument is not a valid index value",
+    //     )),
+    // }
+    Expression::eval_rc(mdl, env)?
+        .as_number()
+        .map(|x| put_f64(list, x, Expression::Value(value), env))
+        .ok_or(Error::new_static(
             "second argument is not a valid index value",
-        )),
-    }
+        ))?
 }
 
 pub fn remove_list<'a, 'b, E: Env<'a>>(lhs: Vec<Input>, rhs: Input, env: &'b mut E) -> Output {
-    match Expression::eval(rhs, env)? {
+    match *Expression::eval_rc(rhs, env)? {
         ExpressionValue::Number(x) => remove_f64(lhs, x),
         _ => Err(Error::new_static(
             "second argument is not a valid index value",
@@ -63,10 +72,10 @@ pub fn remove_list<'a, 'b, E: Env<'a>>(lhs: Vec<Input>, rhs: Input, env: &'b mut
 }
 
 pub fn range<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut E) -> Output {
-    let a = Expression::eval(lhs, env)?
+    let a = Expression::eval_rc(lhs, env)?
         .as_number()
         .ok_or(Error::new_static("first argument should be a number"))?;
-    let b = Expression::eval(mdl, env)?
+    let b = Expression::eval_rc(mdl, env)?
         .as_number()
         .ok_or(Error::new_static("second argument should be a number"))?;
 
@@ -75,30 +84,26 @@ pub fn range<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mu
 
     let range_object = from..to;
 
-    let data: Vec<_> = match Expression::eval(rhs, env)? {
-        ExpressionValue::Function(func, vars) => {
-            let function = Expression::Value(ExpressionValue::Function(func, vars));
+    let evaluated = Expression::eval_rc(rhs, env)?;
+    let data: Vec<_> = match &*evaluated {
+        ExpressionValue::Function(_, _) => {
+            let function = Arc::new(Expression::Value(evaluated.clone()));
 
             range_object
                 .into_iter()
-                .try_fold(Vec::new(), |mut acc, x| {
-                    let arg = Expression::Value(ExpressionValue::Number(x as f64));
+                .try_fold::<_, _, Result<_, Error>>(Vec::new(), |mut acc, x| {
+                    let arg = Arc::new(Expression::Value(ExpressionValue::Number(x as f64).into()));
 
-                    let res = match call(function.clone(), vec![arg], env) {
-                        Ok(x) => {
-                            acc.push(Expression::Value(x));
-                            Ok(acc)
-                        }
-                        Err(e) => Err(e),
-                    };
-                    res
+                    let val = call(function.clone(), vec![arg], env)?;
+                    acc.push(Arc::new(Expression::Value(val)));
+                    Ok(acc)
                 })?
         }
         ExpressionValue::Number(x) => {
-            let step_by = float_to_index(x)?;
+            let step_by = float_to_index(*x)?;
             let iter = range_object
                 .step_by(step_by)
-                .map(|x| Expression::Value(x.into()));
+                .map(|x| Arc::new(Expression::Value(Arc::new(x.into()))));
 
             iter.collect()
         }
@@ -109,22 +114,24 @@ pub fn range<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mu
         }
     };
 
-    Ok(ExpressionValue::List(data))
+    Ok(ExpressionValue::List(data).into())
 }
 
 pub fn reduce<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b mut E) -> Output {
-    let list = Expression::eval(lhs, env)?
+    let list = Expression::eval_rc(lhs, env)?
         .as_list()
         .ok_or(Error::new_static("first argument should be a list"))?;
 
-    let mut accumilator = Expression::eval(mdl, env)?;
+    let mut accumilator = Expression::eval_rc(mdl, env)?;
 
-    match Expression::eval(rhs, env)? {
+    let evaluated = Expression::eval_rc(rhs, env)?;
+
+    match &*evaluated {
         ExpressionValue::Function(func, vars) => {
-            let function = Expression::Value(ExpressionValue::Function(func, vars));
+            let function = Arc::new(Expression::Value(evaluated));
 
             for item in list {
-                let args = vec![Expression::Value(accumilator), item];
+                let args = vec![Arc::new(Expression::Value(accumilator)), item];
                 accumilator = call(function.clone(), args, env)?;
             }
 
@@ -132,10 +139,25 @@ pub fn reduce<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b m
         }
         _ => Err(Error::new_static("last argument should a function")),
     }
+    // let evaluated = Expression::eval_rc(rhs, env)?;
+    // evaluated
+    //     .clone()
+    //     .is_function()
+    //     .map(|(func, vars)| {
+    //         let function = Arc::new(Expression::Value(evaluated));
+
+    //         for item in list {
+    //             let args = vec![Arc::new(Expression::Value(accumilator)), item];
+    //             accumilator = call(function.clone(), args, env)?;
+    //         }
+
+    //         Ok(accumilator)
+    //     })
+    //     .ok_or(Error::new_static("last argument should a function"))?
 }
 
 pub fn shuffle<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
-    let mut list = Expression::eval(lhs, env)?
+    let mut list = Expression::eval_rc(lhs, env)?
         .as_list()
         .ok_or(Error::new_static("first argument should be a list"))?;
 
@@ -145,23 +167,23 @@ pub fn shuffle<'a, 'b, E: Env<'a>>(lhs: Input, env: &'b mut E) -> Output {
     let mut rng = thread_rng();
     list.shuffle(&mut rng);
 
-    Ok(ExpressionValue::List(list))
+    Ok(ExpressionValue::List(list).into())
 }
 
-fn get_f64<'a, 'b, E: Env<'a>>(list: Vec<Expression>, index: f64, env: &'b mut E) -> Output {
+fn get_f64<'a, 'b, E: Env<'a>>(list: Vec<Input>, index: f64, env: &'b mut E) -> Output {
     if index < 0.0 {
         let index = float_to_index(-index)?;
         let item = get_back_int(list, index)?;
-        Expression::eval(item, env)
+        Expression::eval_rc(item, env)
     } else {
         let index = float_to_index(index)?;
         let item = get_int(list, index)?;
-        Expression::eval(item, env)
+        Expression::eval_rc(item, env)
     }
 }
 
 fn put_f64<'a, 'b, E: Env<'a>>(
-    list: Vec<Expression>,
+    list: Vec<Input>,
     index: f64,
     item: Expression,
     env: &'b mut E,
@@ -169,22 +191,22 @@ fn put_f64<'a, 'b, E: Env<'a>>(
     if index < 0.0 {
         let index = float_to_index(-index)?;
         let item = put_back_int(list, index, item)?;
-        Expression::eval(item, env)
+        Expression::eval_rc(item, env)
     } else {
         let index = float_to_index(index)?;
         let item = put_int(list, index, item)?;
-        Expression::eval(item, env)
+        Expression::eval_rc(item, env)
     }
 }
 
-fn get_int(list: Vec<Expression>, index: usize) -> Result<Expression, Error> {
+fn get_int(list: Vec<Input>, index: usize) -> ExpressionItem {
     match list.get(index) {
         Some(x) => Ok(x.clone()),
         None => Err(Error::new(format!("item not found on index '{}'", index))),
     }
 }
 
-fn get_back_int(list: Vec<Expression>, index: usize) -> Result<Expression, Error> {
+fn get_back_int(list: Vec<Input>, index: usize) -> ExpressionItem {
     let new_index = from_right_index(&list, index)?;
     match list.get(new_index) {
         Some(x) => Ok(x.clone()),
@@ -192,38 +214,36 @@ fn get_back_int(list: Vec<Expression>, index: usize) -> Result<Expression, Error
     }
 }
 
-fn put_int(mut list: Vec<Expression>, index: usize, item: Expression) -> Result<Expression, Error> {
+fn put_int(mut list: Vec<Input>, index: usize, item: Expression) -> ExpressionItem {
     match list.get_mut(index) {
-        Some(x) => {
-            *x = item;
-            Ok(ExpressionValue::List(list).into())
+        Some(mut x) => {
+            // *x = item;
+            let t = Arc::make_mut(x);
+            *t = item;
+            Ok(Arc::new(ExpressionValue::List(list).into()))
         }
         None => Err(Error::new(format!("item not found on index '{}'", index))),
     }
 }
 
-fn put_back_int(
-    list: Vec<Expression>,
-    index: usize,
-    item: Expression,
-) -> Result<Expression, Error> {
+fn put_back_int(list: Vec<Input>, index: usize, item: Expression) -> ExpressionItem {
     let new_index = from_right_index(&list, index)?;
     put_int(list, new_index, item)
 }
 
-fn remove_f64(mut list: Vec<Expression>, index: f64) -> Output {
+fn remove_f64(mut list: Vec<Input>, index: f64) -> Output {
     if index < 0.0 {
         let index = float_to_index(-index)?;
         remove_back_int(&mut list, index)?;
-        Ok(ExpressionValue::List(list))
+        Ok(ExpressionValue::List(list).into())
     } else {
         let index = float_to_index(index)?;
         remove_int(&mut list, index)?;
-        Ok(ExpressionValue::List(list))
+        Ok(ExpressionValue::List(list).into())
     }
 }
 
-fn remove_int(list: &mut Vec<Expression>, index: usize) -> Result<(), Error> {
+fn remove_int(list: &mut Vec<Input>, index: usize) -> Result<(), Error> {
     if index > list.len() {
         Err(Error::new(format!("item not found on index '{}'", index)))
     } else {
@@ -232,7 +252,7 @@ fn remove_int(list: &mut Vec<Expression>, index: usize) -> Result<(), Error> {
     }
 }
 
-fn remove_back_int(list: &mut Vec<Expression>, index: usize) -> Result<(), Error> {
+fn remove_back_int(list: &mut Vec<Input>, index: usize) -> Result<(), Error> {
     if let Some(x) = list.len().checked_sub(index) {
         list.remove(x);
         Ok(())
@@ -244,8 +264,8 @@ fn remove_back_int(list: &mut Vec<Expression>, index: usize) -> Result<(), Error
 fn eval_to_list<'a, 'b, E: Env<'a>>(
     input: Input,
     env: &'b mut E,
-) -> Result<Vec<Expression>, Error> {
-    Expression::eval(input, env)?
+) -> Result<Vec<Arc<Expression>>, Error> {
+    Expression::eval_rc(input, env)?
         .as_list()
         .ok_or(Error::new_static("first argument is not a list"))
 }
@@ -273,7 +293,7 @@ fn is_ok_float(input: f64) -> bool {
     }
 }
 
-fn from_right_index(list: &Vec<Expression>, index: usize) -> Result<usize, Error> {
+fn from_right_index(list: &Vec<Input>, index: usize) -> Result<usize, Error> {
     list.len()
         .checked_sub(index)
         .ok_or(Error::new_static("item not found on index below zero"))

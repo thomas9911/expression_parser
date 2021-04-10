@@ -1,15 +1,18 @@
-use super::{as_string, evaluate_inputs, ok_string};
+use super::{as_string, evaluate_inputs, ok_boolean, ok_string};
 use super::{Env, Input, Output};
 use crate::{Error, ExpressionValue};
+use std::sync::Arc;
 
 pub fn sum<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, env)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
-        return Ok(evaluated_inputs
-            .iter()
-            .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
-            .sum::<f64>()
-            .into());
+        return Ok(Arc::new(
+            evaluated_inputs
+                .iter()
+                .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
+                .sum::<f64>()
+                .into(),
+        ));
     }
     if evaluated_inputs.len() == 1 {
         if let Some(list) = evaluated_inputs[0].as_list() {
@@ -22,11 +25,13 @@ pub fn sum<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
 pub fn product<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
     let evaluated_inputs = evaluate_inputs(inputs, env)?;
     if evaluated_inputs.iter().all(|x| x.is_number_or_boolean()) {
-        return Ok(evaluated_inputs
-            .iter()
-            .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
-            .product::<f64>()
-            .into());
+        return Ok(Arc::new(
+            evaluated_inputs
+                .iter()
+                .map(|x| x.as_number_or_boolean().expect("values should be numbers"))
+                .product::<f64>()
+                .into(),
+        ));
     }
     if evaluated_inputs.len() == 1 {
         if let Some(list) = evaluated_inputs[0].as_list() {
@@ -43,7 +48,7 @@ pub fn all<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
             return all(list, env);
         }
     }
-    Ok(evaluated_inputs.iter().all(|x| x.is_truthy()).into())
+    ok_boolean(evaluated_inputs.iter().all(|x| x.is_truthy()))
 }
 
 pub fn any<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
@@ -53,7 +58,7 @@ pub fn any<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
             return any(list, env);
         }
     }
-    Ok(evaluated_inputs.iter().any(|x| x.is_truthy()).into())
+    ok_boolean(evaluated_inputs.iter().any(|x| x.is_truthy()))
 }
 
 pub fn concat<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output {
@@ -65,7 +70,7 @@ pub fn concat<'a, 'b, E: Env<'a>>(inputs: Vec<Input>, env: &'b mut E) -> Output 
             acc.append(&mut list);
             Some(acc)
         }) {
-            Some(x) => Ok(ExpressionValue::List(x)),
+            Some(x) => Ok(Arc::new(ExpressionValue::List(x))),
             None => Err(Error::empty()),
         }
     } else {

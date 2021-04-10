@@ -101,7 +101,7 @@ fn do_expression(buffer: String, env: &mut Environment, is_debug: bool) {
     }
     match ExpressionFile::eval(parsed, env) {
         Ok(x) => {
-            match x {
+            match &*x {
                 ExpressionValue::Null => (),
                 _ => println!("{}", x), // evaluated expression
             }

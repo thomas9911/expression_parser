@@ -1,6 +1,7 @@
 use pest::error::Error as PestError;
 use pest::iterators::Pairs;
 use pest::Parser;
+use std::sync::Arc;
 
 pub mod assignment;
 pub mod import;
@@ -19,21 +20,21 @@ const MINIMAL_STACKSIZE: usize = 65536;
 use serde::{Deserialize, Serialize};
 
 pub type ParseResult = Result<ExpressionFile, PestError<Rule>>;
-pub type EvalResult = Result<ExpressionValue, Error>;
+pub type EvalResult = Result<Arc<ExpressionValue>, Error>;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ExpressionFile {
-    pub(crate) lines: Vec<ExpressionLine>,
+    pub(crate) lines: Vec<Arc<ExpressionLine>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ExpressionLine {
-    Expression(Expression),
-    Assignment(Assignment),
-    Unassignment(Unassignment),
-    Import(Import),
+    Expression(Arc<Expression>),
+    Assignment(Arc<Assignment>),
+    Unassignment(Arc<Unassignment>),
+    Import(Arc<Import>),
 }
 
 impl std::fmt::Display for ExpressionLine {
@@ -50,35 +51,83 @@ impl std::fmt::Display for ExpressionLine {
 }
 
 impl ExpressionLine {
-    pub fn eval<'a, 'b, E: Env<'a>>(line: Self, env: &'b mut E) -> EvalResult {
+    // pub fn eval<'a, 'b, E: Env<'a>>(line: Self, env: &'b mut E) -> EvalResult {
+    //     // vars.check_recursion_limit()?;
+    //     check_stack()?;
+
+    //     match line {
+    //         ExpressionLine::Expression(Expression::UserFunction(function)) => {
+    //             for item in function.iter_variables() {
+    //                 let val = if let Some(val) = env.variables().get(&item) {
+    //                     val.to_owned()
+    //                 } else {
+    //                     continue;
+    //                 };
+    //                 env.variables_mut().insert(&item, val);
+    //             }
+    //             Expression::eval(Expression::UserFunction(function), env)
+    //         }
+    //         ExpressionLine::Expression(ex) => Expression::eval(ex, env),
+    //         ExpressionLine::Assignment(ass) => {
+    //             Assignment::eval(ass, env)?;
+    //             Ok(ExpressionValue::Null)
+    //         }
+    //         ExpressionLine::Unassignment(un) => {
+    //             Unassignment::eval(un, env)?;
+    //             Ok(ExpressionValue::Null)
+    //         }
+
+    //         ExpressionLine::Import(im) => {
+    //             Import::eval(im, env)?;
+    //             Ok(ExpressionValue::Null)
+    //         }
+    //     }
+    // }
+
+    pub fn eval_rc<'a, 'b, E: Env<'a>>(line: Arc<Self>, env: &'b mut E) -> EvalResult {
         // vars.check_recursion_limit()?;
         check_stack()?;
 
-        match line {
-            ExpressionLine::Expression(Expression::UserFunction(function)) => {
-                for item in function.iter_variables() {
-                    let val = if let Some(val) = env.variables().get(&item) {
-                        val.to_owned()
-                    } else {
-                        continue;
-                    };
-                    env.variables_mut().insert(&item, val);
+        match &*line {
+            // ExpressionLine::Expression(Expression::UserFunction(function)) => {
+            //     for item in function.iter_variables() {
+            //         let val = if let Some(val) = env.variables().get(&item) {
+            //             val.to_owned()
+            //         } else {
+            //             continue;
+            //         };
+            //         env.variables_mut().insert(&item, val);
+            //     }
+            //     Expression::eval(Expression::UserFunction(function), env)
+            // }
+            // ExpressionLine::Expression(ex) => Expression::eval(ex, env),
+            ExpressionLine::Expression(ex) => {
+                if let Expression::UserFunction(_) = &**ex {
+                    for item in ex.iter_variables() {
+                        let val = if let Some(val) = env.variables().get(&item) {
+                            val.to_owned()
+                        } else {
+                            continue;
+                        };
+                        env.variables_mut().insert(&item, val);
+                    }
+                    Expression::eval_rc(Arc::clone(ex), env)
+                } else {
+                    Expression::eval_rc(Arc::clone(ex), env)
                 }
-                Expression::eval(Expression::UserFunction(function), env)
             }
-            ExpressionLine::Expression(ex) => Expression::eval(ex, env),
             ExpressionLine::Assignment(ass) => {
-                Assignment::eval(ass, env)?;
-                Ok(ExpressionValue::Null)
+                Assignment::eval_rc(Arc::clone(ass), env)?;
+                Ok(ExpressionValue::Null.into())
             }
             ExpressionLine::Unassignment(un) => {
-                Unassignment::eval(un, env)?;
-                Ok(ExpressionValue::Null)
+                Unassignment::eval_rc(Arc::clone(un), env)?;
+                Ok(ExpressionValue::Null.into())
             }
 
             ExpressionLine::Import(im) => {
-                Import::eval(im, env)?;
-                Ok(ExpressionValue::Null)
+                Import::eval_rc(Arc::clone(im), env)?;
+                Ok(ExpressionValue::Null.into())
             }
         }
     }
@@ -108,17 +157,23 @@ pub fn parse_file(expression: Pairs<'_, Rule>) -> ParseResult {
     let mut lines = vec![];
     for pair in expression {
         let line = match pair.as_rule() {
-            Rule::expr => ExpressionLine::Expression(parse_expression(pair.into_inner())?),
-            Rule::assign => ExpressionLine::Assignment(parse_assignment(pair.into_inner())?),
-            Rule::unassign => ExpressionLine::Unassignment(parse_unassignment(pair.into_inner())?),
-            Rule::importing => ExpressionLine::Import(parse_import(pair.into_inner())?),
+            Rule::expr => {
+                ExpressionLine::Expression(Arc::new(parse_expression(pair.into_inner())?))
+            }
+            Rule::assign => {
+                ExpressionLine::Assignment(Arc::new(parse_assignment(pair.into_inner())?))
+            }
+            Rule::unassign => {
+                ExpressionLine::Unassignment(Arc::new(parse_unassignment(pair.into_inner())?))
+            }
+            Rule::importing => ExpressionLine::Import(Arc::new(parse_import(pair.into_inner())?)),
             Rule::EOI => continue,
             rule => {
                 println!("{:?}", rule);
                 unreachable!()
             }
         };
-        lines.push(line);
+        lines.push(Arc::new(line));
     }
     Ok(ExpressionFile { lines: lines })
 }
@@ -147,9 +202,13 @@ impl ExpressionFile {
     }
 
     pub fn eval<'a, 'b, E: Env<'a>>(file: Self, env: &'b mut E) -> EvalResult {
-        let mut last = ExpressionValue::Null;
-        for line in file.lines {
-            last = ExpressionLine::eval(line, env)?;
+        Self::eval_rc(Arc::new(file), env)
+    }
+
+    pub fn eval_rc<'a, 'b, E: Env<'a>>(file: Arc<Self>, env: &'b mut E) -> EvalResult {
+        let mut last = ExpressionValue::Null.into();
+        for line in file.lines.iter() {
+            last = ExpressionLine::eval_rc((*line).clone(), env)?;
         }
 
         Ok(last)
@@ -179,18 +238,18 @@ fn print_expression_file() {
 
 #[test]
 fn simple() {
-    use crate::Environment;
+    use crate::{Environment, ExpressionValue};
     let file = ExpressionFile::parse("a = 1 + 2; a = a + 12 + 123; a - 1").unwrap();
     let evaluated = ExpressionFile::eval(file, &mut Environment::default());
-    assert_eq!(Ok(137.into()), evaluated);
+    assert_eq!(Ok(ExpressionValue::from(137).into()), evaluated);
 }
 
 #[test]
 fn simple_with_default_variables() {
-    use crate::Environment;
+    use crate::{Environment, ExpressionValue};
     let file = ExpressionFile::parse("a = e + pi; a = a + 12; a - e - pi").unwrap();
     let evaluated = ExpressionFile::eval(file, &mut Environment::default());
-    assert_eq!(Ok(12.into()), evaluated);
+    assert_eq!(Ok(ExpressionValue::from(12).into()), evaluated);
 }
 
 #[test]

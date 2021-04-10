@@ -1,5 +1,6 @@
 use pest::error::Error as PestError;
 use pest::iterators::Pairs;
+use std::sync::Arc;
 
 use crate::file::parse_file;
 use crate::grammar::Rule;
@@ -15,7 +16,7 @@ pub type EvalResult = Result<(), Error>;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct UserFunction {
     pub arguments: Vec<String>,
-    pub expression: ExpressionFile,
+    pub expression: Arc<ExpressionFile>,
 }
 
 pub fn parse_user_function(mut assignment: Pairs<'_, Rule>) -> FunctionParseResult {
@@ -30,7 +31,7 @@ pub fn parse_user_function(mut assignment: Pairs<'_, Rule>) -> FunctionParseResu
 
     Ok(UserFunction {
         arguments: vars,
-        expression: expr,
+        expression: Arc::new(expr),
     })
 }
 
@@ -53,6 +54,10 @@ impl UserFunction {
                 .filter(move |x| !self.arguments.contains(x)),
         )
     }
+
+    pub fn expression(self: Arc<Self>) -> Arc<ExpressionFile> {
+        self.expression.clone()
+    }
 }
 
 #[test]
@@ -66,11 +71,11 @@ fn function_parse() {
         lines: vec![ExpressionLine::Expression(Expression::UserFunction(
             UserFunction {
                 arguments: vec!["x".to_string(), "y".to_string()],
-                expression: ExpressionFile {
+                expression: Arc::new(ExpressionFile {
                     lines: vec![ExpressionLine::Expression(Expression::Expr(Box::new(
                         Function::Add(Expression::Value(1.0.into()), Expression::Value(1.0.into())),
                     )))],
-                },
+                }),
             },
         ))],
     };
@@ -89,11 +94,11 @@ fn function_parse_no_variables() {
         lines: vec![ExpressionLine::Expression(Expression::UserFunction(
             UserFunction {
                 arguments: vec![],
-                expression: ExpressionFile {
+                expression: Arc::new(ExpressionFile {
                     lines: vec![ExpressionLine::Expression(Expression::Expr(Box::new(
                         Function::Add(Expression::Value(1.0.into()), Expression::Value(1.0.into())),
                     )))],
-                },
+                }),
             },
         ))],
     };

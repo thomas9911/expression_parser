@@ -1,6 +1,7 @@
 use crate::statics::DEFAULT_VARIABLES;
 use crate::ExpressionValue;
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -8,7 +9,23 @@ use serde::{Deserialize, Serialize};
 /// Trait for defining where variables are stored
 pub trait VariableMap: std::fmt::Debug {
     fn get(&self, key: &str) -> Option<&ExpressionValue>;
+    fn get_arc(&self, key: &str) -> Option<Arc<ExpressionValue>> {
+        match self.get(key) {
+            Some(x) => Some(Arc::from(x.clone())),
+            None => None,
+        }
+    }
     fn insert(&mut self, key: &str, value: ExpressionValue) -> Option<ExpressionValue>;
+    fn insert_arc(
+        &mut self,
+        key: &str,
+        value: Arc<ExpressionValue>,
+    ) -> Option<Arc<ExpressionValue>> {
+        match self.insert(key, (*value).clone()) {
+            Some(x) => Some(Arc::new(x)),
+            None => None,
+        }
+    }
     fn remove(&mut self, _key: &str) -> Option<ExpressionValue> {
         None
     }

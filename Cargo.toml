@@ -17,6 +17,7 @@ snailquote = "0.3.0"
 strum = "0.20"
 strum_macros = "0.20"
 stacker = "0.1.13"
+either = "1.6.1"
 
 [dev-dependencies]
 colored = "2"

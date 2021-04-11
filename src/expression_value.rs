@@ -1,5 +1,6 @@
 use crate::user_function::UserFunction;
 use crate::{Closure, Expression, Variables};
+use im::Vector;
 use std::collections::{BinaryHeap, HashMap};
 use std::iter::FromIterator;
 
@@ -14,7 +15,7 @@ pub enum ExpressionValue {
     String(String),
     Bool(bool),
     Number(f64),
-    List(Vec<Expression>),
+    List(Vector<Expression>),
     Map(ExpressionMap),
     #[cfg_attr(feature = "serde", serde(skip))]
     ExternalFunction(Closure),
@@ -52,7 +53,7 @@ impl std::fmt::Display for ExpressionMap {
     }
 }
 
-fn list_to_string(input: &Vec<Expression>) -> Vec<String> {
+fn list_to_string(input: &Vector<Expression>) -> Vec<String> {
     input.iter().map(|x| format!("{}", x)).collect()
 }
 
@@ -92,6 +93,19 @@ where
     T: Into<ExpressionValue>,
 {
     fn from(input: Vec<T>) -> ExpressionValue {
+        let expressions = input
+            .into_iter()
+            .map(|x| Expression::Value(x.into()))
+            .collect();
+        ExpressionValue::List(expressions)
+    }
+}
+
+impl<T> From<Vector<T>> for ExpressionValue
+where
+    T: Into<ExpressionValue> + Clone,
+{
+    fn from(input: Vector<T>) -> ExpressionValue {
         let expressions = input
             .into_iter()
             .map(|x| Expression::Value(x.into()))
@@ -186,7 +200,7 @@ impl ExpressionValue {
     }
 
     /// casts value as a list
-    pub fn as_list(&self) -> Option<Vec<Expression>> {
+    pub fn as_list(&self) -> Option<Vector<Expression>> {
         use ExpressionValue::*;
 
         match self {

@@ -1,3 +1,4 @@
+use im::Vector;
 use pest::error::Error as PestError;
 use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
@@ -59,10 +60,10 @@ fn parse_single_pair(pair: Pair<'_, Rule>) -> ParseResult {
             Err(e) => Err(make_pest_error(pair.as_span(), e.to_string())),
         },
         Rule::list => {
-            let arguments: Vec<Expression> =
-                pair.into_inner().try_fold(Vec::new(), |mut acc, x| {
+            let arguments: Vector<Expression> =
+                pair.into_inner().try_fold(Vector::new(), |mut acc, x| {
                     let p = parse_expression(x.into_inner())?;
-                    acc.push(p);
+                    acc.push_back(p);
                     Ok(acc)
                 })?;
             Ok(Value(ExpressionValue::List(arguments)))
@@ -424,9 +425,9 @@ impl Expression {
             Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(ExpressionValue::List(
                     list.into_iter().try_fold::<_, _, Result<_, Error>>(
-                        Vec::new(),
+                        Vector::new(),
                         |mut acc, x| {
-                            acc.push(Expression::Value(Expression::eval(x, env)?));
+                            acc.push_back(Expression::Value(Expression::eval(x, env)?));
                             Ok(acc)
                         },
                     )?,
@@ -477,9 +478,9 @@ impl Expression {
             Expression::Value(value) => match value {
                 ExpressionValue::List(list) => Ok(Expression::Value(ExpressionValue::List(
                     list.into_iter().try_fold::<_, _, Result<_, Error>>(
-                        Vec::new(),
+                        Vector::new(),
                         |mut acc, x| {
-                            acc.push(Expression::compile(x)?);
+                            acc.push_back(Expression::compile(x)?);
                             Ok(acc)
                         },
                     )?,

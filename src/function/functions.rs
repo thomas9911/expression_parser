@@ -3,6 +3,7 @@ use crate::{
     Closure, Env, Environment, Error, Expression, ExpressionFile, ExpressionValue, Function,
     ScopedVariables, UserFunction, Variables,
 };
+use im::Vector;
 
 pub type Input = Expression;
 pub type Output = Result<ExpressionValue, Error>;
@@ -227,7 +228,7 @@ fn normal_help(lhs: Input) -> Output {
     let value = as_variable_or_string(lhs)?;
     match value.as_ref() {
         "functions" => {
-            let d: Vec<_> = Function::iter_without_infixes()
+            let d: Vector<_> = Function::iter_without_infixes()
                 .map(|x| {
                     Expression::Value(ExpressionValue::String(FunctionName::from(x).to_string()))
                 })

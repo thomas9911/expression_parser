@@ -1,4 +1,5 @@
 use expression_parser::{Expression, ExpressionMap, ExpressionValue};
+use im::vector;
 
 // parse from https://json.org/example.html
 
@@ -34,7 +35,7 @@ fn parse_json_one() {
         "para",
         "A meta-markup language, used to create markup languages such as DocBook.",
     );
-    def.insert("GlossSeeAlso", vec!["GML", "XML"]);
+    def.insert("GlossSeeAlso", vector!["GML", "XML"]);
 
     let mut entry = ExpressionMap::new();
     entry.insert("ID", "SGML");
@@ -94,7 +95,7 @@ fn parse_json_two() {
     item3.insert("onclick", "CloseDoc()");
 
     let mut popup = ExpressionMap::new();
-    popup.insert("menuitem", vec![item1, item2, item3]);
+    popup.insert("menuitem", vector![item1, item2, item3]);
 
     let mut menu = ExpressionMap::new();
     menu.insert("id", "file");
@@ -239,7 +240,7 @@ fn parse_json_five() {
     menu.insert("header", "SVG Viewer");
     menu.0.insert(
         String::from("items"),
-        Expression::Value(ExpressionValue::List(vec![
+        Expression::Value(ExpressionValue::List(vector![
             Expression::from(item1),
             Expression::from(item2),
             item3,

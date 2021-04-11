@@ -46,6 +46,7 @@ mod iter_variables {
 
 mod or {
     use expression_parser::{Environment, Expression, ExpressionValue};
+    use im::vector;
 
     #[test]
     fn operator_true() {
@@ -103,7 +104,7 @@ mod or {
 
         let parsed = Expression::parse(r#"[1] | "other""#).unwrap();
         let result = Expression::eval(parsed, &mut Environment::default());
-        assert_eq!(Ok(List(vec![Value(Number(1.0))])), result);
+        assert_eq!(Ok(List(vector![Value(Number(1.0))])), result);
     }
 
     #[test]
@@ -116,6 +117,7 @@ mod or {
 
 mod and {
     use expression_parser::{Environment, Expression, ExpressionValue};
+    use im::vector;
 
     #[test]
     fn operator_false() {
@@ -192,7 +194,7 @@ mod and {
         use ExpressionValue::List;
         let parsed = Expression::parse(r#"[] & "other""#).unwrap();
         let result = Expression::eval(parsed, &mut Environment::default());
-        assert_eq!(Ok(List(vec![])), result);
+        assert_eq!(Ok(List(vector![])), result);
     }
 }
 

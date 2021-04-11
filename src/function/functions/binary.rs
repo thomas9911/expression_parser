@@ -1,5 +1,5 @@
 use super::{ok_boolean, Env, Input, Output};
-use crate::{Expression, ExpressionValue};
+use crate::Expression;
 
 pub fn equal<'a, 'b, E: Env<'a>>(lhs: Input, rhs: Input, env: &'b mut E) -> Output {
     let string = Expression::eval_rc(lhs, env)?;

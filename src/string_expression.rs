@@ -496,24 +496,45 @@ impl Expression {
     }
 
     pub fn compile(expression: Expression) -> Result<Expression, Error> {
-        // match expression {
-        //     Expression::Value(value) => match &*value {
-        //         ExpressionValue::List(list) => Ok(Expression::Value(
-        //             ExpressionValue::List(list.into_iter().try_fold::<_, _, Result<_, Error>>(
-        //                 Vec::new(),
-        //                 |mut acc, x| {
-        //                     acc.push(Expression::compile(*x)?.into());
-        //                     Ok(acc)
-        //                 },
-        //             )?)
-        //             .into(),
-        //         )),
-        //         x => Ok(Expression::Value(value)),
-        //     },
-        //     Expression::Expr(op) => Function::compile(*op),
-        //     other => Ok(other),
-        // }
-        Ok(Expression::default())
+        match expression {
+            Expression::Value(value) => match may_clone(value.clone()) {
+                ExpressionValue::List(list) => Ok(Expression::Value(
+                    ExpressionValue::List(list.into_iter().try_fold::<_, _, Result<_, Error>>(
+                        Vec::new(),
+                        |mut acc, x| {
+                            let abc = may_clone(x);
+                            acc.push(Expression::compile(abc)?.into());
+                            Ok(acc)
+                        },
+                    )?)
+                    .into(),
+                )),
+                _ => Ok(Expression::Value(value)),
+            },
+            Expression::Expr(op) => Function::compile(may_clone(op)),
+            other => Ok(other),
+        }
+    }
+
+    pub fn compile_rc(expression: Arc<Expression>) -> Result<Arc<Expression>, Error> {
+        match may_clone(expression.clone()) {
+            Expression::Value(value) => match may_clone(value.clone()) {
+                ExpressionValue::List(list) => Ok(Expression::Value(
+                    ExpressionValue::List(list.into_iter().try_fold::<_, _, Result<_, Error>>(
+                        Vec::new(),
+                        |mut acc, x| {
+                            let abc = may_clone(x);
+                            acc.push(Expression::compile(abc)?.into());
+                            Ok(acc)
+                        },
+                    )?)
+                    .into(),
+                ).into()),
+                _ => Ok(expression),
+            },
+            Expression::Expr(op) => Function::compile(may_clone(op)).map(Arc::new),
+            _ => Ok(expression),
+        }
     }
 
     /// returns all variables defined in the expression

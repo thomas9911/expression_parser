@@ -1,6 +1,7 @@
+use crate::arc_utils::may_clone;
 use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
-use crate::{Env, Environment, Error, Expression};
+use crate::{Env, Environment, Error, ExpressionValue, Expression};
 use std::sync::Arc;
 
 #[cfg(feature = "serde")]
@@ -175,7 +176,9 @@ impl std::fmt::Display for Function {
 }
 
 impl Function {
-    // pub fn eval<'a, 'b, E: Env<'a>>(operator: Function, env: &'b mut E) -> EvalResult {
+    pub fn eval<'a, 'b, E: Env<'a>>(operator: Function, env: &'b mut E) -> Result<ExpressionValue, Error> {
+        Self::eval_rc(operator.into(), env).map(may_clone)
+    }
     //     use Function::*;
 
     //     match operator {
@@ -276,74 +279,76 @@ impl Function {
     }
 
     pub fn compile(operator: Function) -> Result<Expression, Error> {
-        Ok(Expression::default())
-        // use Expression as E;
-        // use Expression::*;
-        // use Function::*;
+        // Ok(Expression::default())
+        use Expression as E;
+        use Expression::*;
+        use Function::*;
 
-        // if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
-        //     let funcs = match operator.to_owned() {
-        //         Concat(list) => Concat(Function::compile_list(list)?),
-        //         Sum(list) => Sum(Function::compile_list(list)?),
-        //         Product(list) => Product(Function::compile_list(list)?),
-        //         All(list) => All(Function::compile_list(list)?),
-        //         Any(list) => Any(Function::compile_list(list)?),
-        //         Trim(lhs, rhs) => Trim(E::compile(lhs)?, E::compile(rhs)?),
-        //         Equal(lhs, rhs) => Equal(E::compile(lhs)?, E::compile(rhs)?),
-        //         NotEqual(lhs, rhs) => NotEqual(E::compile(lhs)?, E::compile(rhs)?),
-        //         Greater(lhs, rhs) => Greater(E::compile(lhs)?, E::compile(rhs)?),
-        //         Lesser(lhs, rhs) => Lesser(E::compile(lhs)?, E::compile(rhs)?),
-        //         And(lhs, rhs) => And(E::compile(lhs)?, E::compile(rhs)?),
-        //         Or(lhs, rhs) => Or(E::compile(lhs)?, E::compile(rhs)?),
-        //         Contains(lhs, rhs) => Contains(E::compile(lhs)?, E::compile(rhs)?),
-        //         Join(lhs, rhs) => Join(E::compile(lhs)?, E::compile(rhs)?),
-        //         If(lhs, mdl, rhs) => If(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
-        //         Range(lhs, mdl, rhs) => Range(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
-        //         Reduce(lhs, mdl, rhs) => {
-        //             Reduce(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?)
-        //         }
-        //         Put(lhs, mdl, rhs) => Put(E::compile(lhs)?, E::compile(mdl)?, E::compile(rhs)?),
-        //         Upper(lhs) => Upper(E::compile(lhs)?),
-        //         Lower(lhs) => Lower(E::compile(lhs)?),
-        //         Add(lhs, rhs) => Add(E::compile(lhs)?, E::compile(rhs)?),
-        //         Sub(lhs, rhs) => Sub(E::compile(lhs)?, E::compile(rhs)?),
-        //         Mul(lhs, rhs) => Mul(E::compile(lhs)?, E::compile(rhs)?),
-        //         Div(lhs, rhs) => Div(E::compile(lhs)?, E::compile(rhs)?),
-        //         Pow(lhs, rhs) => Pow(E::compile(lhs)?, E::compile(rhs)?),
-        //         Cos(lhs) => Cos(E::compile(lhs)?),
-        //         Sin(lhs) => Sin(E::compile(lhs)?),
-        //         Tan(lhs) => Tan(E::compile(lhs)?),
-        //         Length(lhs) => Length(E::compile(lhs)?),
-        //         Get(lhs, rhs) => Get(E::compile(lhs)?, E::compile(rhs)?),
-        //         Push(lhs, rhs) => Push(E::compile(lhs)?, E::compile(rhs)?),
-        //         Remove(lhs, rhs) => Remove(E::compile(lhs)?, E::compile(rhs)?),
-        //         Random(lhs, rhs) => Random(E::compile(lhs)?, E::compile(rhs)?),
-        //         Shuffle(lhs) => Shuffle(E::compile(lhs)?),
-        //         Now() => Now(),
-        //         Type(lhs) => Type(E::compile(lhs)?),
-        //         Error(lhs) => Error(E::compile(lhs)?),
-        //         Assert(lhs, rhs) => Assert(E::compile(lhs)?, E::compile(rhs)?),
-        //         Try(lhs, rhs) => Try(E::compile(lhs)?, E::compile(rhs)?),
-        //         Call(func, list) => Call(E::compile(func)?, Function::compile_list(list)?),
-        //         Format(lhs, list) => Format(E::compile(lhs)?, Function::compile_list(list)?),
-        //         Print(lhs) => Print(E::compile(lhs)?),
-        //         Help(lhs) => Help(E::compile(lhs)?),
-        //     };
+        if operator.contains_variables() | operator.cannot_be_pre_evaluated() {
+            let funcs = match operator.to_owned() {
+                Concat(list) => Concat(Function::compile_list(list)?),
+                Sum(list) => Sum(Function::compile_list(list)?),
+                Product(list) => Product(Function::compile_list(list)?),
+                All(list) => All(Function::compile_list(list)?),
+                Any(list) => Any(Function::compile_list(list)?),
+                Trim(lhs, rhs) => Trim(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Equal(lhs, rhs) => Equal(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                NotEqual(lhs, rhs) => NotEqual(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Greater(lhs, rhs) => Greater(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Lesser(lhs, rhs) => Lesser(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                And(lhs, rhs) => And(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Or(lhs, rhs) => Or(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Contains(lhs, rhs) => Contains(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Join(lhs, rhs) => Join(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                If(lhs, mdl, rhs) => If(E::compile_rc(lhs)?, E::compile_rc(mdl)?, E::compile_rc(rhs)?),
+                Range(lhs, mdl, rhs) => Range(E::compile_rc(lhs)?, E::compile_rc(mdl)?, E::compile_rc(rhs)?),
+                Reduce(lhs, mdl, rhs) => {
+                    Reduce(E::compile_rc(lhs)?, E::compile_rc(mdl)?, E::compile_rc(rhs)?)
+                }
+                Put(lhs, mdl, rhs) => Put(E::compile_rc(lhs)?, E::compile_rc(mdl)?, E::compile_rc(rhs)?),
+                Upper(lhs) => Upper(E::compile_rc(lhs)?),
+                Lower(lhs) => Lower(E::compile_rc(lhs)?),
+                Add(lhs, rhs) => Add(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Sub(lhs, rhs) => Sub(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Mul(lhs, rhs) => Mul(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Div(lhs, rhs) => Div(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Pow(lhs, rhs) => Pow(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Cos(lhs) => Cos(E::compile_rc(lhs)?),
+                Sin(lhs) => Sin(E::compile_rc(lhs)?),
+                Tan(lhs) => Tan(E::compile_rc(lhs)?),
+                Length(lhs) => Length(E::compile_rc(lhs)?),
+                Get(lhs, rhs) => Get(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Push(lhs, rhs) => Push(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Remove(lhs, rhs) => Remove(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Random(lhs, rhs) => Random(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Shuffle(lhs) => Shuffle(E::compile_rc(lhs)?),
+                Now() => Now(),
+                Type(lhs) => Type(E::compile_rc(lhs)?),
+                Error(lhs) => Error(E::compile_rc(lhs)?),
+                Assert(lhs, rhs) => Assert(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Try(lhs, rhs) => Try(E::compile_rc(lhs)?, E::compile_rc(rhs)?),
+                Call(func, list) => Call(E::compile_rc(func)?, Function::compile_list(list)?),
+                Format(lhs, list) => Format(E::compile_rc(lhs)?, Function::compile_list(list)?),
+                Print(lhs) => Print(E::compile_rc(lhs)?),
+                Help(lhs) => Help(E::compile_rc(lhs)?),
+            };
 
-        //     Ok(Expr(Arc::new(funcs)))
-        // } else {
-        //     Ok(Value(Function::eval(
-        //         operator,
-        //         &mut Environment::default(),
-        //     )?.into()))
-        // }
+            Ok(Expr(Arc::new(funcs)))
+        } else {
+            Ok(Value(Function::eval(
+                operator,
+                &mut Environment::default(),
+            )?.into()))
+        }
     }
 
-    fn compile_list(list: Vec<Expression>) -> Result<Vec<Expression>, Error> {
-        list.into_iter().try_fold(Vec::new(), |mut acc, x| {
-            acc.push(Expression::compile(x)?);
-            Ok(acc)
-        })
+    fn compile_list(list: Vec<Arc<Expression>>) -> Result<Vec<Arc<Expression>>, Error> {
+        let mut new_list = Vec::with_capacity(list.len());
+        for expr in list {
+            new_list.push(Expression::compile_rc(expr)?);
+        };
+
+        Ok(new_list)
     }
 
     fn cannot_be_pre_evaluated(&self) -> bool {
@@ -847,7 +852,7 @@ fn function_names_test() {
 
 #[test]
 fn function_doc_tests() {
-    use crate::{Environment, ExpressionFile, ExpressionValue};
+    use crate::{Environment, ExpressionFile};
     use strum::IntoEnumIterator;
 
     for function in Function::iter() {

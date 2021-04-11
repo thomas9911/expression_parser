@@ -127,7 +127,7 @@ pub fn reduce<'a, 'b, E: Env<'a>>(lhs: Input, mdl: Input, rhs: Input, env: &'b m
     let evaluated = Expression::eval_rc(rhs, env)?;
 
     match &*evaluated {
-        ExpressionValue::Function(func, vars) => {
+        ExpressionValue::Function(_, _) => {
             let function = Arc::new(Expression::Value(evaluated));
 
             for item in list {
@@ -216,8 +216,7 @@ fn get_back_int(list: Vec<Input>, index: usize) -> ExpressionItem {
 
 fn put_int(mut list: Vec<Input>, index: usize, item: Expression) -> ExpressionItem {
     match list.get_mut(index) {
-        Some(mut x) => {
-            // *x = item;
+        Some(x) => {
             let t = Arc::make_mut(x);
             *t = item;
             Ok(Arc::new(ExpressionValue::List(list).into()))

@@ -101,7 +101,7 @@ fn var_importing() {
         ],
     }));
 
-    assert_eq!(import, expected);
+    assert_eq!(import, Arc::new(expected));
 }
 
 #[test]

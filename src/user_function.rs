@@ -67,18 +67,23 @@ fn function_parse() {
 
     let file = ExpressionFile::parse("{x, y => 1 + 1}").unwrap();
 
-    let expected = ExpressionFile {
-        lines: vec![ExpressionLine::Expression(Expression::UserFunction(
-            UserFunction {
-                arguments: vec!["x".to_string(), "y".to_string()],
-                expression: Arc::new(ExpressionFile {
-                    lines: vec![ExpressionLine::Expression(Expression::Expr(Box::new(
-                        Function::Add(Expression::Value(1.0.into()), Expression::Value(1.0.into())),
-                    )))],
-                }),
-            },
-        ))],
-    };
+    let inner_lines = vec![ExpressionLine::Expression(
+        Expression::Expr(Arc::new(Function::Add(
+            Expression::Value(Arc::new(1.0.into())).into(),
+            Expression::Value(Arc::new(1.0.into())).into(),
+        )))
+        .into(),
+    )
+    .into()];
+    let user_function = Expression::UserFunction(
+        UserFunction {
+            arguments: vec!["x".to_string(), "y".to_string()],
+            expression: Arc::new(ExpressionFile { lines: inner_lines }),
+        }
+        .into(),
+    );
+    let lines = vec![ExpressionLine::Expression(Arc::new(user_function)).into()];
+    let expected = ExpressionFile { lines: lines };
 
     assert_eq!(expected, file);
 }
@@ -89,19 +94,23 @@ fn function_parse_no_variables() {
     use crate::{Expression, ExpressionFile, Function};
 
     let file = ExpressionFile::parse("{ => 1 + 1}").unwrap();
-
-    let expected = ExpressionFile {
-        lines: vec![ExpressionLine::Expression(Expression::UserFunction(
-            UserFunction {
-                arguments: vec![],
-                expression: Arc::new(ExpressionFile {
-                    lines: vec![ExpressionLine::Expression(Expression::Expr(Box::new(
-                        Function::Add(Expression::Value(1.0.into()), Expression::Value(1.0.into())),
-                    )))],
-                }),
-            },
-        ))],
-    };
+    let inner_lines = vec![ExpressionLine::Expression(
+        Expression::Expr(Arc::new(Function::Add(
+            Expression::Value(Arc::new(1.0.into())).into(),
+            Expression::Value(Arc::new(1.0.into())).into(),
+        )))
+        .into(),
+    )
+    .into()];
+    let user_function = Expression::UserFunction(
+        UserFunction {
+            arguments: vec![],
+            expression: Arc::new(ExpressionFile { lines: inner_lines }),
+        }
+        .into(),
+    );
+    let lines = vec![ExpressionLine::Expression(Arc::new(user_function)).into()];
+    let expected = ExpressionFile { lines: lines };
 
     assert_eq!(expected, file);
 }

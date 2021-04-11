@@ -6,6 +6,7 @@ use std::sync::Arc;
 pub mod assignment;
 pub mod import;
 
+use crate::arc_utils::may_clone;
 use crate::error::ErrorCodes;
 use crate::grammar::{ExpressionessionParser, Rule};
 use crate::string_expression::parse_expression;
@@ -21,6 +22,7 @@ use serde::{Deserialize, Serialize};
 
 pub type ParseResult = Result<ExpressionFile, PestError<Rule>>;
 pub type EvalResult = Result<Arc<ExpressionValue>, Error>;
+pub type RunResult = Result<ExpressionValue, Error>;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -201,8 +203,8 @@ impl ExpressionFile {
         Box::new(self.lines.iter().flat_map(|x| x.iter_variables()))
     }
 
-    pub fn eval<'a, 'b, E: Env<'a>>(file: Self, env: &'b mut E) -> EvalResult {
-        Self::eval_rc(Arc::new(file), env)
+    pub fn eval<'a, 'b, E: Env<'a>>(file: Self, env: &'b mut E) -> Result<ExpressionValue, Error> {
+        Self::eval_rc(Arc::new(file), env).map(may_clone)
     }
 
     pub fn eval_rc<'a, 'b, E: Env<'a>>(file: Arc<Self>, env: &'b mut E) -> EvalResult {
@@ -214,7 +216,12 @@ impl ExpressionFile {
         Ok(last)
     }
 
-    pub fn run<'a, 'b, E: Env<'a>>(input: &str, env: &'b mut E) -> EvalResult {
+    pub fn run_arc<'a, 'b, E: Env<'a>>(input: &str, env: &'b mut E) -> EvalResult {
+        let file = Self::parse(input)?;
+        Self::eval_rc(file.into(), env)
+    }
+
+    pub fn run<'a, 'b, E: Env<'a>>(input: &str, env: &'b mut E) -> RunResult {
         let file = Self::parse(input)?;
         Self::eval(file, env)
     }

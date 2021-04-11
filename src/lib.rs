@@ -87,6 +87,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate strum_macros;
 
+pub mod arc_utils;
 pub mod closure;
 pub mod environment;
 pub mod error;

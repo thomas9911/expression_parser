@@ -4,6 +4,7 @@ use pest::{Parser, Span};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::arc_utils::may_clone;
 use crate::function::FunctionName;
 use crate::grammar::{create_string, make_pest_error, ExpressionessionParser, Rule};
 use crate::statics::{DEFAULT_VARIABLES, PREC_CLIMBER};
@@ -430,8 +431,8 @@ impl Expression {
     pub fn eval<'a, 'b, E: Env<'a> + std::fmt::Debug>(
         expression: Expression,
         env: &'b mut E,
-    ) -> EvalResult {
-        Self::eval_rc(Arc::new(expression), env)
+    ) -> Result<ExpressionValue, Error> {
+        Self::eval_rc(Arc::new(expression), env).map(may_clone)
     }
 
     pub fn eval_rc<'a, 'b, E: Env<'a> + std::fmt::Debug>(
@@ -442,13 +443,13 @@ impl Expression {
             Expression::Expr(op) => Function::eval_rc(op.clone(), env),
             Expression::Value(value) => match &**value {
                 ExpressionValue::List(list) => {
-                    let value_list = list.clone().into_iter().try_fold::<_, _, Result<_, Error>>(
-                        Vec::new(),
-                        |mut acc, x| {
+                    let value_list = list
+                        .clone()
+                        .into_iter()
+                        .try_fold::<_, _, Result<_, Error>>(Vec::new(), |mut acc, x| {
                             acc.push(Arc::new(Expression::Value(Expression::eval_rc(x, env)?)));
                             Ok(acc)
-                        },
-                    )?;
+                        })?;
                     Ok(ExpressionValue::List(value_list).into())
                 }
                 ExpressionValue::Map(ExpressionMap(map)) => {

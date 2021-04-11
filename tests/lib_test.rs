@@ -103,7 +103,7 @@ mod or {
 
         let parsed = Expression::parse(r#"[1] | "other""#).unwrap();
         let result = Expression::eval(parsed, &mut Environment::default());
-        assert_eq!(Ok(List(vec![Value(Number(1.0))])), result);
+        assert_eq!(Ok(List(vec![Value(Number(1.0).into()).into()])), result);
     }
 
     #[test]
@@ -412,7 +412,7 @@ fn map_parse() {
     map.insert("list", vec![1, 2, 3]);
     map.insert("map", data);
 
-    assert_eq!(parsed, Expression::Value(ExpressionValue::Map(map)));
+    assert_eq!(parsed, Expression::Value(ExpressionValue::Map(map).into()));
 }
 
 #[test]
@@ -421,7 +421,7 @@ fn map_evalutate_functions() {
         Expression::parse(r#"{"testing": sum(1,2,3,4) + 15, "test":  {"testing": sum(1,2,3,4)}}"#)
             .unwrap();
     let expected = Expression::parse(r#"{"testing": 25, "test":  {"testing": 10}}"#).unwrap();
-    let result = Expression::eval(parsed, &mut Environment::default()).unwrap();
+    let result = Expression::eval_rc(parsed.into(), &mut Environment::default()).unwrap();
     assert_eq!(expected, Expression::Value(result));
 }
 
@@ -764,7 +764,7 @@ mod closure {
         let closure = Closure::new(
             vec!["x".to_string(), "y".to_string()],
             Arc::new(Box::new(|vars, _| {
-                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                fn unwrap_number(x: Option<&Arc<ExpressionValue>>) -> Result<f64, Error> {
                     x.ok_or(Error::new_static("missing arguments"))?
                         .as_number()
                         .ok_or(Error::new_static("argument not a number"))
@@ -774,7 +774,7 @@ mod closure {
                 let y = unwrap_number(vars.get(1))?;
                 let result = x * y;
 
-                Ok(result.into())
+                Ok(Arc::new(result.into()))
             })),
         );
         vars.variables_mut().insert("external_func", closure.into());
@@ -794,7 +794,7 @@ mod closure {
         let closure = Closure::new(
             vec!["y".to_string()],
             Arc::new(Box::new(|vars, context| {
-                fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                fn unwrap_number(x: Option<Arc<ExpressionValue>>) -> Result<f64, Error> {
                     x.ok_or(Error::new_static("missing arguments"))?
                         .as_number()
                         .ok_or(Error::new_static("argument not a number"))
@@ -805,11 +805,11 @@ mod closure {
                     .unwrap_or(&ExpressionValue::from("default"))
                     .as_string()
                     .unwrap_or(String::from("default"));
-                let x = unwrap_number(context.variables().get("x"))?;
-                let y = unwrap_number(vars.get(0))?;
+                let x = unwrap_number(context.variables().get_arc("x"))?;
+                let y = unwrap_number(vars.get(0).cloned())?;
                 let result = format!("{}{}", cfg, x * y);
 
-                Ok(result.into())
+                Ok(Arc::new(result.into()))
             })),
         );
         env.variables_mut().insert("external_func", closure.into());
@@ -826,10 +826,10 @@ mod closure {
     }
 
     fn inner_func(
-        args: Vec<ExpressionValue>,
+        args: Vec<Arc<ExpressionValue>>,
         context: &mut Environment<'_>,
-    ) -> Result<ExpressionValue, Error> {
-        fn unwrap_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+    ) -> Result<Arc<ExpressionValue>, Error> {
+        fn unwrap_number(x: Option<Arc<ExpressionValue>>) -> Result<f64, Error> {
             x.ok_or(Error::new_static("missing arguments"))?
                 .as_number()
                 .ok_or(Error::new_static("argument not a number"))
@@ -840,11 +840,11 @@ mod closure {
             .unwrap_or(&ExpressionValue::from("default"))
             .as_string()
             .unwrap_or(String::from("default"));
-        let x = unwrap_number(context.variables().get("x"))?;
-        let y = unwrap_number(args.get(0))?;
+        let x = unwrap_number(context.variables().get_arc("x"))?;
+        let y = unwrap_number(args.get(0).cloned())?;
         let result = format!("{}{}", cfg, x * y);
 
-        Ok(result.into())
+        Ok(Arc::new(result.into()))
     }
 
     #[test]

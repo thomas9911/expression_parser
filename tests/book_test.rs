@@ -271,6 +271,8 @@ mod chapter_6 {
         use expression_parser::{
             Closure, Env, Environment, Error, ExpressionFile, ExpressionValue,
         };
+        // use expression_parser::function::functions::{Output};
+
         use std::sync::Arc;
 
         let mut env = Environment::default();
@@ -285,7 +287,7 @@ mod chapter_6 {
             vec!["x".to_string(), "y".to_string()],
             Arc::new(Box::new(|vars, _| {
                 /// validate the arguments or return an error
-                fn validate_number(x: Option<&ExpressionValue>) -> Result<f64, Error> {
+                fn validate_number(x: Option<&Arc<ExpressionValue>>) -> Result<f64, Error> {
                     x.ok_or(Error::new_static("missing arguments"))?
                         .as_number()
                         .ok_or(Error::new_static("argument not a number"))
@@ -296,7 +298,7 @@ mod chapter_6 {
                 let result = x * y;
 
                 // the `into` casts the rust value into a `ExpressionValue` enum
-                Ok(result.into())
+                Ok(Arc::new(result.into()))
             })),
         );
         env.variables_mut().insert("external_func", closure.into());
@@ -320,10 +322,11 @@ mod chapter_6 {
         let closure = Closure::new(
             vec!["map".to_string(), "key".to_string()],
             Arc::new(Box::new(|vars, context| {
-                let map = vars
+                let first_arg = vars
                     .get(0)
-                    .ok_or(Error::new_static("expect a map as the first argument"))?
-                    // probably do something more smart than just clone
+                    .cloned()
+                    .ok_or(Error::new_static("expect a map as the first argument"))?;
+                let map = (*first_arg)
                     .clone()
                     .as_map()
                     .ok_or(Error::new_static("expect a map as the first argument"))?;
@@ -334,11 +337,13 @@ mod chapter_6 {
                     .ok_or(Error::new_static("expect a key as the second argument"))?;
 
                 // get access to the underlying HashMap
-                let result = map.0.get(&key).ok_or(Error::new_static("key not found"))?;
+                // let result = map.0.get(&key).ok_or(Error::new_static("key not found"))?;
+                let result = map.get(&key).ok_or(Error::new_static("key not found"))?;
 
                 // the result is an expression, these can include variables ect.
                 // We can just match on the value or eval the Expression with the current context.
-                let result = Expression::eval(result.clone(), &mut Box::new(context))?;
+                // eval_rc is just eval but takes a Arc as its input
+                let result = Expression::eval_rc(result.clone(), &mut Box::new(context))?;
 
                 Ok(result)
             })),

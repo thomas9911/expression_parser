@@ -214,9 +214,7 @@ impl ExpressionValue {
         }
     }
 
-    pub fn as_either_list_map(
-        self
-    ) -> Option<Either<ExpressionMap, Vec<Arc<Expression>>>> {
+    pub fn as_either_list_map(self) -> Option<Either<ExpressionMap, Vec<Arc<Expression>>>> {
         use ExpressionValue::*;
 
         match self {

@@ -1,4 +1,5 @@
 use expression_parser::{Expression, ExpressionMap, ExpressionValue};
+use std::sync::Arc;
 
 // parse from https://json.org/example.html
 
@@ -59,7 +60,7 @@ fn parse_json_one() {
     let mut main = ExpressionMap::new();
     main.insert("glossary", glossary);
 
-    let expected = Expression::Value(main.into());
+    let expected = Expression::Value(Arc::new(main.into()));
     let parsed = Expression::parse(json).unwrap();
 
     assert_eq!(parsed, expected);
@@ -104,7 +105,7 @@ fn parse_json_two() {
     let mut main = ExpressionMap::new();
     main.insert("menu", menu);
 
-    let expected = Expression::Value(main.into());
+    let expected = Expression::Value(Arc::new(main.into()));
     let parsed = Expression::parse(json).unwrap();
 
     assert_eq!(parsed, expected);
@@ -173,7 +174,7 @@ fn parse_json_three() {
     let mut main = ExpressionMap::new();
     main.insert("widget", widget);
 
-    let expected = Expression::Value(main.into());
+    let expected = Expression::Value(Arc::new(main.into()));
     let parsed = Expression::parse(json).unwrap();
 
     assert_eq!(parsed, expected);
@@ -239,25 +240,28 @@ fn parse_json_five() {
     menu.insert("header", "SVG Viewer");
     menu.0.insert(
         String::from("items"),
-        Expression::Value(ExpressionValue::List(vec![
-            Expression::from(item1),
-            Expression::from(item2),
-            item3,
-            Expression::from(item4),
-            Expression::from(item5),
-            Expression::from(item6),
-            item7,
-            Expression::from(item8),
-            Expression::from(item9),
-            Expression::from(item10),
-            item11,
-        ])),
+        Arc::new(Expression::Value(
+            ExpressionValue::List(vec![
+                Expression::from(item1).into(),
+                Expression::from(item2).into(),
+                item3.into(),
+                Expression::from(item4).into(),
+                Expression::from(item5).into(),
+                Expression::from(item6).into(),
+                item7.into(),
+                Expression::from(item8).into(),
+                Expression::from(item9).into(),
+                Expression::from(item10).into(),
+                item11.into(),
+            ])
+            .into(),
+        )),
     );
 
     let mut main = ExpressionMap::new();
     main.insert("menu", menu);
 
-    let expected = Expression::Value(main.into());
+    let expected = Expression::Value(Arc::new(main.into()));
     let parsed = Expression::parse(json).unwrap();
 
     assert_eq!(parsed, expected);

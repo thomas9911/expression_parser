@@ -1,6 +1,7 @@
 use crate::user_function::UserFunction;
 use crate::{Closure, Expression, Variables};
-use std::collections::{BinaryHeap, HashMap};
+use im::{HashMap, Vector};
+use std::collections::BinaryHeap;
 use std::iter::FromIterator;
 
 #[cfg(feature = "serde")]
@@ -14,7 +15,7 @@ pub enum ExpressionValue {
     String(String),
     Bool(bool),
     Number(f64),
-    List(Vec<Expression>),
+    List(Vector<Expression>),
     Map(ExpressionMap),
     #[cfg_attr(feature = "serde", serde(skip))]
     ExternalFunction(Closure),
@@ -52,7 +53,7 @@ impl std::fmt::Display for ExpressionMap {
     }
 }
 
-fn list_to_string(input: &Vec<Expression>) -> Vec<String> {
+fn list_to_string(input: &Vector<Expression>) -> Vec<String> {
     input.iter().map(|x| format!("{}", x)).collect()
 }
 
@@ -100,9 +101,22 @@ where
     }
 }
 
+impl<T> From<Vector<T>> for ExpressionValue
+where
+    T: Into<ExpressionValue> + Clone,
+{
+    fn from(input: Vector<T>) -> ExpressionValue {
+        let expressions = input
+            .into_iter()
+            .map(|x| Expression::Value(x.into()))
+            .collect();
+        ExpressionValue::List(expressions)
+    }
+}
+
 impl<T> From<HashMap<String, T>> for ExpressionValue
 where
-    T: Into<ExpressionValue>,
+    T: Into<ExpressionValue> + Clone,
 {
     fn from(input: HashMap<String, T>) -> ExpressionValue {
         ExpressionValue::Map(ExpressionMap::from(input))
@@ -186,7 +200,7 @@ impl ExpressionValue {
     }
 
     /// casts value as a list
-    pub fn as_list(&self) -> Option<Vec<Expression>> {
+    pub fn as_list(&self) -> Option<Vector<Expression>> {
         use ExpressionValue::*;
 
         match self {
@@ -343,6 +357,10 @@ impl ExpressionMap {
         ExpressionMap(HashMap::new())
     }
 
+    pub fn from_hashmap(map: HashMap<String, Expression>) -> ExpressionMap {
+        ExpressionMap(map)
+    }
+
     pub fn get(&self, key: &str) -> Option<Expression> {
         self.0.get(key).cloned()
     }
@@ -358,7 +376,7 @@ impl ExpressionMap {
 
 impl<T> From<HashMap<String, T>> for ExpressionMap
 where
-    T: Into<ExpressionValue>,
+    T: Into<ExpressionValue> + Clone,
 {
     fn from(input: HashMap<String, T>) -> ExpressionMap {
         let map = HashMap::from_iter(

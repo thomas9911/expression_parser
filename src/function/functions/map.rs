@@ -29,14 +29,13 @@ pub fn put_map<'a, 'b, E: Env<'a>>(
 }
 
 pub fn remove_map<'a, 'b, E: Env<'a>>(
-    mut map: ExpressionMap,
+    map: ExpressionMap,
     rhs: Input,
     env: &'b mut E,
 ) -> Output {
     match Expression::eval(rhs, env)? {
         ExpressionValue::String(ref key) => {
-            map.remove(key);
-            Ok(map.into())
+            Ok(ExpressionMap::from_hashmap(map.0.without(key)).into())
         }
         _ => Err(Error::new_static("second argument is not a valid key")),
     }

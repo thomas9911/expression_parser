@@ -1,7 +1,7 @@
 use expression_parser::{
     Env, Environment, Expression, ExpressionFile, ExpressionMap, ExpressionValue,
 };
-use std::collections::HashMap;
+use im::HashMap;
 
 mod iter_variables {
     use expression_parser::Expression;

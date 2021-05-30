@@ -23,7 +23,7 @@ im = {version = "15.0.0"}
 colored = "2"
 
 [features]
-serde_example = ["serde", "serde_json"]
+serde_example = ["serde", "serde_json", "im/serde"]
 
 [[example]]
 name = "serde"
@@ -32,3 +32,8 @@ required-features = ["serde_example"]
 [[example]]
 name = "serde_load_from_file"
 required-features = ["serde_example"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom   = {version = "0.2", features = ["js"]}
+# [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# rand  = "0.8"

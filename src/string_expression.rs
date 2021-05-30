@@ -1,8 +1,8 @@
-use im::Vector;
+use im::{Vector, HashMap};
 use pest::error::Error as PestError;
 use pest::iterators::{Pair, Pairs};
 use pest::{Parser, Span};
-use std::collections::HashMap;
+// use std::collections::HashMap;
 
 use crate::function::FunctionName;
 use crate::grammar::{create_string, make_pest_error, ExpressionessionParser, Rule};

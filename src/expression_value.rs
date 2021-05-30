@@ -1,7 +1,7 @@
 use crate::user_function::UserFunction;
 use crate::{Closure, Expression, Variables};
-use im::Vector;
-use std::collections::{BinaryHeap, HashMap};
+use im::{Vector, HashMap};
+use std::collections::{BinaryHeap};
 use std::iter::FromIterator;
 
 #[cfg(feature = "serde")]
@@ -116,7 +116,7 @@ where
 
 impl<T> From<HashMap<String, T>> for ExpressionValue
 where
-    T: Into<ExpressionValue>,
+    T: Into<ExpressionValue> + Clone,
 {
     fn from(input: HashMap<String, T>) -> ExpressionValue {
         ExpressionValue::Map(ExpressionMap::from(input))
@@ -357,6 +357,10 @@ impl ExpressionMap {
         ExpressionMap(HashMap::new())
     }
 
+    pub fn from_hashmap(map: HashMap<String, Expression>) -> ExpressionMap {
+        ExpressionMap(map)
+    }
+
     pub fn get(&self, key: &str) -> Option<Expression> {
         self.0.get(key).cloned()
     }
@@ -372,7 +376,7 @@ impl ExpressionMap {
 
 impl<T> From<HashMap<String, T>> for ExpressionMap
 where
-    T: Into<ExpressionValue>,
+    T: Into<ExpressionValue> + Clone,
 {
     fn from(input: HashMap<String, T>) -> ExpressionMap {
         let map = HashMap::from_iter(

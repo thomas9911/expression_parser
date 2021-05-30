@@ -28,11 +28,7 @@ pub fn put_map<'a, 'b, E: Env<'a>>(
     }
 }
 
-pub fn remove_map<'a, 'b, E: Env<'a>>(
-    map: ExpressionMap,
-    rhs: Input,
-    env: &'b mut E,
-) -> Output {
+pub fn remove_map<'a, 'b, E: Env<'a>>(map: ExpressionMap, rhs: Input, env: &'b mut E) -> Output {
     match Expression::eval(rhs, env)? {
         ExpressionValue::String(ref key) => {
             Ok(ExpressionMap::from_hashmap(map.0.without(key)).into())

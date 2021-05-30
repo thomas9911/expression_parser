@@ -1,7 +1,7 @@
 use crate::user_function::UserFunction;
 use crate::{Closure, Expression, Variables};
-use im::{Vector, HashMap};
-use std::collections::{BinaryHeap};
+use im::{HashMap, Vector};
+use std::collections::BinaryHeap;
 use std::iter::FromIterator;
 
 #[cfg(feature = "serde")]

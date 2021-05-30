@@ -34,6 +34,4 @@ name = "serde_load_from_file"
 required-features = ["serde_example"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom   = {version = "0.2", features = ["js"]}
-# [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-# rand  = "0.8"
+getrandom = {version = "0.2", features = ["js"]}

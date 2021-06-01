@@ -23,27 +23,27 @@ function print_success() {
 function run_test() {
   case $1 in
 
-  ./examples/file/script.txt)
+  ./expression_parser/examples/file/script.txt)
     run_single_test $1 "123"
     ;;
 
-  ./examples/file/recursion.txt)
+  ./expression_parser/examples/file/recursion.txt)
     run_single_test $1 "STACKOVERFLOW"
     ;;
 
-  ./examples/file/sort.txt)
+  ./expression_parser/examples/file/sort.txt)
     run_single_test $1 "[ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]"
     ;;
 
-  ./examples/file/import.txt)
+  ./expression_parser/examples/file/import.txt)
     run_single_test $1 "\"testing 123\""
     ;;
 
-  ./examples/file/import_from.txt)
+  ./expression_parser/examples/file/import_from.txt)
     run_single_test $1 "null"
     ;;
 
-  ./examples/file/secant_method.txt)
+  ./expression_parser/examples/file/secant_method.txt)
     run_single_test $1 "true"
     ;;
 
@@ -59,7 +59,7 @@ if [ "skip" != "$1" ]; then
 fi
 
 echo "run file examples"
-for FILE in ./examples/file/*; do
+for FILE in ./expression_parser/examples/file/*; do
   run_test "$FILE"
 done
 echo

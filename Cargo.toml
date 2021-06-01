@@ -1,37 +1,6 @@
-[package]
-name = "expression_parser"
-version = "0.3.0"
-authors = ["Thomas <thomastimmer11@hotmail.com>"]
-edition = "2018"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-pest = "2.0"
-pest_derive = "2.0"
-lazy_static = "1.4"
-serde = { version = "1.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0", optional = true }
-rand  = "0.8"
-snailquote = "0.3.0"
-strum = "0.20"
-strum_macros = "0.20"
-stacker = "0.1.13"
-im = {version = "15.0.0"}
-
-[dev-dependencies]
-colored = "2"
-
-[features]
-serde_example = ["serde", "serde_json", "im/serde"]
-
-[[example]]
-name = "serde"
-required-features = ["serde_example"]
-
-[[example]]
-name = "serde_load_from_file"
-required-features = ["serde_example"]
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = {version = "0.2", features = ["js"]}
+[workspace]
+members = [
+    "expression_parser",
+]

@@ -1,0 +1,4 @@
+import { value, func } from "./expression_parser/examples/file/import_from.txt";
+
+
+func.(value)

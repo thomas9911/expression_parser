@@ -1,7 +1,7 @@
 use std::fs::{read, read_dir, DirEntry};
 use std::io::Result;
 
-const DIR: &'static str = "examples/file";
+const DIR: &'static str = "expression_parser/examples/file";
 
 fn main() -> Result<()> {
     let paths = collect_paths()?;

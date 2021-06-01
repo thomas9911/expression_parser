@@ -45,8 +45,8 @@ pub fn parse_unassignment(mut assignment: Pairs<'_, Rule>) -> UnassignmentParseR
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Assignment {
-    variable: String,
-    expression: Expression,
+    pub(crate) variable: String,
+    pub(crate) expression: Expression,
 }
 
 impl std::fmt::Display for Assignment {

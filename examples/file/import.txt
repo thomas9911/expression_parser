@@ -1,4 +1,0 @@
-import { value, func } from "./examples/file/import_from.txt";
-
-
-func.(value)

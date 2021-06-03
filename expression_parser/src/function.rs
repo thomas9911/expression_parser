@@ -1,13 +1,16 @@
 use crate::statics::DEFAULT_VARIABLES;
 use crate::string_expression::EvalResult;
 use crate::{Env, Environment, Error, Expression};
+use expression_parser_macros::DeriveFunctions;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 pub mod functions;
 
-#[derive(Debug, Clone, PartialEq, EnumString, EnumMessage, EnumIter, EnumDiscriminants)]
+#[derive(
+    Debug, Clone, PartialEq, EnumString, EnumMessage, EnumIter, EnumDiscriminants, DeriveFunctions,
+)]
 #[strum(serialize_all = "snake_case")]
 #[strum_discriminants(derive(EnumString))]
 #[strum_discriminants(
@@ -304,57 +307,6 @@ impl Function {
 
     fn contains_variables(&self) -> bool {
         self.iter_variables_without_defaults().count() != 0
-    }
-
-    pub fn iter_variables<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
-        use Function::*;
-
-        match self {
-            Trim(lhs, rhs)
-            | Equal(lhs, rhs)
-            | NotEqual(lhs, rhs)
-            | Greater(lhs, rhs)
-            | Lesser(lhs, rhs)
-            | And(lhs, rhs)
-            | Or(lhs, rhs)
-            | Contains(lhs, rhs)
-            | Join(lhs, rhs)
-            | Add(lhs, rhs)
-            | Sub(lhs, rhs)
-            | Mul(lhs, rhs)
-            | Div(lhs, rhs)
-            | Pow(lhs, rhs)
-            | Get(lhs, rhs)
-            | Push(lhs, rhs)
-            | Remove(lhs, rhs)
-            | Try(lhs, rhs)
-            | Assert(lhs, rhs)
-            | Random(lhs, rhs) => Box::new(lhs.iter_variables().chain(rhs.iter_variables())),
-
-            Lower(lhs) | Upper(lhs) | Cos(lhs) | Sin(lhs) | Tan(lhs) | Print(lhs) | Help(lhs)
-            | Type(lhs) | Error(lhs) | Shuffle(lhs) | Length(lhs) => Box::new(lhs.iter_variables()),
-
-            If(lhs, mdl, rhs)
-            | Put(lhs, mdl, rhs)
-            | Range(lhs, mdl, rhs)
-            | Reduce(lhs, mdl, rhs) => Box::new(
-                lhs.iter_variables()
-                    .chain(mdl.iter_variables())
-                    .chain(rhs.iter_variables()),
-            ),
-
-            Concat(list) | Product(list) | Sum(list) | All(list) | Any(list) => {
-                Box::new(list.iter().flat_map(|x| x.iter_variables()))
-            }
-
-            Call(lhs, list) | Format(lhs, list) => Box::new(
-                list.iter()
-                    .flat_map(|x| x.iter_variables())
-                    .chain(lhs.iter_variables()),
-            ),
-
-            Now() => Box::new(std::iter::empty::<String>()),
-        }
     }
 
     pub fn iter_variables_without_defaults<'a>(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
@@ -823,3 +775,23 @@ fn function_doc_tests() {
         }
     }
 }
+
+// #[test]
+// fn stuff() {
+//     #[derive(DeriveFunctions)]
+//     pub enum Stuff {
+//         Hallo(Expression),
+//         Bye(Expression, Expression),
+//         Thing(Expression),
+//         Vect(Expression, Vec<Expression>),
+//     }
+
+//     // let expression = Expression::default();
+//     let parsed = Expression::parse(r#"true | false"#).unwrap();
+//     let result: Vec<String> = Stuff::Hallo(parsed).iter_variables().collect();
+//     assert_eq!(result, ["false", "false"]);
+
+//     // let res: Vec<_> = Stuff::Hallo(expression).iter_variables_xd().collect();
+//     // let expected: Vec<String> = Vec::new();
+//     // assert_eq!(expected, res);
+// }

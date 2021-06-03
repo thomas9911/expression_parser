@@ -324,7 +324,7 @@ fn mutable_variables() {
 fn boxed_test_variables() {
     fn fetch_true<'a, E: Env<'a>>(t: E) -> bool {
         t.variables().get("true").unwrap().as_bool().unwrap()
-    };
+    }
 
     let env = Environment::default();
     assert!(fetch_true(env));
@@ -339,11 +339,11 @@ fn boxed_test_variables() {
 fn boxed_test_variables_mut() {
     fn set_ok<'a, E: Env<'a>>(mut t: E) {
         t.variables_mut().insert("ok", true.into());
-    };
+    }
 
     fn fetch_ok<'a, E: Env<'a>>(mut t: E) -> bool {
         t.variables_mut().get("ok").unwrap().as_bool().unwrap()
-    };
+    }
 
     let mut env = Environment::default();
     set_ok(Box::new(&mut env));

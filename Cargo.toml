@@ -3,4 +3,5 @@
 [workspace]
 members = [
     "expression_parser",
+    "expression_parser_macros"
 ]

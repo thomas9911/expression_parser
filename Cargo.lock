@@ -102,6 +102,7 @@ name = "expression_parser"
 version = "0.3.0"
 dependencies = [
  "colored",
+ "expression_parser_macros",
  "getrandom",
  "im",
  "lazy_static",
@@ -114,6 +115,15 @@ dependencies = [
  "stacker",
  "strum",
  "strum_macros",
+]
+
+[[package]]
+name = "expression_parser_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
